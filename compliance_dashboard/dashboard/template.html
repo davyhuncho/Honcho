@@ -209,16 +209,21 @@ document.getElementById("generated").textContent = "Updated " + new Date(DATA.ge
       ...st.newer.map((p, i) => [i ? ", " : "", h("a", { href: p.url },
         p.kind === "call-for-action" ? "Black list" : "Grey list", " ", new Date(p.year, p.month - 1).toLocaleDateString(undefined, { month: "long", year: "numeric" }))]),
       ". Then update data/fatf_lists.json."));
+  } else if (st.plenary_passed) {
+    const np = F.next_plenary;
+    app.append(h("div", { class: "banner warn", role: "alert" },
+      h("b", {}, "FATF has published new lists. "),
+      `The plenary ended on ${fmtDate(np.end || np.start)}, but the lists below are still from the ${F.as_of_label}. Check `,
+      h("a", { href: F.sources.topic_page }, "fatf-gafi.org"), ", then update data/fatf_lists.json."));
   }
   const np = F.next_plenary;
   if (np) {
     const toStart = daysUntil(np.start), toEnd = daysUntil(np.end || np.start);
-    if (toStart <= 14 && toEnd >= -3) {
-      const when = toStart > 0 ? `starts in ${toStart} day${toStart === 1 ? "" : "s"}`
-        : toEnd >= 0 ? "is in session now" : "has just ended";
+    if (toStart <= 14 && toEnd >= 0) {
+      const when = toStart > 0 ? `starts in ${toStart} day${toStart === 1 ? "" : "s"}` : "is in session now";
       app.append(h("div", { class: "banner info" },
         h("b", {}, `FATF Plenary ${when}`), ` (${fmtDate(np.start, { day: "numeric", month: "short" })}–${fmtDate(np.end || np.start)}, ${np.location}). `,
-        np.note || "", toEnd < 0 && !(st.newer || []).length ? " Check fatf-gafi.org for the outcomes." : ""));
+        np.note || ""));
     }
   }
 })();

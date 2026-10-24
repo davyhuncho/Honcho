@@ -75,6 +75,13 @@ class FatfTests(unittest.TestCase):
         self.assertEqual(st["newer"][0]["kind"], "increased-monitoring")
         self.assertTrue(st["newer"][0]["url"].startswith("https://www.fatf-gafi.org/en/"))
 
+    def test_plenary_passed_when_site_blocked(self):
+        data = {"as_of": "2026-06-19", "sources": {"topic_page": "x"},
+                "next_plenary": {"start": "2026-10-28", "end": "2026-10-30"}}
+        with mock.patch.object(fatf, "fetch_url", side_effect=OSError("403")):
+            self.assertFalse(fatf.check_for_update(data, today=date(2026, 10, 30))["plenary_passed"])
+            self.assertTrue(fatf.check_for_update(data, today=date(2026, 10, 31))["plenary_passed"])
+
     def test_months_listed(self):
         self.assertEqual(fatf.months_listed("2025-06", date(2026, 10, 24)), 16)
         self.assertIsNone(fatf.months_listed("", date(2026, 10, 24)))
@@ -128,6 +135,13 @@ class NotifyTests(unittest.TestCase):
         self.assertEqual(msg["priority"], 4)
         self.assertTrue(msg["body"].startswith("New FATF statement published"))
         self.assertIn("outcomes today", msg["body"])
+
+    def test_plenary_passed_is_high_priority(self):
+        data = self._data([])
+        data["fatf_status"]["plenary_passed"] = True
+        msg = notify.compose(data, {}, today=date(2026, 11, 2))
+        self.assertEqual(msg["priority"], 4)
+        self.assertIn("new grey/black lists are out", msg["body"])
 
     def test_send_posts_to_ntfy(self):
         captured = {}

@@ -36,6 +36,9 @@ def compose(data: dict, cache: dict, today: date | None = None) -> dict:
     if newer:
         priority, tags = 4, ["warning"]
         lines.append("New FATF statement published. Check the grey/black list changes and update the dashboard.")
+    elif data["fatf_status"].get("plenary_passed"):
+        priority, tags = 4, ["warning"]
+        lines.append("FATF plenary has ended: new grey/black lists are out. The dashboard lists need updating.")
 
     np = fatf.get("next_plenary") or {}
     if np.get("start"):

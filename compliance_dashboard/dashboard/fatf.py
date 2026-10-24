@@ -33,10 +33,22 @@ def find_publications(page_html: str) -> list[dict]:
     return sorted(pubs.values(), key=lambda p: (p["year"], p["month"]), reverse=True)
 
 
-def check_for_update(fatf: dict) -> dict:
+def plenary_passed(fatf: dict, today: date | None = None) -> bool:
+    """True once the next plenary listed in the baseline has ended.
+
+    FATF publishes updated statements on the last day of every plenary, so after
+    that date the local lists are out of date even if fatf-gafi.org can't be
+    reached (it blocks some automated requests).
+    """
+    np = fatf.get("next_plenary") or {}
+    end = np.get("end") or np.get("start")
+    return bool(end) and (today or date.today()) > date.fromisoformat(end)
+
+
+def check_for_update(fatf: dict, today: date | None = None) -> dict:
     """Compare the newest statement on fatf-gafi.org with the local baseline."""
     as_of = date.fromisoformat(fatf["as_of"])
-    status = {"checked": False, "newer": [], "error": None}
+    status = {"checked": False, "newer": [], "error": None, "plenary_passed": plenary_passed(fatf, today)}
     try:
         page = fetch_url(fatf["sources"]["topic_page"]).decode("utf-8", "replace")
     except Exception as exc:

@@ -29,7 +29,8 @@ def build_data(cache: dict, offline: bool = False) -> dict:
         c["months_listed"] = fatf_mod.months_listed(c.get("listed_since", ""), today)
 
     if offline:
-        fatf_status = {"checked": False, "newer": [], "error": "offline mode"}
+        fatf_status = {"checked": False, "newer": [], "error": "offline mode",
+                       "plenary_passed": fatf_mod.plenary_passed(fatf, today)}
         sections = []
     else:
         fatf_status = fatf_mod.check_for_update(fatf)
