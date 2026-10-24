@@ -28,37 +28,25 @@ On Windows, use `py run.py`. If a source is down, the dashboard shows the last c
 ### Have it ready every morning
 
 - **Windows Task Scheduler**: create a daily task at 7:30am that runs `py C:\path\to\compliance_dashboard\run.py --no-open`, then bookmark `output\index.html`.
-- **GitHub Pages (no PC needed)**: `.github/workflows/compliance-dashboard.yml` rebuilds the page at 6am TCI time every weekday and publishes it. To enable it, go to repo Settings → Pages → Source and choose "GitHub Actions". You can also trigger a run by hand from the Actions tab. Note that the Pages site is public unless your GitHub plan supports private Pages. The page holds only public information; checklist ticks stay in your browser.
+- **Online (no PC needed)**: `.github/workflows/compliance-dashboard.yml` rebuilds the page at 6am TCI time every weekday and publishes it to the `gh-pages` branch, which serves https://davyhuncho.github.io/Honcho/. You can also trigger a run by hand from the Actions tab (**Compliance dashboard → Run workflow**). The site is public, but it only holds public information; checklist ticks stay in your browser.
 
 ## On your iPhone
 
+The brief is published at **https://davyhuncho.github.io/Honcho/** and rebuilt at 6am TCI time every weekday.
+
 ### 1. Home Screen app
-After the GitHub Pages site is switched on (above), it lives at `https://<your-github-username>.github.io/Honcho/`.
+1. Open the link above in **Safari** on your iPhone.
+2. Tap **Share** (square with an arrow), then **Add to Home Screen**, then **Add**.
 
-1. Open that address in **Safari** on your iPhone.
-2. Tap the **Share** button (square with an arrow), then **Add to Home Screen**, then **Add**.
-
-You now have an **MLRO Brief** icon that opens the dashboard full-screen like an app. If you have no signal, it shows the last brief you opened.
+The **MLRO Brief** icon opens the dashboard full-screen. With no signal, it shows the last brief you opened.
 
 ### 2. Morning push notification
-Every weekday at 6am TCI time, the rebuild can send you a notification like:
+1. Install the free **ntfy** app from the App Store and allow notifications.
+2. Tap **+**, then type the topic name from `data/notify.json` (currently `mlro-tci-tw8ls377`) and tap **Subscribe**.
 
-> **MLRO Brief - Mon 26 Oct**
-> FATF plenary in 2 days.
-> 2 new on your watch list (TCI, Caribbean, BVI...):
-> - …
-
-It is high priority if FATF has published new lists. Tap it to open the brief. Setup takes about 3 minutes:
-
-1. Install the free **ntfy** app from the App Store.
-2. Pick a private topic name that nobody could guess, e.g. `mlro-brief-7f3k9q2x`. (ntfy topics work like a password: anyone who knows the name can read them. The messages only contain public news headlines.)
-3. In the ntfy app, tap **+** and subscribe to that topic name.
-4. On GitHub, open the repo **Settings → Secrets and variables → Actions → New repository secret**. Set the name to `NTFY_TOPIC` and the value to your topic name.
-5. Test it: **Actions** tab → **Compliance dashboard** → **Run workflow**. The notification should arrive within about a minute.
-
-To use it from your own PC instead, set `NTFY_TOPIC` (and optionally `DASHBOARD_URL`) and run `python run.py --notify`.
-
-Note: on iPhone, tapping a notification opens the brief in Safari rather than in the Home Screen app. That is an Apple restriction.
+Each weekday morning you'll get "MLRO Brief - <date>" with the plenary countdown and new TCI/Caribbean stories. It is marked high priority when FATF publishes new lists. Tap it to open the brief.
+To change the topic, edit `data/notify.json`, or set a repository secret `NTFY_TOPIC` to keep it out of this public repo.
+On your own PC, `python run.py --notify` sends the same notification.
 
 ## Keep it current (5 minutes, three times a year)
 

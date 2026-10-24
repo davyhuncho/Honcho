@@ -5,7 +5,7 @@
     python run.py --no-open    build only (for scheduled jobs)
     python run.py --serve      serve on http://localhost:8765 and rebuild every hour
     python run.py --offline    build without network access (FATF lists only)
-    python run.py --notify     also send a push notification (needs NTFY_TOPIC, see README)
+    python run.py --notify     also send a push notification (topic in data/notify.json, see README)
 """
 
 from __future__ import annotations
@@ -64,15 +64,19 @@ def build(out_dir: Path, offline: bool = False, send_notification: bool = False)
 
 
 def _notify(data: dict, cache: dict) -> None:
-    topic = os.environ.get("NTFY_TOPIC", "").strip()
+    try:
+        config = json.loads((ROOT / "data" / "notify.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        config = {}
+    topic = os.environ.get("NTFY_TOPIC", "").strip() or config.get("topic", "")
     if not topic:
-        print("  ! --notify given but NTFY_TOPIC is not set; skipping notification")
+        print("  ! --notify given but no ntfy topic set (NTFY_TOPIC or data/notify.json); skipping")
         return
     message = notify.compose(data, cache)
     try:
         notify.send(message, topic,
-                    click_url=os.environ.get("DASHBOARD_URL") or None,
-                    server=os.environ.get("NTFY_SERVER") or "https://ntfy.sh",
+                    click_url=os.environ.get("DASHBOARD_URL") or config.get("dashboard_url") or None,
+                    server=os.environ.get("NTFY_SERVER") or config.get("server") or "https://ntfy.sh",
                     token=os.environ.get("NTFY_TOKEN") or None)
         print("  notification sent:", message["body"].splitlines()[0])
     except Exception as exc:

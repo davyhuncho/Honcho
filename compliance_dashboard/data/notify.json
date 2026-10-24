@@ -1,0 +1,5 @@
+{
+  "_comment": "ntfy topic for the morning phone notification. Subscribe to this exact name in the ntfy app. A repository secret NTFY_TOPIC, if set, overrides it. The repo is public, so anyone who reads this file could also subscribe to the topic (it only carries public headlines) or post to it.",
+  "topic": "mlro-tci-tw8ls377",
+  "server": "https://ntfy.sh"
+}
