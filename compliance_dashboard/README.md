@@ -3,7 +3,7 @@
 A one-page compliance dashboard for a Money Laundering Reporting Officer in the Turks and Caicos Islands.
 Open it each morning to see:
 
-- **FATF black and grey lists**: the current jurisdictions, how long each has been listed, what changed at recent plenaries, and a countdown to the next plenary. Each run also checks fatf-gafi.org and shows a red banner when a newer statement has been published.
+- **FATF black and grey lists**: the current jurisdictions, how long each has been listed, what changed at recent plenaries, and a countdown to the next plenary. Every list entry, "listed since" date and plenary change was checked against FATF statements and FATF-sourced regulator notices on 24 Oct 2026. Each run also checks fatf-gafi.org and shows a red banner when a newer statement has been published.
 - **Country risk lookup**: type a country (aliases like "BVI", "DRC" and "North Korea" work) to see its FATF status, plus quick links to the UK, OFAC and EU sanctions search tools.
 - **News**, in four groups: Turks & Caicos and the Caribbean, FATF, Sanctions (UK OFSI, UK sanctions list, OFAC, UN), and AML/CFT (enforcement, FinCEN, FCA, typologies, TF/PF). Stories published since your last visit are marked **NEW**. Stories that mention your watch terms (TCI, Caribbean, BVI, CFATF and so on) are tagged, and a filter can show only those.
 - **Today's routine**: a daily MLRO checklist. Ticks reset each day and you can add your own tasks.
@@ -43,7 +43,7 @@ Run `python -m unittest discover -s tests` to check that the file is consistent.
 | File | What it controls |
 |---|---|
 | `data/sources.json` | News feeds (any RSS/Atom URL or Google News search), watch terms, quick links |
-| `data/calendar.json` | Key dates. Add SAR statistics returns, Board reports, audits and training here |
+| `data/calendar.json` | Key dates. Add your Board reports, regulatory returns, audits and training, plus future FATF/CFATF plenaries once they are announced |
 | `data/checklist.json` | Daily routine items |
 | `data/fatf_lists.json` | FATF lists and change history |
 

@@ -3,10 +3,10 @@
   "as_of": "2026-06-19",
   "as_of_label": "FATF Plenary, 17-19 June 2026",
   "next_plenary": {
-    "start": "2026-10-26",
+    "start": "2026-10-28",
     "end": "2026-10-30",
     "location": "Paris, France",
-    "note": "Updated statements are normally published on the final day of the plenary."
+    "note": "FATF Week (working groups) begins 26 October. Outcomes are announced at the FATF President's press conference on Friday 30 October."
   },
   "sources": {
     "black_list": "https://www.fatf-gafi.org/en/publications/High-risk-and-other-monitored-jurisdictions/call-for-action-june-2026.html",
@@ -23,7 +23,7 @@
     {"country": "Angola", "iso": "AO", "listed_since": "2024-10"},
     {"country": "Bolivia", "iso": "BO", "listed_since": "2025-06"},
     {"country": "Bosnia and Herzegovina", "iso": "BA", "listed_since": "2026-06"},
-    {"country": "Bulgaria", "iso": "BG", "listed_since": "2023-06"},
+    {"country": "Bulgaria", "iso": "BG", "listed_since": "2023-10"},
     {"country": "Cameroon", "iso": "CM", "listed_since": "2023-06"},
     {"country": "Côte d'Ivoire", "iso": "CI", "listed_since": "2024-10"},
     {"country": "Democratic Republic of the Congo", "iso": "CD", "listed_since": "2022-10"},
@@ -45,14 +45,14 @@
   ],
   "history": [
     {"date": "2026-06-19", "label": "June 2026 Plenary", "added": ["Bosnia and Herzegovina", "Iraq"], "removed": ["Algeria", "Namibia"]},
-    {"date": "2026-02", "label": "February 2026 Plenary", "added": ["Kuwait", "Papua New Guinea"], "removed": []},
-    {"date": "2025-10", "label": "October 2025 Plenary", "added": [], "removed": ["Burkina Faso", "Mozambique", "Nigeria", "South Africa"]},
-    {"date": "2025-06", "label": "June 2025 Plenary", "added": ["Bolivia", "Virgin Islands (UK)"], "removed": ["Croatia", "Mali", "Tanzania"]}
+    {"date": "2026-02-13", "label": "February 2026 Plenary", "added": ["Kuwait", "Papua New Guinea"], "removed": []},
+    {"date": "2025-10-24", "label": "October 2025 Plenary", "added": [], "removed": ["Burkina Faso", "Mozambique", "Nigeria", "South Africa"]},
+    {"date": "2025-06-13", "label": "June 2025 Plenary", "added": ["Bolivia", "Virgin Islands (UK)"], "removed": ["Croatia", "Mali", "Tanzania"]}
   ],
   "other_lists": [
     {
       "name": "EU high-risk third countries",
-      "note": "Largely mirrors FATF; amended by Delegated Regulations (EU) 2026/46 and 2026/83 (in force 29 Jan 2026), which also added Russia. Check the Official Journal for the current text.",
+      "note": "Largely mirrors FATF. Last amended by Delegated Regulations (EU) 2026/46 (adds Russia) and 2026/83 (adds Bolivia and the Virgin Islands (UK)), published 9 January 2026. Check the Official Journal for later changes.",
       "url": "https://eur-lex.europa.eu/eli/reg_del/2016/1675/oj"
     },
     {
