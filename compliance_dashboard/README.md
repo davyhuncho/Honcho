@@ -10,6 +10,8 @@ Open it each morning to see:
 - **Key dates**: FATF plenaries and your own deadlines.
 - **Quick links**: TCI FSC, FIA Ordinance, MLRO guideline, sanctions lists, FATF, CFATF, Egmont, Wolfsberg.
 
+On your phone, it installs as a Home Screen app and can send you a morning notification (see **On your iPhone**).
+
 It needs only Python 3.9 or newer. There is nothing to install, so it runs on a locked-down work PC.
 
 ## Run it
@@ -27,6 +29,36 @@ On Windows, use `py run.py`. If a source is down, the dashboard shows the last c
 
 - **Windows Task Scheduler**: create a daily task at 7:30am that runs `py C:\path\to\compliance_dashboard\run.py --no-open`, then bookmark `output\index.html`.
 - **GitHub Pages (no PC needed)**: `.github/workflows/compliance-dashboard.yml` rebuilds the page at 6am TCI time every weekday and publishes it. To enable it, go to repo Settings → Pages → Source and choose "GitHub Actions". You can also trigger a run by hand from the Actions tab. Note that the Pages site is public unless your GitHub plan supports private Pages. The page holds only public information; checklist ticks stay in your browser.
+
+## On your iPhone
+
+### 1. Home Screen app
+After the GitHub Pages site is switched on (above), it lives at `https://<your-github-username>.github.io/Honcho/`.
+
+1. Open that address in **Safari** on your iPhone.
+2. Tap the **Share** button (square with an arrow), then **Add to Home Screen**, then **Add**.
+
+You now have an **MLRO Brief** icon that opens the dashboard full-screen like an app. If you have no signal, it shows the last brief you opened.
+
+### 2. Morning push notification
+Every weekday at 6am TCI time, the rebuild can send you a notification like:
+
+> **MLRO Brief - Mon 26 Oct**
+> FATF plenary in 2 days.
+> 2 new on your watch list (TCI, Caribbean, BVI...):
+> - …
+
+It is high priority if FATF has published new lists. Tap it to open the brief. Setup takes about 3 minutes:
+
+1. Install the free **ntfy** app from the App Store.
+2. Pick a private topic name that nobody could guess, e.g. `mlro-brief-7f3k9q2x`. (ntfy topics work like a password: anyone who knows the name can read them. The messages only contain public news headlines.)
+3. In the ntfy app, tap **+** and subscribe to that topic name.
+4. On GitHub, open the repo **Settings → Secrets and variables → Actions → New repository secret**. Set the name to `NTFY_TOPIC` and the value to your topic name.
+5. Test it: **Actions** tab → **Compliance dashboard** → **Run workflow**. The notification should arrive within about a minute.
+
+To use it from your own PC instead, set `NTFY_TOPIC` (and optionally `DASHBOARD_URL`) and run `python run.py --notify`.
+
+Note: on iPhone, tapping a notification opens the brief in Safari rather than in the Home Screen app. That is an Apple restriction.
 
 ## Keep it current (5 minutes, three times a year)
 

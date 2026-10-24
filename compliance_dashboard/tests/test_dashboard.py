@@ -6,7 +6,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from dashboard import fatf, feeds, render  # noqa: E402
+from dashboard import fatf, feeds, notify, render  # noqa: E402
 
 NOW = datetime.now(timezone.utc)
 RSS = f"""<?xml version="1.0"?>
@@ -97,6 +97,58 @@ class RenderTests(unittest.TestCase):
         html = render.render(render.build_data({}, offline=True))
         self.assertIn("MLRO Morning Brief", html)
         self.assertNotIn("/*__DATA__*/null", html)
+
+
+class NotifyTests(unittest.TestCase):
+    def _data(self, items, newer=()):
+        return {
+            "fatf": {"next_plenary": {"start": "2026-10-28", "end": "2026-10-30"}},
+            "fatf_status": {"newer": list(newer)},
+            "sections": [{"feeds": [{"items": items}]}],
+        }
+
+    def test_compose_counts_new_and_watch_stories_once(self):
+        items = [
+            {"title": "TCI story", "link": "https://a", "watch": ["TCI"]},
+            {"title": "Other story", "link": "https://b", "watch": []},
+        ]
+        cache = {}
+        msg = notify.compose(self._data(items), cache, today=date(2026, 10, 24))
+        self.assertIn("FATF plenary in 4 days.", msg["body"])
+        self.assertIn("1 new on your watch list", msg["body"])
+        self.assertIn("- TCI story", msg["body"])
+        self.assertIn("1 other new", msg["body"])
+        self.assertEqual(msg["priority"], 3)
+        # Second run with the same stories announces nothing new.
+        msg2 = notify.compose(self._data(items), cache, today=date(2026, 11, 20))
+        self.assertEqual(msg2["body"], "No new stories since yesterday.")
+
+    def test_new_fatf_statement_is_high_priority(self):
+        msg = notify.compose(self._data([], newer=[{"url": "x"}]), {}, today=date(2026, 10, 30))
+        self.assertEqual(msg["priority"], 4)
+        self.assertTrue(msg["body"].startswith("New FATF statement published"))
+        self.assertIn("outcomes today", msg["body"])
+
+    def test_send_posts_to_ntfy(self):
+        captured = {}
+
+        class Resp:
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self): return b"{}"
+
+        def fake_urlopen(req, timeout):
+            captured["req"] = req
+            return Resp()
+
+        with mock.patch.object(notify.urllib.request, "urlopen", fake_urlopen):
+            notify.send({"title": "T", "body": "B ü", "priority": 4, "tags": ["warning"]},
+                        "my-topic", click_url="https://example.github.io/Honcho/")
+        req = captured["req"]
+        self.assertEqual(req.full_url, "https://ntfy.sh/my-topic")
+        self.assertEqual(req.get_header("Click"), "https://example.github.io/Honcho/")
+        self.assertEqual(req.get_header("Priority"), "4")
+        self.assertEqual(req.data, "B ü".encode())
 
 
 if __name__ == "__main__":

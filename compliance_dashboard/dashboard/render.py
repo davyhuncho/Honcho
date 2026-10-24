@@ -1,8 +1,9 @@
-"""Assemble dashboard data and render it into a single self-contained HTML file."""
+"""Assemble dashboard data and render it into index.html plus the Home Screen app files."""
 
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from .feeds import fetch_sections
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 TEMPLATE = Path(__file__).resolve().parent / "template.html"
+STATIC = Path(__file__).resolve().parent / "static"
 
 
 def _load(name: str) -> dict:
@@ -49,3 +51,10 @@ def render(data: dict) -> str:
     # Escape "</" so feed text can never close the <script> tag early.
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     return TEMPLATE.read_text(encoding="utf-8").replace("/*__DATA__*/null", payload)
+
+
+def copy_static(out_dir: Path) -> None:
+    """Copy the Home Screen app files (manifest, icons, service worker) next to index.html."""
+    for f in STATIC.iterdir():
+        if f.is_file():
+            shutil.copyfile(f, out_dir / f.name)

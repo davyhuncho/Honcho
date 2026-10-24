@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MLRO Morning Brief</title>
+<meta name="theme-color" content="#0b3d6e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MLRO Brief">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <style>
 :root {
   --bg: #f5f6f8; --panel: #ffffff; --ink: #1b1f24; --muted: #5d6673; --line: #e2e5ea;
@@ -122,6 +130,11 @@ footer { max-width: 1280px; margin: 0 auto; padding: 0 16px 32px; color: var(--m
 </footer>
 <script>
 const DATA = /*__DATA__*/null;
+
+// Offline support when installed to the Home Screen (needs http(s), not file://).
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
 
 // ---------- helpers ----------
 function h(tag, attrs, ...kids) {

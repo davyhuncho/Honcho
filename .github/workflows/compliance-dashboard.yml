@@ -1,5 +1,7 @@
 # Rebuilds the MLRO Morning Brief every weekday morning and publishes it to GitHub Pages.
 # One-time setup: repo Settings -> Pages -> Source: "GitHub Actions".
+# Phone notifications (optional): add a repository secret NTFY_TOPIC with your private
+# ntfy topic name (Settings -> Secrets and variables -> Actions). See compliance_dashboard/README.md.
 name: Compliance dashboard
 
 on:
@@ -24,6 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - id: pages
+        uses: actions/configure-pages@v5
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -36,7 +40,12 @@ jobs:
       - name: Test
         run: python -m unittest discover -s compliance_dashboard/tests
       - name: Build
-        run: python compliance_dashboard/run.py --no-open --out site
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          DASHBOARD_URL: ${{ steps.pages.outputs.base_url }}/
+          # Only the morning schedule (or a manual run) sends a notification, not code pushes.
+          NOTIFY: ${{ github.event_name != 'push' && secrets.NTFY_TOPIC != '' && '--notify' || '' }}
+        run: python compliance_dashboard/run.py --no-open --out site $NOTIFY
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
