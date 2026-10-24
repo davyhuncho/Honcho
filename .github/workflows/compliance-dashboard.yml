@@ -1,0 +1,51 @@
+# Rebuilds the MLRO Morning Brief every weekday morning and publishes it to GitHub Pages.
+# One-time setup: repo Settings -> Pages -> Source: "GitHub Actions".
+name: Compliance dashboard
+
+on:
+  schedule:
+    - cron: "0 10 * * 1-5"   # 10:00 UTC = 06:00 in Turks & Caicos (EDT), 05:00 in winter (EST)
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: ["compliance_dashboard/**"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Restore feed cache
+        uses: actions/cache@v4
+        with:
+          path: compliance_dashboard/cache
+          key: feeds-${{ github.run_id }}
+          restore-keys: feeds-
+      - name: Test
+        run: python -m unittest discover -s compliance_dashboard/tests
+      - name: Build
+        run: python compliance_dashboard/run.py --no-open --out site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

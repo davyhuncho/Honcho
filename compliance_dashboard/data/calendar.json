@@ -1,0 +1,9 @@
+{
+  "_comment": "Key dates shown on the dashboard. Add your own reporting deadlines, board meetings, training and audit dates. Dates are YYYY-MM-DD; 'end' is optional.",
+  "events": [
+    {"date": "2026-10-26", "end": "2026-10-30", "title": "FATF Plenary (Paris)", "detail": "Updated grey and black lists expected on the final day. Review customer exposure to any newly listed jurisdictions.", "tag": "FATF"},
+    {"date": "2027-02-15", "title": "FATF February 2027 Plenary (date TBC)", "detail": "Placeholder: confirm on fatf-gafi.org/en/calendars/events.html", "tag": "FATF"},
+    {"date": "2027-06-14", "title": "FATF June 2027 Plenary (date TBC)", "detail": "Placeholder: confirm on fatf-gafi.org/en/calendars/events.html", "tag": "FATF"},
+    {"date": "2026-11-30", "title": "Example: annual MLRO report to the Board", "detail": "Edit or delete this example in data/calendar.json.", "tag": "Internal"}
+  ]
+}

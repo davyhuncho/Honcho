@@ -1,0 +1,74 @@
+{
+  "_comment": "News feeds shown on the dashboard. Any RSS or Atom URL works. Set \"enabled\": false to hide one. Google News queries accept operators such as OR, quotes and when:7d.",
+  "max_items_per_feed": 12,
+  "max_age_days": 21,
+  "watch_terms": [
+    "Turks and Caicos", "TCI", "Providenciales", "Grand Turk",
+    "Caribbean", "CFATF", "Overseas Territor", "British Virgin Islands", "BVI",
+    "Cayman", "Bermuda", "Bahamas", "Anguilla",
+    "grey list", "gray list", "blacklist", "beneficial owner"
+  ],
+  "sections": [
+    {
+      "id": "tci",
+      "title": "Turks & Caicos and the Caribbean",
+      "feeds": [
+        {"name": "TCI financial and regulatory news", "url": "https://news.google.com/rss/search?q=%22Turks+and+Caicos%22+(financial+OR+bank+OR+%22money+laundering%22+OR+FSC+OR+sanctions+OR+fraud)+when:30d&hl=en-US&gl=US&ceid=US:en"},
+        {"name": "CFATF and Caribbean AML", "url": "https://news.google.com/rss/search?q=(CFATF+OR+%22Caribbean+Financial+Action+Task+Force%22+OR+(Caribbean+%22money+laundering%22))+when:30d&hl=en-US&gl=US&ceid=US:en"},
+        {"name": "UK Overseas Territories: beneficial ownership and finance", "url": "https://news.google.com/rss/search?q=%22Overseas+Territories%22+(%22beneficial+ownership%22+OR+%22money+laundering%22+OR+sanctions)+when:30d&hl=en-US&gl=US&ceid=US:en"}
+      ]
+    },
+    {
+      "id": "fatf",
+      "title": "FATF and global standards",
+      "feeds": [
+        {"name": "FATF news", "url": "https://news.google.com/rss/search?q=(FATF+OR+%22Financial+Action+Task+Force%22)+when:14d&hl=en-US&gl=US&ceid=US:en"},
+        {"name": "Grey list and blacklist coverage", "url": "https://news.google.com/rss/search?q=FATF+(%22grey+list%22+OR+%22gray+list%22+OR+blacklist+OR+%22increased+monitoring%22)+when:30d&hl=en-US&gl=US&ceid=US:en"}
+      ]
+    },
+    {
+      "id": "sanctions",
+      "title": "Sanctions",
+      "feeds": [
+        {"name": "UK OFSI (applies in TCI)", "url": "https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=office-of-financial-sanctions-implementation"},
+        {"name": "UK sanctions list updates", "url": "https://www.gov.uk/search/all.atom?keywords=sanctions+list&organisations%5B%5D=foreign-commonwealth-development-office&order=updated-newest"},
+        {"name": "OFAC recent actions", "url": "https://news.google.com/rss/search?q=OFAC+(sanctions+OR+designates+OR+%22general+license%22)+when:7d&hl=en-US&gl=US&ceid=US:en"},
+        {"name": "UN Security Council sanctions", "url": "https://news.google.com/rss/search?q=%22Security+Council%22+sanctions+committee+when:14d&hl=en-US&gl=US&ceid=US:en"}
+      ]
+    },
+    {
+      "id": "aml",
+      "title": "AML / CFT news",
+      "feeds": [
+        {"name": "Money laundering enforcement and fines", "url": "https://news.google.com/rss/search?q=%22money+laundering%22+(fine+OR+penalty+OR+enforcement+OR+charged)+when:7d&hl=en-US&gl=US&ceid=US:en"},
+        {"name": "FinCEN", "url": "https://news.google.com/rss/search?q=FinCEN+when:14d&hl=en-US&gl=US&ceid=US:en"},
+        {"name": "UK FCA financial crime", "url": "https://news.google.com/rss/search?q=FCA+(%22financial+crime%22+OR+%22anti-money+laundering%22)+when:14d&hl=en-US&gl=US&ceid=US:en"},
+        {"name": "Typologies: crypto, TBML, fraud", "url": "https://news.google.com/rss/search?q=(%22trade-based+money+laundering%22+OR+%22crypto+laundering%22+OR+%22virtual+asset%22+AML+OR+%22pig+butchering%22)+when:14d&hl=en-US&gl=US&ceid=US:en"},
+        {"name": "Terrorist and proliferation financing", "url": "https://news.google.com/rss/search?q=(%22terrorist+financing%22+OR+%22proliferation+financing%22)+when:14d&hl=en-US&gl=US&ceid=US:en"}
+      ]
+    }
+  ],
+  "resources": [
+    {"group": "Turks & Caicos", "links": [
+      {"name": "TCI Financial Services Commission", "url": "https://www.tcifsc.tc"},
+      {"name": "FSC guideline: appointment of COs and MLROs", "url": "https://tcifsc.tc/assets/documents/guldeline-for-appointment-of-cos-and-mlros-amended-january-19-2015-20240517004516.pdf"},
+      {"name": "Financial Intelligence Agency Ordinance (Cap. 3.20)", "url": "https://www.tcifsc.tc/assets/documents/03.20-financial-intelligence-agency-ordinance-1-20240516225529.pdf"}
+    ]},
+    {"group": "Lists and screening", "links": [
+      {"name": "FATF high-risk and monitored jurisdictions", "url": "https://www.fatf-gafi.org/en/topics/high-risk-and-other-monitored-jurisdictions.html"},
+      {"name": "UK Sanctions List search", "url": "https://sanctionssearchapp.ofsi.hmtreasury.gov.uk/"},
+      {"name": "OFAC Sanctions List Search", "url": "https://sanctionssearch.ofac.treas.gov/"},
+      {"name": "UN Security Council Consolidated List", "url": "https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list"},
+      {"name": "EU Sanctions Map", "url": "https://www.sanctionsmap.eu/"},
+      {"name": "Basel AML Index", "url": "https://index.baselgovernance.org/"},
+      {"name": "Transparency International CPI", "url": "https://www.transparency.org/en/cpi"}
+    ]},
+    {"group": "Standards and guidance", "links": [
+      {"name": "FATF Recommendations", "url": "https://www.fatf-gafi.org/en/publications/Fatfrecommendations/Fatf-recommendations.html"},
+      {"name": "FATF publications", "url": "https://www.fatf-gafi.org/en/publications.html"},
+      {"name": "CFATF", "url": "https://www.cfatf-gafic.org"},
+      {"name": "Egmont Group", "url": "https://egmontgroup.org"},
+      {"name": "Wolfsberg Group", "url": "https://wolfsberg-group.org"}
+    ]}
+  ]
+}
