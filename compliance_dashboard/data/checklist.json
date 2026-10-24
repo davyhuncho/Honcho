@@ -1,0 +1,12 @@
+{
+  "_comment": "Daily routine shown on the dashboard. Ticks reset each day and are saved only in your browser.",
+  "items": [
+    "Review sanctions updates (UK OFSI / UK Sanctions List, OFAC, UN) and re-screen if lists changed",
+    "Clear overnight screening and transaction-monitoring alerts",
+    "Review internal suspicious activity reports received; decide on onward SARs to the FIA",
+    "Check FATF / CFATF news and any changes to high-risk jurisdictions",
+    "Follow up open FIA requests, production orders and consent matters",
+    "Check outstanding EDD reviews and periodic KYC refreshes due",
+    "Note anything for the MLRO log / Board report"
+  ]
+}

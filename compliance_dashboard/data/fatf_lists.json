@@ -1,0 +1,64 @@
+{
+  "_comment": "Curated baseline of FATF public statements. The dashboard checks fatf-gafi.org each run and warns you when a newer statement exists than 'as_of' below. After each plenary, update this file from the official FATF pages (links in 'sources').",
+  "as_of": "2026-06-19",
+  "as_of_label": "FATF Plenary, 17-19 June 2026",
+  "next_plenary": {
+    "start": "2026-10-28",
+    "end": "2026-10-30",
+    "location": "Paris, France",
+    "note": "FATF Week (working groups) begins 26 October. Outcomes are announced at the FATF President's press conference on Friday 30 October."
+  },
+  "sources": {
+    "black_list": "https://www.fatf-gafi.org/en/publications/High-risk-and-other-monitored-jurisdictions/call-for-action-june-2026.html",
+    "grey_list": "https://www.fatf-gafi.org/en/publications/High-risk-and-other-monitored-jurisdictions/increased-monitoring-june-2026.html",
+    "outcomes": "https://www.fatf-gafi.org/en/publications/Fatfgeneral/outcomes-fatf-plenary-june-2026.html",
+    "topic_page": "https://www.fatf-gafi.org/en/topics/high-risk-and-other-monitored-jurisdictions.html"
+  },
+  "black_list": [
+    {"country": "Democratic People's Republic of Korea", "iso": "KP", "measure": "Countermeasures"},
+    {"country": "Iran", "iso": "IR", "measure": "Countermeasures"},
+    {"country": "Myanmar", "iso": "MM", "measure": "Enhanced due diligence"}
+  ],
+  "grey_list": [
+    {"country": "Angola", "iso": "AO", "listed_since": "2024-10"},
+    {"country": "Bolivia", "iso": "BO", "listed_since": "2025-06"},
+    {"country": "Bosnia and Herzegovina", "iso": "BA", "listed_since": "2026-06"},
+    {"country": "Bulgaria", "iso": "BG", "listed_since": "2023-10"},
+    {"country": "Cameroon", "iso": "CM", "listed_since": "2023-06"},
+    {"country": "Côte d'Ivoire", "iso": "CI", "listed_since": "2024-10"},
+    {"country": "Democratic Republic of the Congo", "iso": "CD", "listed_since": "2022-10"},
+    {"country": "Haiti", "iso": "HT", "listed_since": "2021-06"},
+    {"country": "Iraq", "iso": "IQ", "listed_since": "2026-06"},
+    {"country": "Kenya", "iso": "KE", "listed_since": "2024-02"},
+    {"country": "Kuwait", "iso": "KW", "listed_since": "2026-02"},
+    {"country": "Lao PDR", "iso": "LA", "listed_since": "2025-02"},
+    {"country": "Lebanon", "iso": "LB", "listed_since": "2024-10"},
+    {"country": "Monaco", "iso": "MC", "listed_since": "2024-06"},
+    {"country": "Nepal", "iso": "NP", "listed_since": "2025-02"},
+    {"country": "Papua New Guinea", "iso": "PG", "listed_since": "2026-02"},
+    {"country": "South Sudan", "iso": "SS", "listed_since": "2021-06"},
+    {"country": "Syria", "iso": "SY", "listed_since": "2010-02"},
+    {"country": "Venezuela", "iso": "VE", "listed_since": "2024-06"},
+    {"country": "Vietnam", "iso": "VN", "listed_since": "2023-06"},
+    {"country": "Virgin Islands (UK)", "iso": "VG", "listed_since": "2025-06", "watch": "Fellow UK Overseas Territory and Caribbean neighbour"},
+    {"country": "Yemen", "iso": "YE", "listed_since": "2010-02"}
+  ],
+  "history": [
+    {"date": "2026-06-19", "label": "June 2026 Plenary", "added": ["Bosnia and Herzegovina", "Iraq"], "removed": ["Algeria", "Namibia"]},
+    {"date": "2026-02-13", "label": "February 2026 Plenary", "added": ["Kuwait", "Papua New Guinea"], "removed": []},
+    {"date": "2025-10-24", "label": "October 2025 Plenary", "added": [], "removed": ["Burkina Faso", "Mozambique", "Nigeria", "South Africa"]},
+    {"date": "2025-06-13", "label": "June 2025 Plenary", "added": ["Bolivia", "Virgin Islands (UK)"], "removed": ["Croatia", "Mali", "Tanzania"]}
+  ],
+  "other_lists": [
+    {
+      "name": "EU high-risk third countries",
+      "note": "Largely mirrors FATF. Last amended by Delegated Regulations (EU) 2026/46 (adds Russia) and 2026/83 (adds Bolivia and the Virgin Islands (UK)), published 9 January 2026. Check the Official Journal for later changes.",
+      "url": "https://eur-lex.europa.eu/eli/reg_del/2016/1675/oj"
+    },
+    {
+      "name": "UK high-risk third countries (MLRs Schedule 3ZA)",
+      "note": "Relevant to TCI as a UK Overseas Territory; the UK list tracks FATF statements.",
+      "url": "https://www.gov.uk/search/all?keywords=money+laundering+advisory+notice+high+risk+third+countries&order=updated-newest"
+    }
+  ]
+}

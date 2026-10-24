@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLRO Morning Brief</title>
+<meta name="theme-color" content="#0b3d6e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MLRO Brief">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root {
+  --bg: #f5f6f8; --panel: #ffffff; --ink: #1b1f24; --muted: #5d6673; --line: #e2e5ea;
+  --accent: #0b5cad; --black: #1b1f24; --black-bg: #e9eaec; --grey: #8a5a00; --grey-bg: #fff3d6;
+  --ok: #1d7a45; --ok-bg: #e2f4e9; --red: #b42318; --red-bg: #fde8e6; --watch-bg: #e6f0fb;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111418; --panel: #1a1e24; --ink: #e8eaed; --muted: #9aa3ae; --line: #2c323a;
+    --accent: #6cb0ff; --black: #f1f2f4; --black-bg: #343a42; --grey: #ffc95c; --grey-bg: #3a2f14;
+    --ok: #6ad497; --ok-bg: #17321f; --red: #ff8a80; --red-bg: #3c1b19; --watch-bg: #172a40;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111418; --panel: #1a1e24; --ink: #e8eaed; --muted: #9aa3ae; --line: #2c323a;
+  --accent: #6cb0ff; --black: #f1f2f4; --black-bg: #343a42; --grey: #ffc95c; --grey-bg: #3a2f14;
+  --ok: #6ad497; --ok-bg: #17321f; --red: #ff8a80; --red-bg: #3c1b19; --watch-bg: #172a40;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+header { padding: 20px 16px 8px; max-width: 1280px; margin: 0 auto; display: flex; flex-wrap: wrap;
+  gap: 8px 24px; align-items: baseline; justify-content: space-between; }
+h1 { margin: 0; font-size: 24px; letter-spacing: -0.01em; }
+h2 { margin: 0 0 12px; font-size: 16px; }
+h3 { margin: 16px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.sub { color: var(--muted); font-size: 13px; }
+main { max-width: 1280px; margin: 0 auto; padding: 8px 16px 40px; display: grid; gap: 16px;
+  grid-template-columns: repeat(12, 1fr); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.span-12 { grid-column: span 12; } .span-8 { grid-column: span 8; } .span-4 { grid-column: span 4; }
+.span-6 { grid-column: span 6; }
+@media (max-width: 900px) { .span-8, .span-4, .span-6 { grid-column: span 12; } }
+.banner { grid-column: span 12; border-radius: 10px; padding: 12px 16px; border: 1px solid; }
+.banner.warn { background: var(--red-bg); border-color: var(--red); color: var(--ink); }
+.banner.info { background: var(--grey-bg); border-color: var(--grey); }
+.tiles { grid-column: span 12; display: grid; gap: 16px; grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 900px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.tile .n { font-size: 30px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tile .l { color: var(--muted); font-size: 13px; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pill.black { background: var(--black-bg); color: var(--black); }
+.pill.grey { background: var(--grey-bg); color: var(--grey); }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.red { background: var(--red-bg); color: var(--red); }
+.pill.watch { background: var(--watch-bg); color: var(--accent); }
+.pill.new { background: var(--accent); color: var(--panel); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+td.num { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+.scroll { overflow-x: auto; }
+.blacklist { display: grid; gap: 8px; }
+.blacklist div { display: flex; justify-content: space-between; gap: 8px; padding: 10px 12px;
+  border-radius: 8px; background: var(--black-bg); font-weight: 600; }
+.change { font-size: 14px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.change:last-child { border: 0; }
+input[type=search], input[type=text] { width: 100%; padding: 9px 12px; font-size: 15px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+#lookup-result { margin-top: 10px; font-size: 14px; min-height: 1.5em; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.toolbar input[type=search] { flex: 1 1 240px; width: auto; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button, .btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 6px 12px;
+  border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer; }
+.tabs button[aria-pressed=true] { background: var(--accent); color: var(--panel); border-color: var(--accent); }
+label.chk { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.feed { margin-bottom: 18px; }
+.feed-h { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; border-bottom: 1px solid var(--line);
+  padding-bottom: 4px; margin-bottom: 6px; }
+.feed-h b { font-size: 14px; }
+.item { padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.item:last-child { border-bottom: 0; }
+.item a.t { font-weight: 600; color: var(--ink); }
+.item a.t:hover { color: var(--accent); }
+.meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 2px; }
+.sum { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.err { font-size: 13px; color: var(--red); }
+ul.plain { list-style: none; padding: 0; margin: 0; }
+ul.plain li { padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+ul.plain li:last-child { border-bottom: 0; }
+.check li { display: flex; gap: 10px; align-items: flex-start; }
+.check input { margin-top: 4px; }
+.check li.done span { text-decoration: line-through; color: var(--muted); }
+.event { display: grid; grid-template-columns: 72px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.event:last-child { border: 0; }
+.event .d { font-weight: 650; font-variant-numeric: tabular-nums; font-size: 13px; }
+.event .d small { display: block; color: var(--muted); font-weight: 400; }
+.event.past { opacity: .5; }
+.links { columns: 3 220px; column-gap: 24px; }
+.links section { break-inside: avoid; margin-bottom: 12px; }
+.links a { display: block; font-size: 14px; padding: 2px 0; }
+footer { max-width: 1280px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: 12px; }
+.empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>MLRO Morning Brief</h1>
+    <div class="sub" id="today"></div>
+  </div>
+  <div class="sub"><span id="generated"></span> · <button class="btn" id="theme">Theme</button></div>
+</header>
+<main id="app"></main>
+<footer>
+  This dashboard collects public information for convenience. Before acting on it, check the official
+  FATF, sanctions authority and TCI regulator publications. List data comes from <code>data/fatf_lists.json</code>;
+  update that file after each FATF plenary.
+</footer>
+<script>
+const DATA = /*__DATA__*/null;
+
+// Offline support when installed to the Home Screen (needs http(s), not file://).
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+// ---------- helpers ----------
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "href") { if (/^https?:\/\//i.test(v)) { el.href = v; el.target = "_blank"; el.rel = "noopener noreferrer"; } }
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) el.append(k.nodeType ? k : String(k));
+  return el;
+}
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const DAY = 86400000;
+const parseDay = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const daysUntil = s => Math.round((parseDay(s) - startOfToday()) / DAY);
+const fmtDate = (s, opts) => parseDay(s).toLocaleDateString(undefined, opts || { day: "numeric", month: "short", year: "numeric" });
+function ago(iso) {
+  if (!iso) return "";
+  const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (mins < 60) return `${Math.max(mins, 1)}m ago`;
+  if (mins < 1440) return `${Math.round(mins / 60)}h ago`;
+  const d = Math.round(mins / 1440);
+  return d < 14 ? `${d}d ago` : new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+function fmtMonths(n) {
+  if (n == null) return "";
+  if (n < 12) return `${n} mo`;
+  const y = Math.floor(n / 12), m = n % 12;
+  return m ? `${y}y ${m}m` : `${y}y`;
+}
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+
+// ---------- theme ----------
+(function theme() {
+  const saved = store.get("theme", null);
+  if (saved) document.documentElement.dataset.theme = saved;
+  document.getElementById("theme").onclick = () => {
+    const dark = document.documentElement.dataset.theme
+      ? document.documentElement.dataset.theme === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    const next = dark ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    store.set("theme", next);
+  };
+})();
+
+// "New since last visit": remember when the brief was last opened (per browser).
+const lastVisit = store.get("lastVisit", null);
+store.set("lastVisit", new Date().toISOString());
+
+const app = document.getElementById("app");
+const F = DATA.fatf;
+document.getElementById("today").textContent = new Date().toLocaleDateString(undefined,
+  { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+document.getElementById("generated").textContent = "Updated " + new Date(DATA.generated).toLocaleString(undefined,
+  { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+// ---------- banners ----------
+(function banners() {
+  const st = DATA.fatf_status;
+  if (st.newer && st.newer.length) {
+    app.append(h("div", { class: "banner warn", role: "alert" },
+      h("b", {}, "New FATF statement published. "),
+      "fatf-gafi.org has a newer list than this dashboard (", F.as_of_label, "). Review: ",
+      ...st.newer.map((p, i) => [i ? ", " : "", h("a", { href: p.url },
+        p.kind === "call-for-action" ? "Black list" : "Grey list", " ", new Date(p.year, p.month - 1).toLocaleDateString(undefined, { month: "long", year: "numeric" }))]),
+      ". Then update data/fatf_lists.json."));
+  }
+  const np = F.next_plenary;
+  if (np) {
+    const toStart = daysUntil(np.start), toEnd = daysUntil(np.end || np.start);
+    if (toStart <= 14 && toEnd >= -3) {
+      const when = toStart > 0 ? `starts in ${toStart} day${toStart === 1 ? "" : "s"}`
+        : toEnd >= 0 ? "is in session now" : "has just ended";
+      app.append(h("div", { class: "banner info" },
+        h("b", {}, `FATF Plenary ${when}`), ` (${fmtDate(np.start, { day: "numeric", month: "short" })}–${fmtDate(np.end || np.start)}, ${np.location}). `,
+        np.note || "", toEnd < 0 && !(st.newer || []).length ? " Check fatf-gafi.org for the outcomes." : ""));
+    }
+  }
+})();
+
+// ---------- tiles ----------
+(function tiles() {
+  const watchHits = DATA.sections.flatMap(s => s.feeds.flatMap(f => f.items)).filter(i => i.watch && i.watch.length).length;
+  const np = F.next_plenary;
+  const dPlen = np ? daysUntil(np.start) : null;
+  const lastChange = F.history[0];
+  const tile = (n, l, extra) => h("div", { class: "tile" }, h("div", { class: "n" }, n), h("div", { class: "l" }, l), extra || null);
+  app.append(h("div", { class: "tiles" },
+    tile(F.black_list.length, "Black list: call for action"),
+    tile(F.grey_list.length, "Grey list: increased monitoring",
+      lastChange ? h("div", { class: "sub" }, `+${lastChange.added.length} / −${lastChange.removed.length} at ${lastChange.label}`) : null),
+    tile(dPlen == null ? "—" : dPlen > 0 ? dPlen : daysUntil(np.end || np.start) >= 0 ? "Now" : "Done",
+      dPlen > 0 ? "Days to next FATF plenary" : "FATF plenary", np ? h("div", { class: "sub" }, fmtDate(np.start)) : null),
+    tile(watchHits, "Stories on your watch terms", h("div", { class: "sub" }, "TCI, Caribbean, OTs…"))
+  ));
+})();
+
+// ---------- country lookup ----------
+(function lookup() {
+  const removed = new Map();
+  for (const ch of F.history) for (const c of ch.removed) if (!removed.has(norm(c))) removed.set(norm(c), ch.label);
+  const all = [
+    ...F.black_list.map(c => ({ ...c, list: "black" })),
+    ...F.grey_list.map(c => ({ ...c, list: "grey" })),
+  ];
+  const aliases = { "north korea": "democratic people s republic of korea", "dprk": "democratic people s republic of korea",
+    "drc": "democratic republic of the congo", "congo": "democratic republic of the congo", "laos": "lao pdr",
+    "bvi": "virgin islands uk", "british virgin islands": "virgin islands uk", "burma": "myanmar",
+    "ivory coast": "cote d ivoire", "viet nam": "vietnam", "bosnia": "bosnia and herzegovina", "png": "papua new guinea" };
+  const out = h("div", { id: "lookup-result" });
+  const input = h("input", { type: "search", placeholder: "Type a country, e.g. Haiti, Panama, BVI…", "aria-label": "Country lookup" });
+  input.addEventListener("input", () => {
+    out.replaceChildren();
+    let q = norm(input.value);
+    if (q.length < 2) return;
+    q = aliases[q] || q;
+    const hits = all.filter(c => norm(c.country).includes(q) || c.iso.toLowerCase() === q);
+    const name = hits.length ? null : input.value.trim();
+    for (const c of hits) {
+      out.append(h("div", {},
+        h("span", { class: "pill " + c.list }, c.list === "black" ? "BLACK LIST" : "GREY LIST"), " ",
+        h("b", {}, c.country), " ",
+        c.list === "black" ? `FATF call for action: ${c.measure}.` : `Under FATF increased monitoring since ${c.listed_since}. Apply a risk-based approach and consider EDD.`,
+        c.watch ? h("div", { class: "sub" }, c.watch) : null));
+    }
+    for (const [k, label] of removed) if (k.includes(q) && !hits.some(c => norm(c.country) === k))
+      out.append(h("div", {}, h("span", { class: "pill ok" }, "REMOVED"), " Removed from the grey list at the ", label, "."));
+    if (!out.childNodes.length) out.append(h("div", {}, h("span", { class: "pill ok" }, "NOT LISTED"),
+      ` ${name} is not on the FATF black or grey list as of ${fmtDate(F.as_of)}.`));
+    const term = encodeURIComponent(input.value.trim());
+    out.append(h("div", { class: "sub", style: "margin-top:6px" }, "Also check: ",
+      h("a", { href: "https://www.sanctionsmap.eu/" }, "EU Sanctions Map"), " · ",
+      h("a", { href: "https://sanctionssearch.ofac.treas.gov/" }, "OFAC search"), " · ",
+      h("a", { href: "https://sanctionssearchapp.ofsi.hmtreasury.gov.uk/" }, "UK Sanctions List"), " · ",
+      h("a", { href: `https://news.google.com/search?q=${term}%20money%20laundering` }, "news")));
+  });
+  app.append(h("section", { class: "card span-12" }, h("h2", {}, "Country risk lookup"), input, out));
+})();
+
+// ---------- FATF lists ----------
+(function lists() {
+  const lastAdded = new Set((F.history[0] || { added: [] }).added);
+  const rows = [...F.grey_list].sort((a, b) => a.country.localeCompare(b.country)).map(c =>
+    h("tr", {},
+      h("td", {}, c.country, " ", lastAdded.has(c.country) ? h("span", { class: "pill red" }, "NEW") : null,
+        c.watch ? h("div", { class: "sub" }, c.watch) : null),
+      h("td", { class: "num" }, c.listed_since),
+      h("td", { class: "num" }, fmtMonths(c.months_listed))));
+  app.append(h("section", { class: "card span-8" },
+    h("h2", {}, "FATF grey list: jurisdictions under increased monitoring"),
+    h("div", { class: "sub" }, `As of ${F.as_of_label}. `, h("a", { href: F.sources.grey_list }, "Official statement")),
+    h("div", { class: "scroll" }, h("table", {},
+      h("thead", {}, h("tr", {}, h("th", {}, "Jurisdiction"), h("th", {}, "Listed since"), h("th", {}, "On list"))),
+      h("tbody", {}, rows)))));
+
+  app.append(h("section", { class: "card span-4" },
+    h("h2", {}, "FATF black list"),
+    h("div", { class: "sub", style: "margin-bottom:10px" }, "High-risk jurisdictions subject to a call for action. ",
+      h("a", { href: F.sources.black_list }, "Official statement")),
+    h("div", { class: "blacklist" }, F.black_list.map(c => h("div", {}, h("span", {}, c.country), h("span", { class: "pill grey" }, c.measure)))),
+    h("h3", {}, "Recent changes"),
+    F.history.map(ch => h("div", { class: "change" }, h("b", {}, ch.label),
+      ch.added.length ? h("div", {}, h("span", { class: "pill red" }, "ADDED"), " ", ch.added.join(", ")) : null,
+      ch.removed.length ? h("div", {}, h("span", { class: "pill ok" }, "REMOVED"), " ", ch.removed.join(", ")) : null)),
+    h("h3", {}, "Related lists"),
+    F.other_lists.map(o => h("div", { class: "change" }, h("a", { href: o.url }, o.name), h("div", { class: "sub" }, o.note)))));
+})();
+
+// ---------- news ----------
+(function news() {
+  const card = h("section", { class: "card span-8" });
+  const body = h("div");
+  let active = store.get("newsTab", "all");
+  if (active !== "all" && !DATA.sections.some(s => s.id === active)) active = "all";
+  let watchOnly = store.get("watchOnly", false), query = "";
+  const tabs = h("div", { class: "tabs" });
+  const tabBtn = (id, label) => h("button", { "aria-pressed": String(active === id), onclick: () => { active = id; store.set("newsTab", id); draw(); } }, label);
+  const search = h("input", { type: "search", placeholder: "Filter headlines…", "aria-label": "Filter headlines",
+    oninput: e => { query = norm(e.target.value); draw(); } });
+  const watchBox = h("input", { type: "checkbox", onchange: e => { watchOnly = e.target.checked; store.set("watchOnly", watchOnly); draw(); } });
+  watchBox.checked = watchOnly;
+
+  function itemEl(i) {
+    const isNew = lastVisit && i.date && new Date(i.date) > new Date(lastVisit);
+    return h("div", { class: "item" },
+      h("a", { class: "t", href: i.link }, i.title),
+      h("div", { class: "meta" },
+        isNew ? h("span", { class: "pill new" }, "NEW") : null,
+        i.source ? h("span", {}, i.source) : null,
+        i.date ? h("span", { title: new Date(i.date).toLocaleString() }, ago(i.date)) : null,
+        ...(i.watch || []).slice(0, 3).map(w => h("span", { class: "pill watch" }, w))),
+      i.summary ? h("div", { class: "sum" }, i.summary) : null);
+  }
+  function draw() {
+    tabs.replaceChildren(tabBtn("all", "All"), ...DATA.sections.map(s => tabBtn(s.id, s.title)));
+    body.replaceChildren();
+    const secs = DATA.sections.filter(s => active === "all" || s.id === active);
+    if (!DATA.sections.length) body.append(h("div", { class: "empty" }, "News was not fetched (offline mode or no network)."));
+    for (const s of secs) {
+      if (active === "all") body.append(h("h3", {}, s.title));
+      for (const f of s.feeds) {
+        const items = f.items.filter(i => (!watchOnly || (i.watch && i.watch.length)) && (!query || norm(i.title + " " + i.summary).includes(query)));
+        if ((watchOnly || query) && !items.length) continue;
+        body.append(h("div", { class: "feed" },
+          h("div", { class: "feed-h" }, h("b", {}, f.name),
+            f.stale_since ? h("span", { class: "sub" }, "cached ", ago(f.stale_since)) : null),
+          f.error && !f.items.length ? h("div", { class: "err" }, "Source unavailable right now. ", h("a", { href: f.url }, "Open feed")) : null,
+          !f.error && !items.length ? h("div", { class: "empty" }, "Nothing recent.") : null,
+          (active === "all" ? items.slice(0, 5) : items).map(itemEl)));
+      }
+    }
+    if (!body.childNodes.length) body.append(h("div", { class: "empty" }, "No headlines match."));
+  }
+  card.append(h("h2", {}, "What's new in AML, sanctions and the region"),
+    h("div", { class: "toolbar" }, tabs),
+    h("div", { class: "toolbar" }, search, h("label", { class: "chk" }, watchBox, "Watch terms only")),
+    body);
+  draw();
+  app.append(card);
+})();
+
+// ---------- right column: checklist + calendar ----------
+(function side() {
+  const col = h("div", { class: "span-4", style: "display:grid;gap:16px;align-content:start" });
+
+  const key = "checklist:" + new Date().toDateString();
+  const done = new Set(store.get(key, []));
+  const extra = store.get("checklist:extra", []);
+  const list = h("ul", { class: "plain check" });
+  function drawList() {
+    list.replaceChildren(...[...DATA.checklist, ...extra].map((text, idx) => {
+      const li = h("li", { class: done.has(text) ? "done" : null });
+      const box = h("input", { type: "checkbox", "aria-label": text, onchange: e => {
+        e.target.checked ? done.add(text) : done.delete(text);
+        store.set(key, [...done]); li.className = e.target.checked ? "done" : "";
+        updateProgress();
+      } });
+      box.checked = done.has(text);
+      const kids = [box, h("span", {}, text)];
+      if (idx >= DATA.checklist.length) kids.push(h("button", { class: "btn", style: "margin-left:auto;padding:0 8px",
+        title: "Remove", onclick: () => { extra.splice(idx - DATA.checklist.length, 1); store.set("checklist:extra", extra); drawList(); } }, "×"));
+      li.append(...kids);
+      return li;
+    }));
+    updateProgress();
+  }
+  function updateProgress() {
+    const all = [...DATA.checklist, ...extra];
+    progress.textContent = `${all.filter(t => done.has(t)).length} of ${all.length} done`;
+  }
+  const progress = h("div", { class: "sub" });
+  const add = h("input", { type: "text", placeholder: "Add your own task and press Enter", style: "margin-top:10px",
+    onkeydown: e => { if (e.key === "Enter" && e.target.value.trim()) { extra.push(e.target.value.trim()); store.set("checklist:extra", extra); e.target.value = ""; drawList(); } } });
+  drawList();
+  col.append(h("section", { class: "card" }, h("h2", {}, "Today's routine"), progress, list, add));
+
+  const events = [...DATA.calendar].sort((a, b) => a.date.localeCompare(b.date))
+    .filter(e => daysUntil(e.end || e.date) >= -7).slice(0, 8);
+  col.append(h("section", { class: "card" }, h("h2", {}, "Key dates"),
+    events.length ? events.map(e => {
+      const d = daysUntil(e.date);
+      const past = daysUntil(e.end || e.date) < 0;
+      return h("div", { class: "event" + (past ? " past" : "") },
+        h("div", { class: "d" }, fmtDate(e.date, { day: "numeric", month: "short" }),
+          h("small", {}, past ? "past" : d > 0 ? `in ${d}d` : "now")),
+        h("div", {}, h("b", {}, e.title), " ", e.tag ? h("span", { class: "pill grey" }, e.tag) : null,
+          e.detail ? h("div", { class: "sub" }, e.detail) : null));
+    }) : h("div", { class: "empty" }, "No upcoming dates. Add some in data/calendar.json.")));
+  app.append(col);
+})();
+
+// ---------- resources ----------
+app.append(h("section", { class: "card span-12" }, h("h2", {}, "Quick links"),
+  h("div", { class: "links" }, DATA.resources.map(g => h("section", {}, h("h3", { style: "margin-top:0" }, g.group),
+    g.links.map(l => h("a", { href: l.url }, l.name)))))));
+</script>
+</body>
+</html>
