@@ -26,6 +26,19 @@ A single-file app for running periodic KYC reviews (refreshes and remediation) a
 6. **Screen and re-rate.** Record sanctions, PEP and adverse media screening, then update the risk assessment.
 7. **Sign off.** The MLRO or approver confirms the risk rating, which sets the next review date. Every step is written to the client's audit trail.
 
+## PEPs, risk changes, restrictions and exits
+
+Use **Change risk status** on the client file for any change outside a periodic review. Every decision needs a reason and an approver, is written to the audit trail, and produces a decision note to print, sign and file behind the cover sheet. The risk rating and relationship status can't be changed through *Edit details*.
+
+| Decision | What happens |
+|---|---|
+| **Mark as PEP** | Records the connection (PEP, family member or close associate), public function, country, type, start date, how it was identified and senior management approval. The rating goes to High, the review falls due 12 months after the last review (so it may be due at once), enhanced due diligence documents join the checklist and screening moves to every 6 months. Offers to start a refresh. |
+| **Remove PEP status** | Records the date the person left office. The client stays High for the enhanced-measures period (12 months by default, set in Settings). When it ends, the worklist asks whether to lower the rating. |
+| **Raise or lower rating** | Shows how the next review date moves. A current PEP, or a former PEP inside the enhanced-measures period, can't be lowered below High. |
+| **Restrict / lift / exit / reinstate** | Sets the relationship status. Exiting cancels any refresh in progress. A restricted client with no review in progress stays on the worklist. |
+
+At sign-off, a PEP must be confirmed as High and senior management approval to continue the relationship must be ticked. If services are restricted, the approver must choose whether to lift the restriction or keep it.
+
 ## Moving from paper
 
 1. Put your existing client register into a spreadsheet and save it as CSV. Columns: `name, type, risk, pep, country, last_review, contact, email, phone, address, file_ref, file_location`. Only `name` is required.

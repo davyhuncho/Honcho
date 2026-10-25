@@ -312,6 +312,10 @@ dl.kv dd { margin: 0; overflow-wrap: anywhere; }
 .t.docs td, .t.docs th { padding-inline: 10px; }
 .t.docs th:first-child, .t.docs td:first-child { padding-left: 20px; }
 .scanbox { display: inline-flex; gap: 4px; align-items: center; }
+.pepbox { background: var(--crit-bg); border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px; }
+.pepbox.former { background: var(--fill); }
+.ra-pep { display: grid; gap: 4px; font-size: .76rem; color: var(--muted); font-weight: 600; }
+.ra-pep b { color: var(--ink); font-size: .86rem; font-weight: 600; }
 
 /* ---------- modal ---------- */
 #modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
@@ -531,7 +535,7 @@ const DEFAULT_SETTINGS = {
   firm: '', user: 'Compliance Officer', title: 'Compliance Officer', mlro: '',
   cycles: { high: 12, medium: 24, low: 36 },
   screen: { high: 6, medium: 12, low: 12 },
-  lead: 90, deadline: 30, chase: [14, 30, 60], expiryWarn: 60, fileOutDays: 14,
+  lead: 90, deadline: 30, chase: [14, 30, 60], expiryWarn: 60, fileOutDays: 14, pepTail: 12,
 };
 
 /* =========================================================
@@ -575,12 +579,29 @@ function scanProgress(c) {
   return { s, n };
 }
 function screenStale(c) { return !c.screening || addMonths(parse(c.screening.date), S.settings.screen[c.risk]) < TODAY; }
-function raScore(c) { return RISK_FACTORS.reduce((a, f) => a + (f.o[c.ra[f.k] || 0] || [0, 0])[1], 0); }
-function suggested(c) { if (c.ra.pep > 0) return 'high'; const s = raScore(c); return s >= 8 ? 'high' : s >= 4 ? 'medium' : 'low'; }
-const isPep = c => c.ra.pep > 0;
+function raScore(c) { return RISK_FACTORS.reduce((a, f) => a + (f.o[f.k === 'pep' ? (isPep(c) ? 1 : 0) : (c.ra[f.k] || 0)] || [0, 0])[1], 0); }
+function suggested(c) { if (isPep(c)) return 'high'; const s = raScore(c); return s >= 8 ? 'high' : s >= 4 ? 'medium' : 'low'; }
+// A PEP is current, or former and still inside the enhanced-measures period after leaving office
+const pepTailEnd = c => (c.pep && c.pep.ceased ? addMonths(parse(c.pep.ceased), (S ? S.settings : DEFAULT_SETTINGS).pepTail) : null);
+const isPep = c => !!c.pep && (c.pep.status === 'current' || (c.pep.status === 'former' && (!c.pep.ceased || pepTailEnd(c) > TODAY)));
+function pepLabel(c) {
+  if (!c.pep) return '';
+  if (c.pep.status === 'current') return c.pep.relation && c.pep.relation !== 'PEP' ? `PEP (${c.pep.relation.toLowerCase()})` : 'PEP';
+  return isPep(c) ? `Former PEP, enhanced measures until ${fmtD(pepTailEnd(c))}` : 'Former PEP';
+}
+function newPep(o) { return Object.assign({ status: 'current', relation: 'PEP', pepName: '', position: '', country: '', category: '', since: '', source: '', ceased: '', approvedBy: '', approvedOn: '' }, o || {}); }
+const RANK = { low: 0, medium: 1, high: 2 };
 const service = c => RISK_FACTORS[2].o[c.ra.svc || 0][0];
+// bring records saved by earlier versions up to date
+function migrate(st) {
+  st.clients.forEach(c => {
+    if (!c.decisions) c.decisions = [];
+    if (c.pep === undefined) c.pep = c.ra && c.ra.pep ? newPep() : null;
+  });
+  return st;
+}
 
-S = load() || seed();
+S = migrate(load() || seed());
 S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
 
 /* =========================================================
@@ -594,7 +615,7 @@ function seed(settings) {
   const specs = [
     { name: 'Coralline Ventures Ltd', type: 'company', risk: 'high', country: 'Turks and Caicos Islands', ra: { svc: 1, chan: 2, sow: 1, struct: 2, media: 1 }, due: -15, contact: 'Andre Coleman', scan: .4,
       parties: [['Andre Coleman', 'Director', '', 900], ['Lucia Ferraro', 'Beneficial owner', 60, 120], ['Halvard Nominees Ltd', 'Shareholder', 40, null]] },
-    { name: 'Marcus A. Delancy', type: 'individual', risk: 'high', country: 'The Bahamas', ra: { svc: 2, pep: 1, jur: 1, sow: 1 }, due: 25, stage: 'awaiting', reqAgo: 18, chases: 0, scan: .7, note: 'Former senior public official (PEP).' },
+    { name: 'Marcus A. Delancy', type: 'individual', risk: 'high', country: 'The Bahamas', ra: { svc: 2, jur: 1, sow: 1 }, due: 25, stage: 'awaiting', reqAgo: 18, chases: 0, scan: .7, pep: { position: 'Member of Parliament', country: 'The Bahamas', category: 'Foreign', source: 'Client declaration' } },
     { name: 'Seagrape Family Trust', type: 'trust', risk: 'high', country: 'Cayman Islands', ra: { svc: 3, jur: 1, struct: 2, sow: 1, chan: 2 }, due: 4, stage: 'signoff', reqAgo: 52, chases: 1, scan: .9, contact: 'Seagrape Trustees Ltd',
       parties: [['Seagrape Trustees Ltd', 'Trustee', '', null], ['Harold Brenneman', 'Settlor', '', 1400], ['Ruth Brenneman', 'Protector', '', 600], ['Brenneman descendants', 'Beneficiary', '', null]] },
     { name: 'Hollis & Rowe Marine Partners', type: 'partnership', risk: 'medium', country: 'Turks and Caicos Islands', ra: { svc: 1, struct: 1, chan: 1 }, due: 28, contact: 'Daniel Hollis', scan: .5,
@@ -605,7 +626,7 @@ function seed(settings) {
     { name: 'Dr Priya Ramnarine', type: 'individual', risk: 'medium', country: 'Trinidad and Tobago', ra: { svc: 2, chan: 1, sow: 1 }, due: 78, scan: .6 },
     { name: 'Leeward Crest Developments Ltd', type: 'company', risk: 'high', country: 'British Virgin Islands', ra: { svc: 2, jur: 1, struct: 2, sow: 2, chan: 1 }, due: 12, stage: 'verify', reqAgo: 34, chases: 1, scan: .3, contact: 'Celeste Arthur',
       parties: [['Celeste Arthur', 'Director', '', 2000], ['Tobias Wren', 'Beneficial owner', 75, -20], ['Marisol Vega', 'Beneficial owner', 25, 800]] },
-    { name: 'Chidi Okonkwo', type: 'individual', risk: 'medium', country: 'United Kingdom', ra: { svc: 0, chan: 2, sow: 2 }, due: 340, scan: .8 },
+    { name: 'Chidi Okonkwo', type: 'individual', risk: 'medium', country: 'United Kingdom', ra: { svc: 0, chan: 2, sow: 2 }, due: 340, scan: .8, formerPep: { position: 'Deputy Mayor', country: 'United Kingdom', category: 'Foreign', ceasedAgo: 800 } },
     { name: 'Northshore Yacht Charters Ltd', type: 'company', risk: 'low', country: 'Turks and Caicos Islands', ra: { svc: 1, struct: 1 }, due: 540, fileOut: 21, scan: .6, contact: 'Glen Ewing',
       parties: [['Glen Ewing', 'Director', '', 1300], ['Glen Ewing', 'Beneficial owner', 100, 1300]] },
     { name: 'Thalia Gardiner', type: 'individual', risk: 'low', country: 'Turks and Caicos Islands', ra: { svc: 2 }, due: 410, screenAgo: 400, scan: .3 },
@@ -645,7 +666,7 @@ function seed(settings) {
       contact: sp.contact || sp.name, email: `${slug}@example.com`, phone: `+1 649 555 01${pad(10 + i)}`,
       address: `${12 + i * 3} ${['Leeward Highway', 'Airport Road', 'Front Street', 'Kings Road', 'Grace Way'][i % 5]}\n${['Providenciales', 'Grand Turk', 'North Caicos', 'Providenciales', 'Salt Cay'][i % 5]}\nTurks and Caicos Islands`,
       rm: RMs[i % RMs.length], onboarded: onb, last, ra, note: sp.note || '',
-      docs: {}, parties: [], outreach: [], history: [], reviews: [], refresh: null, screening: null,
+      docs: {}, parties: [], outreach: [], history: [], reviews: [], refresh: null, screening: null, pep: null, decisions: [],
       file: { ref: `${TYPE_CODE[sp.type]}/${id.slice(3)}`, loc: `Cabinet ${'ABCD'[i % 4]} · Drawer ${1 + (i % 4)}`, out: null },
     };
     // documents on file from the last review
@@ -661,6 +682,16 @@ function seed(settings) {
     (sp.parties || []).forEach((p, j) => {
       c.parties.push({ id: `p${j + 1}`, name: p[0], role: p[1], pct: p[2], idExp: p[3] == null ? '' : D(p[3]), idOk: true, poaOk: true, req: false });
     });
+    if (sp.pep) {
+      c.pep = newPep(Object.assign({ since: iso(addMonths(TODAY, -60)), approvedBy: 'Managing Partner', approvedOn: onb }, sp.pep));
+      c.decisions.push({ id: 'd1', d: onb, type: 'pep', from: 'Not a PEP', to: 'PEP', reason: 'Client declared PEP status on the onboarding form. Confirmed by screening.', by: 'Managing Partner', recordedBy: 'Compliance Officer', pep: clone(c.pep), effects: ['Rated High', 'Enhanced due diligence applied'] });
+    }
+    if (sp.formerPep) {
+      const ce = D(-sp.formerPep.ceasedAgo);
+      c.pep = newPep({ status: 'former', position: sp.formerPep.position, country: sp.formerPep.country, category: sp.formerPep.category, since: iso(addMonths(parse(ce), -50)), ceased: ce, source: 'Screening match', approvedBy: 'Managing Partner', approvedOn: iso(addMonths(parse(ce), -40)) });
+      c.decisions.unshift({ id: 'd1', d: D(-sp.formerPep.ceasedAgo + 14), type: 'pepoff', from: 'PEP', to: 'Former PEP', reason: 'Left office at the end of the term. Confirmed from public records.', by: 'MLRO', recordedBy: 'Compliance Officer', pep: clone(c.pep), effects: [`Enhanced measures continue for ${DEFAULT_SETTINGS.pepTail} months`] });
+      c.decisions.unshift({ id: 'd2', d: last, type: 'lower', from: 'High', to: 'Medium', reason: 'Enhanced-measures period after leaving office has ended. No adverse findings at review.', by: 'MLRO', recordedBy: 'Compliance Officer', effects: ['Next review in 24 months'] });
+    }
     c.screening = { date: sp.screenAgo != null ? D(-sp.screenAgo) : iso(addDays(lastD, -2)), result: isPep(c) ? SCREEN_RESULTS[2] : SCREEN_RESULTS[0], lists: 'UN, OFAC, UK and EU sanctions lists; PEP database; adverse media search', by: 'Compliance Officer' };
     c.history.push({ d: onb, t: 'Client onboarded. Initial CDD completed.', by: c.rm });
     c.history.unshift({ d: last, t: `Periodic review completed. Risk rating confirmed as ${cap(sp.risk)}.`, by: 'MLRO' });
@@ -683,6 +714,7 @@ function seed(settings) {
       for (let k = 1; k <= sp.chases; k++) c.outreach.unshift({ d: D(-Math.max(1, sp.reqAgo - k * 16)), m: k === 2 ? 'Letter by post' : 'Email', kind: k === 2 ? 'Final reminder' : 'Reminder', note: k === 2 ? 'Final notice: services may be restricted' : 'Chased outstanding documents', by: 'Compliance Officer' });
       c.history.unshift({ d: started, t: `Periodic review started. ${reqd.length} items requested.`, by: 'Compliance Officer' });
       if (sp.stage !== 'awaiting') c.history.unshift({ d: D(-Math.max(0, sp.reqAgo - 20)), t: 'Documents received from client.', by: 'Compliance Officer' });
+      if (sp.escalated && sp.status === 'restricted') c.decisions.unshift({ id: 'd3', d: D(-sp.escalated), type: 'restrict', from: 'Active', to: 'Restricted', reason: 'No response to the final reminder. Services restricted until the review is complete.', by: 'MLRO', recordedBy: 'Compliance Officer', effects: ['Services suspended until the restriction is lifted'] });
       if (sp.escalated) c.history.unshift({ d: D(-sp.escalated), t: 'Escalated to MLRO: no response to final reminder. Services restricted pending review.', by: 'Compliance Officer' });
     }
     if (sp.fileOut) c.file.out = { to: 'J. Rigby (Corporate)', since: D(-sp.fileOut), purpose: 'Annual return filing' };
@@ -700,7 +732,7 @@ function tasks() {
   const s = S.settings, out = [];
   for (const c of active()) {
     const days = daysToReview(c), r = c.refresh;
-    const add = (sev, kind, text, act, label) => out.push({ c, sev, kind, text, act, label });
+    const add = (sev, kind, text, act, label, type) => out.push({ c, sev, kind, text, act, label, type });
     if (!r) {
       if (days < 0) add(c.risk === 'high' ? 0 : 1, 'overdue', `Periodic review overdue by ${plural(-days, 'day')}`, 'start', 'Start refresh');
       else if (days <= 30) add(2, 'due', `Review due in ${plural(days, 'day')}, not started`, 'start', 'Start refresh');
@@ -728,6 +760,10 @@ function tasks() {
       if (e < 0) add(1, 'expired', `ID for ${p.name} (${p.role}) expired ${fmt(p.idExp)}`, 'open', 'Open file');
       else if (e <= s.expiryWarn) add(3, 'expiring', `ID for ${p.name} (${p.role}) expires ${fmt(p.idExp)}`, 'open', 'Open file');
     }
+    if (c.pep && c.pep.status === 'current' && !c.pep.approvedBy) add(1, 'pep', 'PEP: record the public function and senior management approval', 'decide', 'Record approval', 'pepupd');
+    const tail = pepTailEnd(c);
+    if (c.pep && c.pep.status === 'former' && tail && !isPep(c) && c.risk === 'high' && c.last < iso(tail) && !c.decisions.some(x => x.d >= iso(tail) && ['lower', 'review'].includes(x.type))) add(2, 'peptail', `Former PEP: enhanced measures ended ${fmtD(tail)}. Decide whether to lower the rating`, 'decide', 'Review rating', 'lower');
+    if (c.status === 'restricted' && !r) add(1, 'restricted', 'Services restricted with no review in progress. Start a review or decide on the restriction', 'decide', 'Decide', 'lift');
     if (!r && screenStale(c)) add(2, 'rescreen', `Screening last run ${c.screening ? fmt(c.screening.date) : 'never'}. Re-screen`, 'screen', 'Record screening');
     if (c.file.out) {
       const o = diffDays(parse(c.file.out.since), TODAY);
@@ -893,7 +929,7 @@ function viewOverview() {
     <header><div><h2>Today's worklist</h2><p>${plural(T.length, 'action')}, most urgent first</p></div>
     ${T.length > 10 ? `<button class="btn sm" data-act="alltasks">${showAllTasks ? 'Show top 10' : `Show all ${T.length}`}</button>` : ''}</header>
     <div class="scroll">${T.length ? `<table class="t"><thead><tr><th>Priority</th><th>Client</th><th>Risk</th><th>Action needed</th><th class="right"></th></tr></thead><tbody>
-      ${list.map(t => `<tr><td>${sevTag(t.sev)}</td><td><a class="name" href="#client-${t.c.id}">${esc(t.c.name)}</a><span class="sub">${t.c.id}</span></td><td>${riskPill(t.c.risk)}</td><td>${esc(t.text)}</td><td class="right"><button class="btn sm ${t.sev <= 1 ? 'primary' : ''}" data-act="${t.act}" data-id="${t.c.id}">${t.label}</button></td></tr>`).join('')}
+      ${list.map(t => `<tr><td>${sevTag(t.sev)}</td><td><a class="name" href="#client-${t.c.id}">${esc(t.c.name)}</a><span class="sub">${t.c.id}</span></td><td>${riskPill(t.c.risk)}</td><td>${esc(t.text)}</td><td class="right"><button class="btn sm ${t.sev <= 1 ? 'primary' : ''}" data-act="${t.act}" data-id="${t.c.id}" ${t.type ? `data-type="${t.type}"` : ''}>${t.label}</button></td></tr>`).join('')}
     </tbody></table>` : '<p class="empty">Nothing needs action today.</p>'}</div>
   </section>`;
 }
@@ -937,7 +973,7 @@ function dueChart(A) {
 /* =========================================================
    Clients
    ========================================================= */
-const BUCKETS = { '': 'All', overdue: 'Overdue', due: 'Due soon', inprog: 'In progress', expiry: 'Expiries', current: 'Current', restricted: 'Restricted', exited: 'Exited' };
+const BUCKETS = { '': 'All', overdue: 'Overdue', due: 'Due soon', inprog: 'In progress', expiry: 'Expiries', pep: 'PEPs', current: 'Current', restricted: 'Restricted', exited: 'Exited' };
 function viewClients() {
   const sel = (id, k, opts) => `<select class="inp sm" id="${id}" data-filter="${k}" aria-label="${k}">${opts.map(([v, n]) => `<option value="${v}" ${F[k] === v ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
   return `
@@ -972,6 +1008,7 @@ function filteredClients() {
       case 'current': return d > s.lead && !c.refresh;
       case 'restricted': return c.status === 'restricted';
       case 'exited': return c.status === 'exited';
+      case 'pep': return !!c.pep;
       case 'expiry': return T.some(t => t.c === c && (t.kind === 'expired' || t.kind === 'expiring'));
       case 'chase': return T.some(t => t.c === c && (t.kind === 'chase' || t.kind === 'escalate'));
       default: return true;
@@ -984,7 +1021,7 @@ function renderClientRows() {
   tb.innerHTML = rows.length ? rows.map(c => {
     const dp = docProgress(c), sp = scanProgress(c);
     return `<tr class="click" data-act="open" data-id="${c.id}">
-      <td><a class="name" href="#client-${c.id}">${esc(c.name)}</a><span class="sub">${c.id}${isPep(c) ? ' · PEP' : ''}</span> ${statusChip(c)}</td>
+      <td><a class="name" href="#client-${c.id}">${esc(c.name)}</a><span class="sub">${c.id}${c.pep ? (isPep(c) ? ' · PEP' : ' · Former PEP') : ''}</span> ${statusChip(c)}</td>
       <td>${TYPES[c.type]}</td><td>${riskPill(c.risk)}</td>
       <td class="num">${fmt(c.last)}</td>
       <td class="num">${fmtD(nextReview(c))}<br>${dueChip(c)}</td>
@@ -1124,7 +1161,7 @@ function viewClient(c) {
     <div>
       <div class="eyebrow">${TYPES[c.type]} · ${esc(c.country)}</div>
       <h1>${esc(c.name)}</h1>
-      <div class="ids"><span class="mono">${c.id}</span>${riskPill(c.risk)}<span class="tag">${cap(c.risk)} risk</span>${isPep(c) ? '<span class="pill crit plain">PEP</span>' : ''}${statusChip(c)}<span class="tag">${esc(service(c))}</span></div>
+      <div class="ids"><span class="mono">${c.id}</span>${riskPill(c.risk)}<span class="tag">${cap(c.risk)} risk</span>${c.pep ? `<span class="pill ${isPep(c) ? 'crit' : 'neutral'} plain">${esc(pepLabel(c))}</span>` : ''}${statusChip(c)}<span class="tag">${esc(service(c))}</span><button class="btn sm" data-act="decide" data-id="${c.id}">Change risk status</button></div>
     </div>
     <div class="due-box"><span class="eyebrow">Next periodic review</span><span class="d num">${fmtD(nr)}</span><span class="pill ${dueCls}" style="justify-self:start">${dueTxt}</span><span class="small muted">Every ${s.cycles[c.risk]} months · last ${fmt(c.last)}</span></div>
   </div>
@@ -1140,6 +1177,7 @@ function viewClient(c) {
         <header><div><h2>Connected parties</h2><p>${partyHint(c)}</p></div></header>
         <div class="scroll">${partiesTable(c)}</div>
       </section>
+      ${decisionsCard(c)}
       <section class="card">
         <header><div><h2>Outreach</h2><p>Requests and reminders sent to this client</p></div><button class="btn sm" data-act="letter" data-id="${c.id}" data-kind="${r && r.chases ? 'final' : r ? 'reminder' : 'request'}">Draft letter</button></header>
         <div class="body">${c.outreach.length ? `<ul class="timeline">${c.outreach.map(x => `<li><time>${x.d}</time><span><b>${esc(x.kind)}</b> · ${esc(x.m)}<br><span class="muted">${esc(x.note)}${x.by ? ' · ' + esc(x.by) : ''}</span></span></li>`).join('')}</ul>` : '<p class="muted small">No contact recorded.</p>'}</div>
@@ -1166,10 +1204,10 @@ function viewClient(c) {
       <section class="card">
         <header><div><h2>Risk assessment</h2><p>Changes are logged to the audit trail</p></div></header>
         <div class="body ra">
-          ${RISK_FACTORS.map(f => `<label for="ra-${f.k}">${f.n}<select id="ra-${f.k}" data-ra="${f.k}" data-id="${c.id}">${f.o.map((x, i) => `<option value="${i}" ${(c.ra[f.k] || 0) === i ? 'selected' : ''}>${x[0]} (${x[1]})</option>`).join('')}</select></label>`).join('')}
+          ${RISK_FACTORS.map(f => f.k === 'pep' ? `<div class="ra-pep"><span>${f.n}</span><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${c.pep ? esc(pepLabel(c)) : 'No'}</b><button class="btn sm quiet" data-act="decide" data-id="${c.id}" data-type="${c.pep && c.pep.status === 'current' ? 'pepoff' : 'pep'}">${c.pep && c.pep.status === 'current' ? 'Change' : 'Mark as PEP'}</button></div></div>` : `<label for="ra-${f.k}">${f.n}<select id="ra-${f.k}" data-ra="${f.k}" data-id="${c.id}">${f.o.map((x, i) => `<option value="${i}" ${(c.ra[f.k] || 0) === i ? 'selected' : ''}>${x[0]} (${x[1]})</option>`).join('')}</select></label>`).join('')}
           <div class="score"><b class="num">${raScore(c)}</b><span>Suggested rating ${riskPill(sug)}</span></div>
           <p class="note">8 or more is high, 4 to 7 medium, 3 or less low. A PEP is always high.${sug !== c.risk ? '' : ' The suggested rating matches the current rating.'}</p>
-          ${sug !== c.risk ? `<div class="callout warn">Current rating is ${cap(c.risk)}. ${c.note ? 'Check the override note before changing it.' : ''}<div class="row" style="margin-top:8px"><button class="btn sm" data-act="applyrisk" data-id="${c.id}">Change to ${cap(sug)}</button></div></div>` : ''}
+          ${sug !== c.risk ? `<div class="callout warn">Current rating is ${cap(c.risk)}. ${c.note ? 'Check the override note before changing it.' : ''}<div class="row" style="margin-top:8px"><button class="btn sm" data-act="decide" data-id="${c.id}" data-type="${RANK[sug] > RANK[c.risk] ? 'raise' : 'lower'}" data-risk="${sug}">Change to ${cap(sug)}</button></div></div>` : ''}
         </div>
       </section>
       <section class="card">
@@ -1254,6 +1292,10 @@ function viewSettings() {
     <label class="field" for="s-lead">Show as due this many days ahead${num('s-lead', 'lead', s.lead, 7, 365)}</label>
     <label class="field" for="s-exp">Warn before an ID expires, days${num('s-exp', 'expiryWarn', s.expiryWarn, 7, 365)}</label>
     <label class="field" for="s-out">Flag paper files out longer than, days${num('s-out', 'fileOutDays', s.fileOutDays, 1, 90)}</label>
+  </div></section>
+  <section class="card"><header><div><h2>Politically exposed persons</h2><p>How long enhanced measures continue after a PEP leaves office</p></div></header><div class="body grid3">
+    <label class="field" for="s-pt">Enhanced measures after leaving office, months${num('s-pt', 'pepTail', s.pepTail, 0, 120)}</label>
+    <p class="note span2" style="align-self:end">The client stays rated High for this period. Afterwards the worklist asks you to decide whether to lower the rating. Set it to match your firm's policy.</p>
   </div></section>
   <section class="card"><header><div><h2>Chasing clients</h2><p>Days after the first request</p></div></header><div class="body grid3">
     <label class="field" for="s-c1">First reminder${num('s-c1', 'chase.0', s.chase[0], 1, 180)}</label>
@@ -1370,7 +1412,7 @@ function modalEscalate(c) {
   modal('Escalate to MLRO', body, [{ label: 'Escalate', cls: 'primary', fn: dlg => {
     r.escalated = iso(TODAY);
     const restrict = $('#es-r', dlg).checked;
-    if (restrict) c.status = 'restricted';
+    if (restrict) { c.status = 'restricted'; c.decisions.unshift({ id: 'd' + Date.now().toString(36), d: iso(TODAY), type: 'restrict', from: 'Active', to: 'Restricted', reason: $('#es-n', dlg).value.trim() || 'No response to document requests.', by: me(), recordedBy: me(), effects: ['Services suspended pending the MLRO decision'] }); }
     log(c, `Escalated to MLRO: ${$('#es-n', dlg).value.trim()}${restrict ? ' Services restricted pending review.' : ''}`);
     commit('Escalated to MLRO');
   } }]);
@@ -1413,18 +1455,198 @@ function modalSignoff(c) {
     <label class="field" for="so-d">Date<input type="date" id="so-d" value="${iso(TODAY)}"></label>
     <label class="field" for="so-r">Confirmed risk rating<select id="so-r">${RISKS.map(r => `<option value="${r}" ${r === c.risk ? 'selected' : ''}>${cap(r)} (review every ${s.cycles[r]} months)</option>`).join('')}</select></label>
     <div class="field"><span>Risk assessment suggests</span>${riskPill(sug)} <span class="small muted">Score ${raScore(c)}</span></div>
-    <label class="field span2" for="so-c">Review notes<textarea id="so-c" placeholder="Summary of findings, changes since last review, any conditions"></textarea></label></div>`;
+    <label class="field span2" for="so-c">Review notes<textarea id="so-c" placeholder="Summary of findings, changes since last review, any conditions"></textarea></label>
+    ${c.status === 'restricted' ? `<label class="field span2" for="so-x">Services are restricted. After this review<select id="so-x"><option value="">Choose…</option><option value="lift">Lift the restriction</option><option value="keep">Keep services restricted</option></select></label>` : ''}
+    ${isPep(c) ? `<label class="check span2" for="so-pep"><input type="checkbox" id="so-pep"> Senior management has approved continuing the relationship with this ${c.pep.status === 'current' ? 'PEP' : 'former PEP'}</label>` : ''}</div>`;
   modal('Sign off review', body, [{ label: 'Sign off and set next review', cls: 'primary', fn: dlg => {
     const by = $('#so-a', dlg).value.trim();
     if (!by) return fail(dlg, 'Enter the name of the person approving this review.');
     const d = $('#so-d', dlg).value || iso(TODAY), risk = $('#so-r', dlg).value, note = $('#so-c', dlg).value.trim();
+    const x = $('#so-x', dlg) ? $('#so-x', dlg).value : '';
+    if (isPep(c) && risk !== 'high') return fail(dlg, 'A PEP must be rated High. Remove PEP status through Change risk status first if they have left office and the enhanced-measures period has ended.');
+    if (isPep(c) && !$('#so-pep', dlg).checked) return fail(dlg, 'Confirm that senior management has approved continuing the relationship.');
+    if ($('#so-x', dlg) && !x) return fail(dlg, 'Choose whether to lift the restriction or keep it.');
     const old = c.risk;
+    if (old !== risk) c.decisions.unshift({ id: 'd' + Date.now().toString(36), d, type: 'review', from: cap(old), to: cap(risk), reason: note || 'Periodic review completed.', by, recordedBy: me(), effects: [`Next review ${fmtD(addMonths(parse(d), S.settings.cycles[risk]))}`] });
+    if (isPep(c)) { c.pep.approvedBy = by; c.pep.approvedOn = d; log(c, `Senior management approval to continue the ${c.pep.status === 'current' ? 'PEP' : 'former PEP'} relationship recorded (${by}).`, d); }
+    if (x === 'lift') { c.status = 'active'; c.decisions.unshift({ id: 'd' + Date.now().toString(36) + 'l', d, type: 'lift', from: 'Restricted', to: 'Active', reason: 'Periodic review completed satisfactorily.', by, recordedBy: me(), effects: ['Services resume'] }); log(c, `Restriction lifted at sign-off by ${by}.`, d); }
+    if (x === 'keep') log(c, `Restriction kept after review, decided by ${by}.`, d);
     c.risk = risk; c.last = d; c.refresh = null;
     c.parties.forEach(p => { p.req = false; });
     c.reviews.unshift({ d, by, risk, note });
     log(c, `Periodic review signed off by ${by}. Risk rating ${old === risk ? 'confirmed as ' + cap(risk) : `changed from ${cap(old)} to ${cap(risk)}`}. Next review ${fmtD(nextReview(c))}.${note ? ' Notes: ' + note : ''}`, d);
     commit('Review complete');
   } }]);
+}
+
+/* ---------- risk status decisions ---------- */
+const DECISIONS = {
+  pep: { n: 'Mark as PEP', done: 'Marked as PEP', g: 'PEP status' },
+  pepupd: { n: 'Update PEP details or approval', done: 'PEP details updated', g: 'PEP status' },
+  pepoff: { n: 'Remove PEP status (left office)', done: 'PEP status removed', g: 'PEP status' },
+  raise: { n: 'Raise risk rating', done: 'Risk rating raised', g: 'Risk rating' },
+  lower: { n: 'Lower risk rating', done: 'Risk rating lowered', g: 'Risk rating' },
+  restrict: { n: 'Restrict services', done: 'Services restricted', g: 'Relationship' },
+  lift: { n: 'Lift restriction', done: 'Restriction lifted', g: 'Relationship' },
+  exit: { n: 'Exit the relationship', done: 'Relationship exited', g: 'Relationship' },
+  reinstate: { n: 'Reinstate client', done: 'Client reinstated', g: 'Relationship' },
+  review: { n: 'Rating changed at review', done: 'Rating changed at periodic review', g: '' },
+};
+const PEP_REL = ['PEP', 'Family member', 'Close associate'];
+const PEP_CAT = ['Foreign', 'Domestic', 'International organisation'];
+const PEP_SRC = ['Screening match', 'Client declaration', 'Public source or media', 'Other'];
+function availableDecisions(c) {
+  if (c.status === 'exited') return ['reinstate'];
+  const a = c.pep && c.pep.status === 'current' ? ['pepupd', 'pepoff'] : ['pep'];
+  if (c.risk !== 'high') a.push('raise');
+  if (c.risk !== 'low') a.push('lower');
+  a.push(c.status === 'restricted' ? 'lift' : 'restrict', 'exit');
+  return a;
+}
+const opts = (list, v) => list.map(x => `<option ${x === v ? 'selected' : ''}>${esc(x)}</option>`).join('');
+function decisionFields(c, type, toRisk) {
+  const s = S.settings, p = c.pep || {};
+  if (type === 'pep' || type === 'pepupd') {
+    return `<div class="grid2">
+      <label class="field" for="dp-rel">Connection<select id="dp-rel">${opts(PEP_REL, p.relation)}</select></label>
+      <label class="field" for="dp-cat">Type of PEP<select id="dp-cat">${opts(PEP_CAT, p.category)}</select></label>
+      <label class="field span2" for="dp-pn">Name of the PEP, if the client is a family member or close associate<input id="dp-pn" value="${esc(p.pepName)}"></label>
+      <label class="field" for="dp-pos">Public function or position<input id="dp-pos" value="${esc(p.position)}" placeholder="e.g. Member of Parliament"></label>
+      <label class="field" for="dp-cty">Country<input id="dp-cty" value="${esc(p.country || c.country)}"></label>
+      <label class="field" for="dp-since">PEP since<input type="date" id="dp-since" value="${p.since || ''}"></label>
+      <label class="field" for="dp-src">How identified<select id="dp-src">${opts(PEP_SRC, p.source)}</select></label></div>
+      <p class="callout info">${type === 'pep'
+        ? `A PEP is always rated High. Recording this raises the rating, adds the enhanced due diligence documents to the checklist and moves screening to every ${s.screen.high} months. Senior management must approve establishing or continuing the relationship.`
+        : 'Use this to complete missing PEP details or to record a fresh senior management approval.'}</p>`;
+  }
+  if (type === 'pepoff') {
+    return `<div class="grid2"><label class="field" for="dp-ceased">Date the person left the public function<input type="date" id="dp-ceased" value="${p.ceased || ''}"></label></div>
+      <p class="callout info">Enhanced measures continue for ${s.pepTail} months after this date (set in Settings), and the rating stays High until then. When the period ends, the worklist asks you to decide whether to lower it.</p>`;
+  }
+  if (type === 'raise' || type === 'lower') {
+    const choices = RISKS.filter(r => (type === 'raise' ? RANK[r] > RANK[c.risk] : RANK[r] < RANK[c.risk]));
+    const sel = choices.includes(toRisk) ? toRisk : choices[type === 'raise' ? choices.length - 1 : 0];
+    const block = type === 'lower' && isPep(c);
+    return `<div class="grid2"><label class="field" for="dc-risk">New rating<select id="dc-risk">${choices.map(r => `<option value="${r}" ${r === sel ? 'selected' : ''}>${cap(r)} (review every ${s.cycles[r]} months)</option>`).join('')}</select></label>
+      <div class="field"><span>Risk assessment suggests</span>${riskPill(suggested(c))}</div></div>
+      ${block ? `<p class="callout crit">A PEP must stay High. Remove PEP status first${c.pep.status === 'former' ? `, or wait until enhanced measures end on ${fmtD(pepTailEnd(c))}` : ''}.</p>` : `<p class="note" id="dc-prev"></p>`}`;
+  }
+  return {
+    restrict: '<p class="callout warn">The client is flagged as restricted. Stop providing services until the restriction is lifted. The worklist keeps it in view until a decision is made.</p>',
+    lift: `<p class="callout info">Services resume.${c.refresh ? ' A review is still in progress.' : daysToReview(c) < 0 ? ' The periodic review is still overdue.' : ''}</p>`,
+    exit: '<p class="callout warn">Any refresh in progress is cancelled and the client leaves the worklist. Keep the records for the retention period your policy and the law require. If the exit follows a suspicion of money laundering, consider a report to the Financial Intelligence Agency, and do not tip off the client.</p>',
+    reinstate: '<p class="callout info">The client returns to the active register. Complete a review before providing services again.</p>',
+  }[type] || '';
+}
+function modalDecision(c, type, toRisk) {
+  const s = S.settings, avail = availableDecisions(c);
+  if (!avail.includes(type)) type = avail[0];
+  const groups = [...new Set(avail.map(k => DECISIONS[k].g))];
+  const body = `<label class="field" for="dc-t">What is changing?<select id="dc-t">${groups.map(g => `<optgroup label="${g}">${avail.filter(k => DECISIONS[k].g === g).map(k => `<option value="${k}" ${k === type ? 'selected' : ''}>${DECISIONS[k].n}</option>`).join('')}</optgroup>`).join('')}</select></label>
+    <div id="dc-x" style="display:grid;gap:14px"></div>
+    <div class="grid2">
+      <label class="field" for="dc-d">Effective date<input type="date" id="dc-d" value="${iso(TODAY)}"></label>
+      <label class="field" for="dc-by"><span id="dc-by-l">Approved by</span><input id="dc-by" value="${esc(s.mlro)}" placeholder="MLRO or senior manager"></label>
+      <label class="field span2" for="dc-r">Reason<textarea id="dc-r" placeholder="What happened and why this decision was made"></textarea></label>
+    </div>
+    <label class="check" for="dc-rf" id="dc-rf-w"><input type="checkbox" id="dc-rf" checked> Start a refresh now</label>`;
+  const dlg = modal(`Change risk status: ${c.name}`, body, [{ label: 'Record decision', cls: 'primary', fn: d => recordDecision(c, d) }], { wide: true });
+  const paint = () => {
+    const t = $('#dc-t', dlg).value;
+    $('#dc-x', dlg).innerHTML = decisionFields(c, t, toRisk);
+    $('#dc-by-l', dlg).textContent = t === 'pep' || t === 'pepupd' ? 'Senior management approval by' : 'Approved by';
+    $('#dc-rf-w', dlg).hidden = !!c.refresh || !['pep', 'raise', 'reinstate'].includes(t);
+    const prev = () => { const el = $('#dc-prev', dlg), r = $('#dc-risk', dlg); if (el && r) el.textContent = `Next review moves from ${fmtD(nextReview(c))} to ${fmtD(addMonths(parse(c.last), s.cycles[r.value]))}.`; };
+    const r = $('#dc-risk', dlg); if (r) r.addEventListener('change', prev);
+    prev();
+  };
+  $('#dc-t', dlg).addEventListener('change', paint);
+  paint();
+}
+function recordDecision(c, dlg) {
+  const s = S.settings, type = $('#dc-t', dlg).value, d = $('#dc-d', dlg).value || iso(TODAY);
+  const by = $('#dc-by', dlg).value.trim(), reason = $('#dc-r', dlg).value.trim();
+  const isPepType = type === 'pep' || type === 'pepupd';
+  if (isPepType && !$('#dp-pos', dlg).value.trim()) return fail(dlg, 'Enter the public function or position.');
+  if (isPepType && $('#dp-rel', dlg).value !== 'PEP' && !$('#dp-pn', dlg).value.trim()) return fail(dlg, 'Enter the name of the PEP the client is connected to.');
+  if (type === 'pepoff' && !$('#dp-ceased', dlg).value) return fail(dlg, 'Enter the date the person left the public function.');
+  if (type === 'lower' && isPep(c)) return fail(dlg, 'A PEP must stay rated High.');
+  if (!reason) return fail(dlg, 'Give the reason for this decision. It goes on the decision note and the audit trail.');
+  if (!by) return fail(dlg, isPepType ? 'Enter who in senior management approved the relationship.' : 'Enter who approved this decision.');
+  const dec = { id: 'd' + Date.now().toString(36), d, type, reason, by, recordedBy: me(), from: '', to: '', effects: [] };
+  const fx = dec.effects, oldRisk = c.risk;
+  if (isPepType) {
+    dec.from = type === 'pepupd' ? 'PEP' : c.pep ? 'Former PEP' : 'Not a PEP'; dec.to = 'PEP';
+    c.pep = newPep({ relation: $('#dp-rel', dlg).value, category: $('#dp-cat', dlg).value, pepName: $('#dp-pn', dlg).value.trim(), position: $('#dp-pos', dlg).value.trim(), country: $('#dp-cty', dlg).value.trim(), since: $('#dp-since', dlg).value, source: $('#dp-src', dlg).value, approvedBy: by, approvedOn: d });
+    dec.pep = clone(c.pep);
+    if (c.risk !== 'high') c.risk = 'high';
+  } else if (type === 'pepoff') {
+    c.pep = Object.assign(newPep(), c.pep, { status: 'former', ceased: $('#dp-ceased', dlg).value });
+    dec.from = 'PEP'; dec.to = 'Former PEP'; dec.pep = clone(c.pep);
+    fx.push(isPep(c) ? `Enhanced measures and High rating continue until ${fmtD(pepTailEnd(c))}` : 'The enhanced-measures period has already ended. Decide whether to lower the rating');
+  } else if (type === 'raise' || type === 'lower') {
+    const nr = $('#dc-risk', dlg).value;
+    dec.from = cap(c.risk); dec.to = cap(nr); c.risk = nr;
+  } else if (type === 'restrict') { dec.from = 'Active'; dec.to = 'Restricted'; c.status = 'restricted'; fx.push('Services suspended until the restriction is lifted'); }
+  else if (type === 'lift') { dec.from = 'Restricted'; dec.to = 'Active'; c.status = 'active'; fx.push('Services resume'); }
+  else if (type === 'exit') {
+    dec.from = cap(c.status === 'restricted' ? 'restricted' : 'active'); dec.to = 'Exited'; c.status = 'exited';
+    if (c.refresh) { c.refresh = null; c.parties.forEach(p => { p.req = false; }); fx.push('Refresh in progress cancelled'); }
+    fx.push('Client removed from the active register and worklist');
+  } else if (type === 'reinstate') { dec.from = 'Exited'; dec.to = 'Active'; c.status = 'active'; }
+  if (c.risk !== oldRisk) {
+    if (isPepType) fx.push(`Risk rating raised from ${cap(oldRisk)} to High`);
+    fx.push(`Next review ${fmtD(nextReview(c))} (every ${s.cycles[c.risk]} months)`, `Screening every ${s.screen[c.risk]} months`);
+    const edd = DOC_LIB[c.type].filter(t => t.when === 'high');
+    if (c.risk === 'high' && edd.length) fx.push(`Enhanced due diligence documents now required: ${edd.map(t => t.short).join(', ')}`);
+  }
+  c.decisions.unshift(dec);
+  log(c, `${DECISIONS[type].done}${dec.from ? ` (${dec.from} → ${dec.to})` : ''}. Approved by ${by}. Reason: ${reason}${fx.length ? ' ' + fx.join('. ') + '.' : ''}`, d);
+  const startRf = !c.refresh && !$('#dc-rf-w', dlg).hidden && $('#dc-rf', dlg).checked;
+  commit('Decision recorded');
+  later(() => modalDecisionNote(c, dec, startRf));
+}
+function decisionSheet(c, dec) {
+  const p = dec.pep, isPepType = dec.type === 'pep' || dec.type === 'pepupd';
+  const row = (k, v) => (v ? `<tr><th style="width:30%">${k}</th><td>${v}</td></tr>` : '');
+  return `<div class="sheet">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(S.settings.firm || 'Client due diligence file')}</div><h3>Risk status decision</h3><div>${esc(c.name)}</div></div><div style="text-align:right;font-family:var(--f-mono)"><b style="font-size:15px">${esc(c.file.ref)}</b><br>${c.id}</div></div>
+    <table><tbody>
+      ${row('Decision', esc(DECISIONS[dec.type].done))}
+      ${row('Change', dec.from ? `${esc(dec.from)} → ${esc(dec.to)}` : '')}
+      ${row('Effective date', fmt(dec.d))}
+      ${row('Reason', esc(dec.reason))}
+      ${p ? row('Connection', esc(p.relation + (p.pepName ? ` of ${p.pepName}` : ''))) + row('Public function', esc(p.position)) + row('Country and type', esc([p.country, p.category].filter(Boolean).join(', '))) + row('PEP since', p.since ? fmt(p.since) : '') + row('Left office', p.ceased ? fmt(p.ceased) : '') + row('How identified', esc(p.source)) : ''}
+      ${row('Effect on the file', (dec.effects || []).map(esc).join('<br>'))}
+      ${row('Recorded by', esc(dec.recordedBy))}
+      ${row(isPepType ? 'Senior management approval' : 'Approved by', esc(dec.by))}
+    </tbody></table>
+    <div class="sig"><div>Recorded by (signature)</div><div>Date</div><div>${isPepType ? 'Senior management approval' : 'Approved by'} (signature)</div><div>Date</div></div>
+  </div>`;
+}
+function modalDecisionNote(c, dec, offerRefresh) {
+  modal(`Decision note: ${DECISIONS[dec.type].done}`, `<p class="note">Print and sign this note, then file it on the paper file behind the cover sheet.</p><div class="scroll">${decisionSheet(c, dec)}</div>`, [
+    { label: 'Print', cls: offerRefresh ? '' : 'primary', hidden: FRAMED, fn: () => { printHTML(decisionSheet(c, dec)); return false; } },
+    { label: 'Start refresh', cls: 'primary', hidden: !offerRefresh || !!c.refresh, fn: () => { later(() => modalStart(c)); } },
+  ], { wide: true, cancel: 'Close' });
+}
+function pepBlock(c) {
+  if (!c.pep) return '';
+  const p = c.pep, on = isPep(c);
+  return `<div class="body"><div class="pepbox ${on ? '' : 'former'}">
+    <div class="row" style="justify-content:space-between"><b>${esc(pepLabel(c))}</b>${p.status === 'current' && !p.approvedBy ? '<span class="pill warn plain">Approval not recorded</span>' : ''}</div>
+    <dl class="kv"><dt>Connection</dt><dd>${esc(p.relation + (p.pepName ? ` of ${p.pepName}` : ''))}</dd><dt>Function</dt><dd>${esc(p.position) || '<span class="muted">Not recorded</span>'}</dd><dt>Country</dt><dd>${esc([p.country, p.category].filter(Boolean).join(', ')) || '—'}</dd>${p.since ? `<dt>PEP since</dt><dd>${fmt(p.since)}</dd>` : ''}${p.ceased ? `<dt>Left office</dt><dd>${fmt(p.ceased)}</dd>` : ''}<dt>Approved</dt><dd>${p.approvedBy ? `${esc(p.approvedBy)}, ${fmt(p.approvedOn)}` : '—'}</dd></dl>
+    ${p.status === 'current' && !p.approvedBy ? `<div class="row"><button class="btn sm" data-act="decide" data-id="${c.id}" data-type="pepupd">Record details and approval</button></div>` : ''}
+  </div></div>`;
+}
+function decisionsCard(c) {
+  return `<section class="card">
+    <header><div><h2>Risk decisions</h2><p>PEP status, rating changes, restrictions and exits, each with a reason and an approver</p></div><button class="btn sm primary" data-act="decide" data-id="${c.id}">Change risk status</button></header>
+    ${pepBlock(c)}
+    <div class="scroll">${c.decisions.length ? `<table class="t"><thead><tr><th>Date</th><th>Decision</th><th>Change</th><th>Approved by</th><th></th></tr></thead><tbody>
+      ${c.decisions.map(x => `<tr><td class="mono num" style="white-space:nowrap">${x.d}</td><td><b>${esc(DECISIONS[x.type].done)}</b><span class="sub" style="font-family:var(--f-body)">${esc(x.reason)}</span></td><td>${x.from ? `${esc(x.from)} → ${esc(x.to)}` : '—'}</td><td>${esc(x.by)}</td><td class="right"><button class="btn sm" data-act="decnote" data-id="${c.id}" data-dec="${x.id}">Note</button></td></tr>`).join('')}
+    </tbody></table>` : '<p class="empty">No decisions recorded yet.</p>'}</div>
+  </section>`;
 }
 
 /* ---------- client add / edit ---------- */
@@ -1434,7 +1656,7 @@ function modalClient(c) {
   const body = `<div class="grid2">
     <label class="field span2" for="cf-n">Client name<input id="cf-n" value="${esc(v.name)}" placeholder="Full legal name"></label>
     <label class="field" for="cf-t">Client type<select id="cf-t" ${isNew ? '' : 'disabled'}>${Object.entries(TYPES).map(([k, n]) => `<option value="${k}" ${v.type === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-    <label class="field" for="cf-r">Risk rating<select id="cf-r">${RISKS.map(r => `<option value="${r}" ${v.risk === r ? 'selected' : ''}>${cap(r)}</option>`).join('')}</select></label>
+    <label class="field" for="cf-r">Risk rating<select id="cf-r" ${isNew ? '' : 'disabled'}>${RISKS.map(r => `<option value="${r}" ${v.risk === r ? 'selected' : ''}>${cap(r)}</option>`).join('')}</select></label>
     <label class="field" for="cf-s">Service<select id="cf-s">${RISK_FACTORS[2].o.map((o, i) => `<option value="${i}" ${(v.ra.svc || 0) === i ? 'selected' : ''}>${o[0]}</option>`).join('')}</select></label>
     <label class="field" for="cf-c">Country of residence or incorporation<input id="cf-c" value="${esc(v.country)}"></label>
     <label class="field" for="cf-ct">Contact person<input id="cf-ct" value="${esc(v.contact)}"></label>
@@ -1446,8 +1668,8 @@ function modalClient(c) {
     <label class="field" for="cf-l">Last periodic review (or onboarding date)<input id="cf-l" type="date" value="${v.last || ''}"></label>
     <label class="field" for="cf-f">Paper file reference<input id="cf-f" value="${esc(v.file.ref)}" placeholder="e.g. CORP/0187"></label>
     <label class="field" for="cf-fl">File location<input id="cf-fl" value="${esc(v.file.loc)}" placeholder="e.g. Cabinet B · Drawer 2"></label>
-    <label class="field" for="cf-st">Relationship status<select id="cf-st">${[['active', 'Active'], ['restricted', 'Services restricted'], ['exited', 'Exited']].map(([k, n]) => `<option value="${k}" ${v.status === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-    <label class="check" for="cf-pep" style="align-self:end"><input type="checkbox" id="cf-pep" ${v.ra.pep ? 'checked' : ''}> Politically exposed person</label>
+    <label class="field" for="cf-st">Relationship status<select id="cf-st" ${isNew ? '' : 'disabled'}>${[['active', 'Active'], ['restricted', 'Services restricted'], ['exited', 'Exited']].map(([k, n]) => `<option value="${k}" ${v.status === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+    ${isNew ? '<label class="check" for="cf-pep" style="align-self:end"><input type="checkbox" id="cf-pep"> Politically exposed person</label>' : '<p class="note" style="align-self:end">To change the risk rating, PEP status or relationship status, use <b>Change risk status</b> on the client file so the decision is approved and recorded.</p>'}
     <label class="field span2" for="cf-note">Note<input id="cf-note" value="${esc(v.note)}" placeholder="Anything a reviewer should know"></label>
   </div>`;
   modal(isNew ? 'Add client' : `Edit ${c.name}`, body, [{ label: isNew ? 'Add client' : 'Save changes', cls: 'primary', fn: dlg => {
@@ -1455,19 +1677,23 @@ function modalClient(c) {
     if (!val('#cf-n')) return fail(dlg, 'Enter the client name.');
     if (!val('#cf-l')) return fail(dlg, 'Enter the last review date. Use the onboarding date if the client has never been reviewed.');
     const t = isNew ? val('#cf-t') : c.type;
-    const x = c || { id: nextId(), type: t, docs: {}, parties: [], outreach: [], history: [], reviews: [], refresh: null, screening: null, ra: { jur: 0, pep: 0, svc: 0, chan: 0, sow: 0, struct: t === 'individual' ? 0 : 1, media: 0 }, file: { ref: '', loc: '', out: null } };
+    const x = c || { id: nextId(), type: t, docs: {}, parties: [], outreach: [], history: [], reviews: [], refresh: null, screening: null, ra: { jur: 0, pep: 0, svc: 0, chan: 0, sow: 0, struct: t === 'individual' ? 0 : 1, media: 0 }, pep: null, decisions: [], file: { ref: '', loc: '', out: null } };
     const changes = [];
     const set = (k, nv, label) => { if (x[k] !== nv) { if (!isNew && label) changes.push(`${label}: ${x[k] || '—'} → ${nv || '—'}`); x[k] = nv; } };
-    set('name', val('#cf-n'), 'Name'); set('risk', val('#cf-r'), 'Risk rating'); set('country', val('#cf-c'), 'Country');
+    set('name', val('#cf-n'), 'Name'); if (isNew) set('risk', val('#cf-r')); set('country', val('#cf-c'), 'Country');
     set('contact', val('#cf-ct') || val('#cf-n')); set('rm', val('#cf-rm')); set('email', val('#cf-e')); set('phone', val('#cf-p'));
-    set('address', $('#cf-a', dlg).value.trim()); set('onboarded', val('#cf-o')); set('last', val('#cf-l'), 'Last review'); set('status', val('#cf-st'), 'Status'); set('note', val('#cf-note'));
-    x.ra.svc = Number(val('#cf-s')); x.ra.pep = $('#cf-pep', dlg).checked ? 1 : 0;
+    set('address', $('#cf-a', dlg).value.trim()); set('onboarded', val('#cf-o')); set('last', val('#cf-l'), 'Last review'); if (isNew) set('status', val('#cf-st')); set('note', val('#cf-note'));
+    const svc = Number(val('#cf-s'));
+    if (!isNew && x.ra.svc !== svc) changes.push(`Service: ${RISK_FACTORS[2].o[x.ra.svc || 0][0]} → ${RISK_FACTORS[2].o[svc][0]}`);
+    x.ra.svc = svc;
+    const pepNew = isNew && $('#cf-pep', dlg).checked;
+    if (pepNew) { x.pep = newPep(); x.risk = 'high'; }
     x.file.ref = val('#cf-f') || `${TYPE_CODE[t]}/${x.id.slice(3)}`; x.file.loc = val('#cf-fl') || 'Not recorded';
     if (isNew) {
       DOC_LIB[t].forEach(d => doc(x, d.k));
-      x.history.unshift({ d: iso(TODAY), t: 'Client added to the register.', by: me() });
+      x.history.unshift({ d: iso(TODAY), t: `Client added to the register.${pepNew ? ' Marked as PEP and rated High.' : ''}`, by: me() });
       S.clients.push(x);
-      save(); later(() => go('client-' + x.id)); toast('Client added');
+      save(); later(() => { go('client-' + x.id); if (pepNew) later(() => modalDecision(x, 'pepupd')); }); toast('Client added');
     } else {
       if (changes.length) log(x, `Details updated. ${changes.join('; ')}.`);
       commit('Saved');
@@ -1552,7 +1778,7 @@ function sheetHTML(c) {
   const prows = c.parties.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.role)}</td><td>${p.idExp ? fmt(p.idExp) : ''}</td><td style="text-align:center">${p.idOk ? '✓' : '<span class="box"></span>'}</td><td style="text-align:center">${p.poaOk ? '✓' : '<span class="box"></span>'}</td></tr>`).join('');
   return `<div class="sheet">
     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'Client due diligence file')}</div><h3>${esc(c.name)}</h3></div><div style="text-align:right;font-family:var(--f-mono)"><b style="font-size:15px">${esc(c.file.ref)}</b><br>${c.id}</div></div>
-    <div class="meta"><span><b>Type:</b> ${TYPES[c.type]}</span><span><b>Risk:</b> ${cap(c.risk)}${isPep(c) ? ' (PEP)' : ''}</span><span><b>Location:</b> ${esc(c.file.loc)}</span><span><b>Last review:</b> ${fmt(c.last)}</span><span><b>Next review:</b> ${fmtD(nextReview(c))}</span><span><b>Printed:</b> ${fmtD(TODAY)}</span></div>
+    <div class="meta"><span><b>Type:</b> ${TYPES[c.type]}</span><span><b>Risk:</b> ${cap(c.risk)}${c.pep ? ` (${esc(pepLabel(c))})` : ''}</span><span><b>Location:</b> ${esc(c.file.loc)}</span><span><b>Last review:</b> ${fmt(c.last)}</span><span><b>Next review:</b> ${fmtD(nextReview(c))}</span><span><b>Printed:</b> ${fmtD(TODAY)}</span></div>
     <table><thead><tr><th>Document</th><th>Status</th><th>Received</th><th>Expires</th><th>On file</th><th>Scanned</th></tr></thead><tbody>${rows}</tbody></table>
     ${prows ? `<table><thead><tr><th>Connected party</th><th>Role</th><th>ID expires</th><th>ID verified</th><th>Address verified</th></tr></thead><tbody>${prows}</tbody></table>` : ''}
     <div class="sig"><div>Reviewed by (name and signature)</div><div>Date</div><div>Approved by MLRO</div><div>Date</div></div>
@@ -1663,7 +1889,7 @@ async function exportBackup() {
 const csvCell = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
 function exportCSV() {
   const head = ['id', 'name', 'type', 'risk', 'pep', 'country', 'service', 'status', 'last_review', 'next_review', 'refresh_stage', 'docs_verified', 'docs_required', 'file_ref', 'file_location', 'file_status', 'contact', 'email', 'phone'];
-  const rows = S.clients.map(c => { const p = docProgress(c); return [c.id, c.name, c.type, c.risk, isPep(c) ? 'yes' : 'no', c.country, service(c), c.status, c.last, iso(nextReview(c)), c.refresh ? stageName(c.refresh.stage) : '', p.ok, p.n, c.file.ref, c.file.loc, c.file.out ? 'out: ' + c.file.out.to : 'in', c.contact, c.email, c.phone]; });
+  const rows = S.clients.map(c => { const p = docProgress(c); return [c.id, c.name, c.type, c.risk, c.pep ? pepLabel(c) : 'no', c.country, service(c), c.status, c.last, iso(nextReview(c)), c.refresh ? stageName(c.refresh.stage) : '', p.ok, p.n, c.file.ref, c.file.loc, c.file.out ? 'out: ' + c.file.out.to : 'in', c.contact, c.email, c.phone]; });
   download(`client-register-${iso(TODAY)}.csv`, [head, ...rows].map(r => r.map(csvCell).join(',')).join('\n'), 'text/csv');
   toast('Register exported');
 }
@@ -1710,8 +1936,10 @@ function importCSV(text) {
       const id = nextId();
       const c = { id, name: col(r, 'name'), type, risk, country: col(r, 'country', 'jurisdiction') || 'Not recorded', status: 'active', contact: col(r, 'contact', 'contact_person') || col(r, 'name'), email: col(r, 'email'), phone: col(r, 'phone', 'telephone'), address: col(r, 'address'), rm: col(r, 'partner', 'rm', 'responsible_partner'), onboarded: normDate(col(r, 'onboarded', 'onboarding_date')) || '', last: last || iso(addMonths(TODAY, -S.settings.cycles[risk])), note: '',
         ra: { jur: 0, pep: /^y|true|1/i.test(col(r, 'pep')) ? 1 : 0, svc: 0, chan: 0, sow: 0, struct: type === 'individual' ? 0 : 1, media: 0 },
-        docs: {}, parties: [], outreach: [], history: [{ d: iso(TODAY), t: 'Client imported from CSV register.', by: me() }], reviews: [], refresh: null, screening: null,
+        docs: {}, parties: [], outreach: [], history: [{ d: iso(TODAY), t: 'Client imported from CSV register.', by: me() }], reviews: [], refresh: null, screening: null, decisions: [],
+        pep: /^y|true|1/i.test(col(r, 'pep')) ? newPep() : null,
         file: { ref: col(r, 'file_ref', 'file_reference', 'file') || `${TYPE_CODE[type]}/${id.slice(3)}`, loc: col(r, 'file_location', 'location') || 'Not recorded', out: null } };
+      if (c.pep) c.risk = 'high';
       DOC_LIB[type].forEach(d => doc(c, d.k));
       S.clients.push(c);
     });
@@ -1725,7 +1953,7 @@ function importBackup(text) {
   const n = data.state.clients.length, f = Object.keys(data.files || {}).length;
   modal('Restore backup', `<p>Restore ${plural(n, 'client')} and ${plural(f, 'scan')} from ${fmt((data.exported || '').slice(0, 10))}?</p><p class="callout warn">This replaces every record currently in this browser.</p>`,
     [{ label: 'Replace and restore', cls: 'danger solid', fn: async () => {
-      S = data.state; S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
+      S = migrate(data.state); S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
       try { await ATT.clear(); for (const [id, x] of Object.entries(data.files || {})) await ATT.put(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) }); } catch (e) { toast('Records restored, but scans could not be saved in this browser.'); }
       commit('Backup restored'); later(() => go('overview'));
     } }]);
@@ -1769,11 +1997,8 @@ const ACT = {
     Object.assign(F, { q: '', risk: '', type: '', bucket: f });
     go('clients');
   },
-  applyrisk: el => {
-    const c = get(el.dataset.id), sug = suggested(c);
-    log(c, `Risk rating changed from ${cap(c.risk)} to ${cap(sug)} following the risk assessment (score ${raScore(c)}).`);
-    c.risk = sug; commit(`Risk rating set to ${cap(sug)}`);
-  },
+  decide: el => modalDecision(get(el.dataset.id), el.dataset.type, el.dataset.risk),
+  decnote: el => { const c = get(el.dataset.id); modalDecisionNote(c, c.decisions.find(x => x.id === el.dataset.dec)); },
   addparty: el => {
     const c = get(el.dataset.id), name = $('#np-name').value.trim();
     if (!name) { toast('Enter the party’s full name.'); $('#np-name').focus(); return; }
