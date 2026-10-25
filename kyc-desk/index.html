@@ -119,7 +119,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .eyebrow { font: 600 .72rem/1.2 var(--f-body); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
 
 /* ---------- glass material ---------- */
-.side, .card, .tile, .due-box, .actionbar, .stepper, .col, .banner, .dlg, #toast {
+.side, .card, .tile, .due-box, .actionbar, .stepper, .col, .banner, .dlg, #toast, .lockcard {
   background: var(--sheen), var(--glass);
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
@@ -351,6 +351,25 @@ textarea.letter { width: 100%; min-height: 360px; font: 13px/1.6 var(--f-mono); 
 
 #toast { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); background: var(--sheen), var(--glass-strong); color: var(--ink); padding: 10px 20px; border-radius: 999px; font-size: .86rem; font-weight: 600; box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow-lg); max-width: calc(100% - 32px); }
 #print-area { display: none; }
+.app.locked { display: block; }
+.lockwrap { min-height: 100vh; display: grid; place-items: center; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.lockcard { width: min(400px, 100%); border-radius: 28px; padding: 30px 26px 22px; display: grid; gap: 14px; }
+.lockcard .mark { width: 56px; height: 56px; border-radius: 16px; font-size: .85rem; justify-self: center; }
+.lockcard h1 { font-size: 1.5rem; text-align: center; }
+.lockcard > p { text-align: center; }
+.lockcard .err { color: var(--crit); font-weight: 600; font-size: .85rem; text-align: center; }
+.rk { font: 600 1.2rem/1.5 var(--f-mono); letter-spacing: .05em; text-align: center; padding: 16px; border-radius: 14px; background: var(--glass-soft); border: 1px dashed var(--line); overflow-wrap: anywhere; }
+.seg button[disabled] { opacity: .4; cursor: default; }
+.sheet h4 { font: 700 12px var(--f-display); color: #111; margin: 8px 0 0; text-transform: uppercase; letter-spacing: .05em; }
+.sheet p { color: #111; margin: 0; }
+.sheet ul, .sheet ol { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+.sheet .muted-p { color: #555; }
+.sheet .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.sheet .stats div { border: 1px solid #999; padding: 6px 8px; font-size: 11px; }
+.sheet .stats b { display: block; font-size: 18px; font-family: var(--f-display); }
+.sheet .client-block { border-top: 2px solid #333; padding-top: 10px; display: grid; gap: 6px; break-inside: avoid; }
+.sheet .slip { border: 1px dashed #333; padding: 8px; display: grid; gap: 8px; }
+@media (max-width: 560px) { .sheet .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 #filepick, #importpick { display: none; }
 
 @media (max-width: 1180px) {
@@ -536,6 +555,7 @@ const DEFAULT_SETTINGS = {
   cycles: { high: 12, medium: 24, low: 36 },
   screen: { high: 6, medium: 12, low: 12 },
   lead: 90, deadline: 30, chase: [14, 30, 60], expiryWarn: 60, fileOutDays: 14, pepTail: 12,
+  assistant: '', lockMins: 10, reportNames: true,
 };
 
 /* =========================================================
@@ -547,6 +567,13 @@ function load() {
   catch (e) { storageOK = false; return null; }
 }
 function save() {
+  if (vault) {
+    // encrypted: serialise now so writes land in order, encrypt and store asynchronously
+    if (!DK || !S) return;
+    const snap = te.encode(JSON.stringify(S));
+    writeChain = writeChain.then(async () => { vault.data = await seal(DK, snap); writeVault(); }).catch(() => { storageOK = false; });
+    return;
+  }
   try { localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; }
   catch (e) { storageOK = false; }
 }
@@ -594,6 +621,7 @@ const RANK = { low: 0, medium: 1, high: 2 };
 const service = c => RISK_FACTORS[2].o[c.ra.svc || 0][0];
 // bring records saved by earlier versions up to date
 function migrate(st) {
+  if (!st.reports) st.reports = {};
   st.clients.forEach(c => {
     if (!c.decisions) c.decisions = [];
     if (c.pep === undefined) c.pep = c.ra && c.ra.pep ? newPep() : null;
@@ -601,8 +629,6 @@ function migrate(st) {
   return st;
 }
 
-S = migrate(load() || seed());
-S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
 
 /* =========================================================
    Sample data (fictional)
@@ -809,12 +835,15 @@ const VIEWS = {
   pipeline: { n: 'Refresh pipeline', r: () => viewPipeline() },
   outreach: { n: 'Outreach', r: () => viewOutreach() },
   files: { n: 'Paper files', r: () => viewFiles() },
+  report: { n: 'Weekly report', r: () => viewReport() },
+  procedure: { n: 'Procedure', r: () => viewProcedure() },
   settings: { n: 'Settings', r: () => viewSettings() },
 };
 let view = 'overview', current = null;
 const F = { q: '', risk: '', type: '', bucket: '' };
 
 function route() {
+  if (!S) return;
   const h = decodeURIComponent(location.hash.slice(1));
   if (h.startsWith('client-') && get(h.slice(7))) { view = 'client'; current = h.slice(7); }
   else { view = VIEWS[h] ? h : 'overview'; current = null; }
@@ -824,6 +853,7 @@ function route() {
 function go(h) { if (location.hash.slice(1) === h) route(); else location.hash = h; }
 
 function shell() {
+  $('#app').classList.remove('locked');
   $('#app').innerHTML = `
     <aside class="side">
       <div class="brand"><div class="mark" aria-hidden="true">KYC</div><div><div class="app-name">KYC Refresh Desk</div><div class="firm" id="firm-name"></div></div></div>
@@ -833,6 +863,7 @@ function shell() {
     <main class="main" id="main"></main>`;
 }
 function renderNav() {
+  if (!S) return;
   const T = tasks();
   const counts = {
     overview: [T.filter(t => t.sev <= 1).length, true],
@@ -848,9 +879,10 @@ function renderNav() {
     return `<a href="#${k}" ${sel === k ? 'aria-current="page"' : ''}><span>${v.n}</span>${badge}</a>`;
   }).join('');
   $('#firm-name').textContent = S.settings.firm || 'Add your firm name in Settings';
-  $('#side-foot').innerHTML = `<span>Signed in as <strong>${esc(me())}</strong></span><span>${fmtD(TODAY)}</span>${storageOK ? '' : '<span class="pill crit plain">Not saving: browser storage blocked</span>'}`;
+  $('#side-foot').innerHTML = `<span>Signed in as <strong>${esc(me())}</strong></span><span>${fmtD(TODAY)}</span>${storageOK ? '' : '<span class="pill crit plain">Not saving: browser storage blocked</span>'}${vault ? '<button class="btn sm" data-act="lock" style="margin-top:8px">Lock</button>' : '<span class="pill warn plain" style="margin-top:8px;justify-self:start">Not password-protected</span><button class="btn sm" data-act="setup" style="margin-top:6px">Set a password</button>'}`;
 }
 function render() {
+  if (!S) return;
   if (view === 'client' && !get(current)) { view = 'overview'; current = null; }
   renderNav();
   const main = $('#main');
@@ -1075,7 +1107,7 @@ function viewOutreach() {
   };
   return `
   ${sampleBanner()}
-  <div class="page-head"><div><h1>Outreach</h1><p class="lede">Clients you have asked for documents. Reminders go at ${s.chase[0]} and ${s.chase[1]} days, and the file is escalated to the MLRO at ${s.chase[2]} days without a response.</p></div></div>
+  <div class="page-head"><div><h1>Outreach</h1><p class="lede">Clients you have asked for documents. Reminders go at ${s.chase[0]} and ${s.chase[1]} days, and the file is escalated to the MLRO at ${s.chase[2]} days without a response.</p></div><div class="row"><button class="btn primary" data-act="workpack">Work pack for ${esc(asst())}</button></div></div>
   <section class="card">
     <header><div><h2>Waiting on clients</h2><p>${plural(waiting.length, 'client')}</p></div></header>
     <div class="scroll">${waiting.length ? `<table class="t"><thead><tr><th>Client</th><th>Requested</th><th>Waiting</th><th>Reminders</th><th>Outstanding</th><th>Contact</th><th>Next step</th><th></th></tr></thead><tbody>
@@ -1103,7 +1135,7 @@ function viewFiles() {
   const backlog = A.map(c => ({ c, p: scanProgress(c) })).filter(x => x.p.n - x.p.s > 0).sort((a, b) => (b.p.n - b.p.s) - (a.p.n - a.p.s));
   return `
   ${sampleBanner()}
-  <div class="page-head"><div><h1>Paper files</h1><p class="lede">The physical file stays the record of truth. This register tracks where each file is, who has it, and how much of it has been scanned into the digital copy.</p></div></div>
+  <div class="page-head"><div><h1>Paper files</h1><p class="lede">The physical file stays the record of truth. This register tracks where each file is, who has it, and how much of it has been scanned into the digital copy.</p></div><div class="row"><button class="btn primary" data-act="workpack">Work pack for ${esc(asst())}</button></div></div>
   <section class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
     <div class="tile is-manila" style="cursor:default"><span class="l">Documents scanned</span><span class="k">${sn ? Math.round(sc / sn * 100) : 0}%</span><span class="s">${sc} of ${sn} documents held on paper</span></div>
     <div class="tile ${out.length ? 'is-warn' : 'is-ok'}" style="cursor:default"><span class="l">Files checked out</span><span class="k">${out.length}</span><span class="s">${out.filter(c => diffDays(parse(c.file.out.since), TODAY) >= S.settings.fileOutDays).length} out longer than ${S.settings.fileOutDays} days</span></div>
@@ -1277,10 +1309,19 @@ function viewSettings() {
   return `
   <div class="page-head"><div><h1>Settings</h1><p class="lede">Set these to match your firm's AML/CFT policy and risk methodology. Changes save as you go.</p></div></div>
   <section class="card"><header><h2>Firm and people</h2></header><div class="body grid2">
-    <label class="field" for="s-firm">Firm name (used on letters)<input id="s-firm" data-set="firm" value="${esc(s.firm)}" placeholder="Your firm's name"></label>
+    <label class="field span2" for="s-firm">Firm name (used on letters)<input id="s-firm" data-set="firm" value="${esc(s.firm)}" placeholder="Your firm's name"></label>
     <label class="field" for="s-user">Your name (letters and audit trail)<input id="s-user" data-set="user" value="${esc(s.user)}"></label>
     <label class="field" for="s-title">Your title<input id="s-title" data-set="title" value="${esc(s.title)}"></label>
     <label class="field" for="s-mlro">MLRO / approver name<input id="s-mlro" data-set="mlro" value="${esc(s.mlro)}" placeholder="Name of the person who signs off reviews"></label>
+    <label class="field" for="s-asst">Assistant's name (work packs and procedure)<input id="s-asst" data-set="assistant" value="${esc(s.assistant)}" placeholder="e.g. Jane Smith"></label>
+  </div></section>
+  <section class="card"><header><div><h2>Password and security</h2><p>Who can open the records on this computer</p></div></header><div class="body" style="display:grid;gap:14px">
+    ${vault ? `<p class="callout ok">Records and scans are encrypted on this computer. Signed in as <b>${esc(vault.user)}</b>.</p>
+      <div class="grid2"><label class="field" for="s-lock">Lock after this many idle minutes${num('s-lock', 'lockMins', s.lockMins, 1, 120)}</label></div>
+      <div class="row"><button class="btn" data-act="lock">Lock now</button><button class="btn" data-act="chpw">Change password</button><button class="btn" data-act="newrk">Create new recovery key</button></div>
+      ${(S.syslog || []).length ? `<ul class="timeline">${S.syslog.slice(0, 8).map(h => `<li><time>${h.d}</time><span>${esc(h.t)} <span class="muted">· ${esc(h.by)}</span></span></li>`).join('')}</ul>` : ''}`
+    : `<p class="callout warn">Records are not password-protected. Anyone who can use this computer's browser can open them.</p><div class="row"><button class="btn primary" data-act="setup">Set a password</button></div>`}
+    <p class="note">Printed pages, CSV exports and downloaded scans are not encrypted. Store them as carefully as the paper files.</p>
   </div></section>
   <section class="card"><header><div><h2>Review cycle</h2><p>How often each risk rating is reviewed, and how far ahead reviews count as due</p></div></header><div class="body grid3">
     <label class="field" for="s-ch">High risk, months${num('s-ch', 'cycles.high', s.cycles.high, 1, 120)}</label>
@@ -1304,7 +1345,7 @@ function viewSettings() {
     <label class="field" for="s-dl">Response deadline given in letters, days${num('s-dl', 'deadline', s.deadline, 7, 90)}</label>
   </div></section>
   <section class="card"><header><div><h2>Your data</h2><p>Where records are kept and how to back them up</p></div></header><div class="body" style="display:grid;gap:14px">
-    <p class="callout info">Records and attached scans are stored in this browser on this computer only. Nothing is sent anywhere. Clearing browser data deletes them, so save a backup regularly and keep it with your other compliance records.${FRAMED ? ' Backups, CSV exports and printing are switched off in this online preview. Open the local copy of the app (kyc-desk/index.html) to use them.' : ''}</p>
+    <p class="callout info">Records and attached scans are stored in this browser on this computer only${vault ? ', encrypted with your password' : ''}. Nothing is sent anywhere. Clearing browser data deletes them, so save a backup regularly and keep it with your other compliance records.${FRAMED ? ' Backups, CSV exports and printing are switched off in this online preview. Open the local copy of the app (kyc-desk/index.html) to use them.' : ''}</p>
     <div class="row">
       ${FRAMED ? '' : '<button class="btn primary" data-act="backup">Save backup file</button>'}
       <button class="btn" data-act="restore">Restore from backup</button>
@@ -1324,9 +1365,9 @@ function viewSettings() {
    ========================================================= */
 function modal(title, body, buttons, opts = {}) {
   const root = $('#modal');
-  root.innerHTML = `<div class="scrim" data-close></div><div class="dlg ${opts.wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="dlg-t"><header><h2 id="dlg-t">${esc(title)}</h2><button class="x" data-close aria-label="Close">×</button></header><div class="dlg-b">${body}<p class="err" id="dlg-err" hidden></p></div><footer></footer></div>`;
+  root.innerHTML = `<div class="scrim" ${opts.noCancel ? '' : 'data-close'}></div><div class="dlg ${opts.wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="dlg-t"><header><h2 id="dlg-t">${esc(title)}</h2>${opts.noCancel ? '' : '<button class="x" data-close aria-label="Close">×</button>'}</header><div class="dlg-b">${body}<p class="err" id="dlg-err" hidden></p></div><footer></footer></div>`;
   const foot = $('footer', root), dlg = $('.dlg', root);
-  [{ label: opts.cancel || 'Cancel', cls: '', fn: () => true }, ...buttons].forEach(b => {
+  [...(opts.noCancel ? [] : [{ label: opts.cancel || 'Cancel', cls: '', fn: () => true }]), ...buttons].forEach(b => {
     if (b.hidden) return;
     const el = document.createElement('button');
     el.className = 'btn ' + (b.cls || '');
@@ -1769,6 +1810,7 @@ function printHTML(html) {
 }
 
 /* ---------- file checklist / cover sheet ---------- */
+const initials = n => String(n || '').split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase()).join('').slice(0, 3);
 function sheetHTML(c) {
   const s = S.settings;
   const rows = defs(c).map(t => {
@@ -1781,17 +1823,21 @@ function sheetHTML(c) {
     <div class="meta"><span><b>Type:</b> ${TYPES[c.type]}</span><span><b>Risk:</b> ${cap(c.risk)}${c.pep ? ` (${esc(pepLabel(c))})` : ''}</span><span><b>Location:</b> ${esc(c.file.loc)}</span><span><b>Last review:</b> ${fmt(c.last)}</span><span><b>Next review:</b> ${fmtD(nextReview(c))}</span><span><b>Printed:</b> ${fmtD(TODAY)}</span></div>
     <table><thead><tr><th>Document</th><th>Status</th><th>Received</th><th>Expires</th><th>On file</th><th>Scanned</th></tr></thead><tbody>${rows}</tbody></table>
     ${prows ? `<table><thead><tr><th>Connected party</th><th>Role</th><th>ID expires</th><th>ID verified</th><th>Address verified</th></tr></thead><tbody>${prows}</tbody></table>` : ''}
+    <h4>Contact record</h4>
+    <table><thead><tr><th style="width:14%">Date</th><th style="width:16%">Method</th><th style="width:20%">Spoke to / sent to</th><th>Outcome, documents promised</th><th style="width:9%">Initials</th></tr></thead><tbody>${c.outreach.slice(0, 5).reverse().map(o => `<tr><td>${fmt(o.d)}</td><td>${esc(o.m)}</td><td>${esc(c.contact)}</td><td>${esc(o.kind)}: ${esc(o.note)}</td><td>${esc(initials(o.by))}</td></tr>`).join('')}${'<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>'.repeat(Math.max(4, 8 - Math.min(5, c.outreach.length)))}</tbody></table>
+    <h4>Documents received</h4>
+    <table><thead><tr><th style="width:14%">Date stamped</th><th>Document</th><th style="width:13%">Certified copy</th><th style="width:26%">Problems noticed</th><th style="width:9%">Initials</th></tr></thead><tbody>${'<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>'.repeat(6)}</tbody></table>
     <div class="sig"><div>Reviewed by (name and signature)</div><div>Date</div><div>Approved by MLRO</div><div>Date</div></div>
   </div>`;
 }
 function modalChecklist(c) {
-  modal(`File checklist: ${c.file.ref}`, `<p class="note">A cover sheet for the front of the paper file. Tick each box by hand as documents are checked, then sign.</p><div class="scroll">${sheetHTML(c)}</div>`,
+  modal(`File checklist: ${c.file.ref}`, `<p class="note">A cover sheet for the front of the paper file, with a contact record and a documents-received log for ${esc(asst())} to fill in by hand. Reprint it after each update so paper and app agree.</p><div class="scroll">${sheetHTML(c)}</div>`,
     [{ label: 'Print', cls: 'primary', hidden: FRAMED, fn: () => { printHTML(sheetHTML(c)); return false; } }], { wide: true, cancel: 'Close' });
 }
 
 /* ---------- paper file movement ---------- */
 function modalCheckout(c) {
-  modal(`Check out ${c.file.ref}`, `<div class="grid2"><label class="field" for="co-t">Taken by<input id="co-t" placeholder="Name and department"></label><label class="field" for="co-d">Date<input type="date" id="co-d" value="${iso(TODAY)}"></label><label class="field span2" for="co-p">Purpose<input id="co-p" placeholder="e.g. Conveyancing completion"></label></div>`,
+  modal(`Check out ${c.file.ref}`, `<div class="grid2"><label class="field" for="co-t">Taken by<input id="co-t" value="${esc(S.settings.assistant)}" placeholder="Name and department"></label><label class="field" for="co-d">Date<input type="date" id="co-d" value="${iso(TODAY)}"></label><label class="field span2" for="co-p">Purpose<input id="co-p" placeholder="e.g. Conveyancing completion"></label></div>`,
     [{ label: 'Check out file', cls: 'primary', fn: dlg => {
       const to = $('#co-t', dlg).value.trim();
       if (!to) return fail(dlg, 'Enter who is taking the file.');
@@ -1805,6 +1851,208 @@ function checkin(c) {
   log(c, `Paper file ${c.file.ref} returned by ${c.file.out.to} to ${c.file.loc}.`);
   c.file.out = null;
   commit('File returned');
+}
+
+
+/* ---------- assistant work pack ---------- */
+const mondayOf = d => addDays(d, -((d.getDay() + 6) % 7));
+const asst = () => S.settings.assistant || 'the assistant';
+function assistantTask(c) {
+  const r = c.refresh;
+  if (!r) return 'Pull the file and return it to compliance. A periodic review is due.';
+  if (r.stage !== 'awaiting') return 'File any documents received, then put the file in the Ready for review tray.';
+  const t = tasks().find(x => x.c === c && (x.kind === 'chase' || x.kind === 'escalate'));
+  if (t && t.kind === 'escalate') return 'Hold the file. Compliance is escalating it. Do not contact the client.';
+  if (t) return `Send the ${r.chases ? 'final notice' : 'reminder'} prepared by compliance, then phone the client. Log each contact.`;
+  if (diffDays(parse(r.requested), TODAY) <= 7 && !r.chases) return 'Send the document request letter prepared by compliance. Log the date sent.';
+  return 'Collect the outstanding documents. Date-stamp each one on arrival and log every contact.';
+}
+function workPackSheet(list) {
+  const s = S.settings, wk = mondayOf(TODAY);
+  const rows = list.map((c, i) => `<tr><td>${i + 1}</td><td style="font-family:var(--f-mono)">${esc(c.file.ref)}</td><td>${esc(c.name)}</td><td>${esc(c.file.loc)}</td><td>${outstanding(c).length}</td><td>${c.refresh ? fmtD(addDays(parse(c.refresh.requested), s.deadline)) : '—'}</td></tr>`).join('');
+  const blocks = list.map(c => {
+    const out = outstanding(c), r = c.refresh;
+    return `<div class="client-block">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b style="font-size:13px">${esc(c.name)}</b><span style="font-family:var(--f-mono)">${esc(c.file.ref)} · ${c.id}</span></div>
+      <p><b>Task:</b> ${esc(assistantTask(c))}</p>
+      <p><b>Contact:</b> ${esc(c.contact)} · ${esc(c.phone || 'no phone')} · ${esc(c.email || 'no email')}</p>
+      ${r ? `<p><b>Requested:</b> ${fmt(r.requested)} · <b>Reply due:</b> ${fmtD(addDays(parse(r.requested), s.deadline))} · <b>Reminders sent:</b> ${r.chases}</p>` : ''}
+      ${out.length ? `<p><b>Outstanding:</b></p><ul style="list-style:none;padding-left:0">${out.map(x => `<li><span class="box"></span> ${esc(x)}</li>`).join('')}</ul>` : '<p>No documents outstanding.</p>'}
+      <div class="slip"><b>Hand-back slip</b><div class="meta"><span>Returned to tray on: ________</span><span>Items received: ____</span><span>Initials: ____</span></div><div>Problems noticed: ______________________________________________</div></div>
+    </div>`;
+  }).join('');
+  return `<div class="sheet">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>Work pack: ${esc(asst())}</h3><div>Week of ${fmtD(wk)} · prepared by ${esc(me())} on ${fmtD(TODAY)}</div></div></div>
+    <p>Work on paper only. Keep each file in your In progress tray while you have it, and put it in the Ready for review tray when its task is done. Write every call, letter and visit on the file's contact sheet.</p>
+    <table><thead><tr><th>#</th><th>File ref</th><th>Client</th><th>Cabinet location</th><th>Items outstanding</th><th>Reply due</th></tr></thead><tbody>${rows}</tbody></table>
+    ${blocks}
+  </div>`;
+}
+function modalWorkPack() {
+  const s = S.settings, name = s.assistant;
+  const cands = active().filter(c => c.refresh || daysToReview(c) <= s.lead || (c.file.out && name && c.file.out.to === name))
+    .sort((a, b) => daysToReview(a) - daysToReview(b));
+  if (!cands.length) { toast('No files need work this week.'); return; }
+  const pre = c => (name && c.file.out && c.file.out.to === name) || (c.refresh && c.refresh.stage === 'awaiting');
+  const body = `${name ? '' : '<p class="callout warn">Add your assistant\'s name in Settings so files can be checked out to them.</p>'}
+    <p>Choose the files ${esc(asst())} will work on. Files waiting on clients, and files already checked out to ${esc(asst())}, are ticked.</p>
+    <div class="reqlist">${cands.map((c, i) => `<label class="check" for="wp${i}"><input type="checkbox" id="wp${i}" name="wp" value="${c.id}" ${pre(c) ? 'checked' : ''}><span>${esc(c.name)} <span class="mono">${esc(c.file.ref)}</span><span class="why">${c.refresh ? stageName(c.refresh.stage) : 'Review due, not started'}${c.file.out ? ` · file out with ${esc(c.file.out.to)}` : ''}</span></span></label>`).join('')}</div>
+    ${name ? `<label class="check" for="wp-co"><input type="checkbox" id="wp-co" checked> Check the selected files out to ${esc(name)} in the app</label>` : ''}`;
+  modal('Work pack for the week', body, [{ label: 'Prepare work pack', cls: 'primary', fn: dlg => {
+    const ids = $$('input[name=wp]:checked', dlg).map(i => i.value);
+    if (!ids.length) return fail(dlg, 'Tick at least one file.');
+    const list = ids.map(get);
+    if (name && $('#wp-co', dlg) && $('#wp-co', dlg).checked) list.forEach(c => {
+      if (c.file.out && c.file.out.to === name) return;
+      c.file.out = { to: name, since: iso(TODAY), purpose: 'Weekly work pack' };
+      log(c, `Paper file ${c.file.ref} checked out to ${name}.`);
+    });
+    commit();
+    later(() => modal(`Work pack: ${list.length} files`, `<p class="note">Print this for ${esc(asst())}. Each file has a hand-back slip.</p><div class="scroll">${workPackSheet(list)}</div>`,
+      [{ label: 'Print', cls: 'primary', hidden: FRAMED, fn: () => { printHTML(workPackSheet(list)); return false; } }], { wide: true, cancel: 'Close' }));
+  } }], { wide: true });
+}
+
+/* ---------- office procedure ---------- */
+function procedureSheet() {
+  const s = S.settings, a = esc(s.assistant || 'Compliance assistant'), co = esc(me());
+  const row = (t, x, y) => `<tr><td>${t}</td><td style="text-align:center">${x ? '✓' : ''}</td><td style="text-align:center">${y ? '✓' : ''}</td></tr>`;
+  return `<div class="sheet">
+    <div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>KYC file procedure</h3><div>Periodic reviews and client document collection · issued ${fmtD(TODAY)}</div></div>
+    <p>Every client has one paper file and one digital record. The paper file is kept in the locked cabinet. The digital record is kept in the KYC Refresh Desk app on the compliance officer's computer, and nowhere else. Only the compliance officer uses the app.</p>
+    <h4>Who does what</h4>
+    <table><thead><tr><th>Task</th><th style="width:22%">${a}</th><th style="width:22%">Compliance officer (${co})</th></tr></thead><tbody>
+      ${row('Decide which files need work each week and print the work pack', 0, 1)}
+      ${row('Prepare request letters, reminders and final notices', 0, 1)}
+      ${row('Take files from the cabinet and leave an out card in the slot', 1, 0)}
+      ${row('Record file check-out and return in the app', 0, 1)}
+      ${row('Post, deliver or hand out letters; phone clients', 1, 0)}
+      ${row('Write every call, letter and visit on the file\'s contact sheet', 1, 0)}
+      ${row('Date-stamp documents on arrival and put them in the file', 1, 0)}
+      ${row('Make the first checks on documents received (below) and flag problems', 1, 0)}
+      ${row('Verify documents and connected parties, and record them in the app', 0, 1)}
+      ${row('Scan documents and attach the scans in the app', 0, 1)}
+      ${row('Screening, risk assessment and risk status decisions', 0, 1)}
+      ${row('Arrange MLRO sign-off, reprint the cover sheet and refile', 0, 1)}
+      ${row('Weekly backup to the encrypted USB drive kept in the safe', 0, 1)}
+    </tbody></table>
+    <h4>Where a file can be</h4>
+    <ol><li>In the locked cabinet, at the location printed on its cover sheet.</li><li>In ${a}'s <b>In progress</b> tray, while working on it.</li><li>In the compliance officer's <b>Ready for review</b> tray, waiting to be updated in the app.</li></ol>
+    <p>Files never leave the office. When a file leaves the cabinet, an out card with the name and date goes in its place.</p>
+    <h4>Weekly routine</h4>
+    <ul><li><b>Monday:</b> the compliance officer checks the app's worklist, prints the work pack and letters, and checks the files out to ${a}.</li>
+      <li><b>During the week:</b> ${a} sends letters, phones clients, logs contact and files documents as they arrive.</li>
+      <li><b>When a file's task is done, and at the latest on Friday:</b> the file goes in the Ready for review tray with its hand-back slip. The compliance officer updates the app, verifies, scans, reprints the cover sheet, refiles and saves the backup.</li></ul>
+    <h4>First checks when documents arrive</h4>
+    <ul><li>Date-stamp it and tick it on the cover sheet.</li>
+      <li>Copies of ID and address documents are certified as true copies, with the certifier's signature, name, position, contact details and date.</li>
+      <li>Proof of address is dated within the last three months. ID is not expired.</li>
+      <li>Names and dates of birth match across documents. All pages are present and legible.</li>
+      <li>Anything that fails a check: write the problem on the hand-back slip. Do not return documents to the client or ask for replacements without speaking to compliance.</li></ul>
+    <h4>Rules</h4>
+    <ul><li>Never take files or copies home, and never put client documents on a personal phone, personal email or messaging app.</li>
+      <li>Do not use the scanner's scan-to-email or scan-to-cloud functions for client documents. Scanning is done by compliance.</li>
+      <li>If a client emails documents, forward the email to compliance and then delete it from your mailbox.</li>
+      <li>Do not tell a client, or anyone outside compliance, that a file has been escalated, restricted or reported. Tipping off is a criminal offence.</li></ul>
+    <h4>Tell compliance the same day if</h4>
+    <ul><li>A client refuses to provide documents, or asks why they are needed in an unusual way.</li>
+      <li>A document looks altered, or details don't match what is on file.</li>
+      <li>Someone other than the client offers to provide documents or information, or offers payment in cash.</li>
+      <li>A client mentions a new owner, director, trustee, a public office, or a change of country.</li></ul>
+    <div class="sig"><div>${a} (signature)</div><div>Date</div><div>Compliance officer (signature)</div><div>Date</div></div>
+  </div>`;
+}
+function viewProcedure() {
+  return `<div class="page-head"><div><h1>Procedure</h1><p class="lede">How the paper file and the app stay in step. Print it, go through it with ${esc(asst())}, and both sign it. It updates with the names in Settings.</p></div>
+    <div class="row">${FRAMED ? '' : '<button class="btn primary" data-act="printproc">Print procedure</button>'}</div></div>
+    <div class="scroll">${procedureSheet()}</div>`;
+}
+
+/* ---------- weekly report for management ---------- */
+let repWeek = iso(mondayOf(TODAY));
+const weekOf = ws => [ws, iso(addDays(parse(ws), 6))];
+const inWeek = (d, w) => !!d && d >= w[0] && d <= w[1];
+const ACTS = [
+  ['started', /^Periodic review started/],
+  ['escalated', /^Escalated to MLRO/],
+  ['received', /→ (To verify|Received, to verify)\.$/],
+  ['verified', /→ Verified\.$/],
+  ['scanned', /^Scan attached|: marked as scanned\.$/],
+  ['screened', /^Screening recorded/],
+  ['added', /^Client (added|imported)/],
+];
+function weekActivity(w) {
+  const a = { n: {}, reviews: [], decisions: [], escalations: [], requests: 0, reminders: 0 };
+  ACTS.forEach(([k]) => { a.n[k] = 0; });
+  for (const c of S.clients) {
+    for (const h of c.history) if (inWeek(h.d, w)) for (const [k, re] of ACTS) if (re.test(h.t)) { a.n[k]++; if (k === 'escalated') a.escalations.push({ c, d: h.d, t: h.t }); }
+    for (const r of c.reviews) if (inWeek(r.d, w)) a.reviews.push(Object.assign({ c }, r));
+    for (const x of c.decisions) if (inWeek(x.d, w)) a.decisions.push(Object.assign({ c }, x));
+    for (const o of c.outreach) if (inWeek(o.d, w)) { if (o.kind === 'Document request') a.requests++; else a.reminders++; }
+  }
+  a.reviews.sort((x, y) => x.d.localeCompare(y.d)); a.decisions.sort((x, y) => x.d.localeCompare(y.d));
+  return a;
+}
+function snapshot() {
+  const A = active(), s = S.settings, ds = A.map(daysToReview);
+  let sc = 0, sn = 0; A.forEach(c => { const p = scanProgress(c); sc += p.s; sn += p.n; });
+  return {
+    active: A.length, overdue: ds.filter(d => d < 0).length, due30: ds.filter(d => d >= 0 && d <= 30).length,
+    inprog: A.filter(c => c.refresh).length, waiting: A.filter(c => c.refresh && c.refresh.stage === 'awaiting').length,
+    high: A.filter(c => c.risk === 'high').length, peps: A.filter(isPep).length, restricted: A.filter(c => c.status === 'restricted').length,
+    scanned: sn ? Math.round(sc / sn * 100) : 0,
+    overdueList: A.filter(c => daysToReview(c) < 0).map(c => ({ id: c.id, name: c.name, risk: c.risk, days: -daysToReview(c), stage: c.refresh ? stageName(c.refresh.stage) : 'Not started' })).sort((x, y) => y.days - x.days),
+  };
+}
+const SNAP_ROWS = [['active', 'Active clients'], ['overdue', 'Overdue reviews', 1], ['due30', 'Due within 30 days'], ['inprog', 'Reviews in progress'], ['waiting', 'Waiting on clients', 1], ['high', 'High-risk clients'], ['peps', 'PEPs'], ['restricted', 'Services restricted', 1], ['scanned', 'Documents scanned (%)', -1]];
+function reportSheet(ws) {
+  const s = S.settings, w = weekOf(ws), rep = S.reports[ws] || {}, cur = ws === iso(mondayOf(TODAY));
+  const snap = rep.snap || (cur ? snapshot() : null);
+  const prevKey = Object.keys(S.reports).filter(k => k < ws && S.reports[k].snap).sort().pop();
+  const prev = prevKey ? S.reports[prevKey].snap : null;
+  const a = weekActivity(w), names = s.reportNames !== false;
+  const nm = c => (names ? `${esc(c.name)} <span style="font-family:var(--f-mono)">${c.id}</span>` : `<span style="font-family:var(--f-mono)">${c.id}</span>`);
+  const stat = (n, l) => `<div><b>${n}</b>${l}</div>`;
+  const delta = (k, dir) => { if (!prev || prev[k] == null) return '—'; const d = snap[k] - prev[k]; if (!d) return 'No change'; const good = dir === -1 ? d > 0 : dir === 1 ? d < 0 : null; return `${d > 0 ? '+' : ''}${d}${good === null ? '' : good ? ' (better)' : ' (worse)'}`; };
+  return `<div class="sheet">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>KYC weekly report</h3><div>${fmt(w[0])} to ${fmt(w[1])}</div></div><div style="text-align:right">Prepared by ${esc(me())}<br>${esc(s.title)}<br>${fmtD(TODAY)}</div></div>
+    <h4>Work done this week</h4>
+    <div class="stats">${stat(a.reviews.length, 'Reviews completed')}${stat(a.n.started, 'Reviews started')}${stat(a.requests + a.reminders, `Requests and reminders sent`)}${stat(a.n.received + a.n.verified, 'Documents received or verified')}${stat(a.n.scanned, 'Documents scanned')}${stat(a.n.screened, 'Screenings run')}${stat(a.decisions.length, 'Risk decisions')}${stat(a.n.escalated, 'Escalations to MLRO')}</div>
+    <h4>Position at the end of the week</h4>
+    ${snap ? `<table><thead><tr><th>Measure</th><th>This week</th><th>${prevKey ? `Week of ${fmt(prevKey)}` : 'Previous report'}</th><th>Change</th></tr></thead><tbody>
+      ${SNAP_ROWS.map(([k, l, dir]) => `<tr><td>${l}</td><td>${snap[k]}</td><td>${prev ? prev[k] : '—'}</td><td>${delta(k, dir)}</td></tr>`).join('')}</tbody></table>
+      ${rep.snap ? '' : '<p class="muted-p">Live figures. They are fixed when you record the end-of-week position.</p>'}`
+    : '<p class="muted-p">The end-of-week position was not recorded for this week. The activity figures above are complete.</p>'}
+    <h4>Reviews completed</h4>
+    ${a.reviews.length ? `<table><thead><tr><th>Date</th><th>Client</th><th>Risk rating</th><th>Signed off by</th></tr></thead><tbody>${a.reviews.map(r => { const ch = r.c.decisions.find(x => x.type === 'review' && x.d === r.d); return `<tr><td>${fmt(r.d)}</td><td>${nm(r.c)}</td><td>${ch ? `${esc(ch.from)} → ${esc(ch.to)}` : `${cap(r.risk)} (confirmed)`}</td><td>${esc(r.by)}</td></tr>`; }).join('')}</tbody></table>` : '<p class="muted-p">None this week.</p>'}
+    <h4>Risk decisions</h4>
+    ${a.decisions.length ? `<table><thead><tr><th>Date</th><th>Client</th><th>Decision</th><th>Change</th><th>Approved by</th></tr></thead><tbody>${a.decisions.map(x => `<tr><td>${fmt(x.d)}</td><td>${nm(x.c)}</td><td>${esc(DECISIONS[x.type].done)}<br><span style="color:#444">${esc(x.reason)}</span></td><td>${x.from ? `${esc(x.from)} → ${esc(x.to)}` : ''}</td><td>${esc(x.by)}</td></tr>`).join('')}</tbody></table>` : '<p class="muted-p">None this week.</p>'}
+    ${a.escalations.length ? `<h4>Escalations to the MLRO</h4><ul>${a.escalations.map(x => `<li>${fmt(x.d)}: ${nm(x.c)}</li>`).join('')}</ul>` : ''}
+    ${snap && snap.overdueList.length ? `<h4>Overdue reviews</h4><table><thead><tr><th>Client</th><th>Risk</th><th>Days overdue</th><th>Status</th></tr></thead><tbody>${snap.overdueList.slice(0, 20).map(o => `<tr><td>${names ? esc(o.name) + ' ' : ''}<span style="font-family:var(--f-mono)">${o.id}</span></td><td>${cap(o.risk)}</td><td>${o.days}</td><td>${esc(o.stage)}</td></tr>`).join('')}</tbody></table>${snap.overdueList.length > 20 ? `<p class="muted-p">And ${snap.overdueList.length - 20} more.</p>` : ''}` : ''}
+    <h4>Notes for management</h4>
+    <p style="white-space:pre-wrap">${esc(rep.notes || 'None.')}</p>
+    <div class="sig"><div>Prepared by (signature)</div><div>Date</div><div>Reviewed by (signature)</div><div>Date</div></div>
+  </div>`;
+}
+function viewReport() {
+  const ws = repWeek, rep = S.reports[ws] || {}, cur = ws === iso(mondayOf(TODAY)), w = weekOf(ws);
+  const saved = Object.keys(S.reports).filter(k => S.reports[k].snap).sort().reverse();
+  return `<div class="page-head"><div><h1>Weekly report</h1><p class="lede">What was done in the week and where things stand, ready to print for management. Activity comes from the audit trail, so it is complete for any week.</p></div>
+    <div class="row">${FRAMED ? '' : '<button class="btn primary" data-act="printrep">Print report</button>'}</div></div>
+  <section class="card"><div class="body" style="padding-top:18px;display:grid;gap:14px">
+    <div class="row" style="justify-content:space-between">
+      <div class="seg" role="group" aria-label="Week"><button data-act="repweek" data-w="-1">‹ Previous</button><button data-act="repweek" data-w="0" aria-pressed="${cur}">This week</button><button data-act="repweek" data-w="1" ${cur ? 'disabled' : ''}>Next ›</button></div>
+      <b>${fmt(w[0])} to ${fmt(w[1])}</b>
+      <label class="check" for="rep-names"><input type="checkbox" id="rep-names" ${S.settings.reportNames !== false ? 'checked' : ''}> Show client names</label>
+    </div>
+    <label class="field" for="rep-notes">Notes for management<textarea id="rep-notes" placeholder="Issues, help needed, plans for next week">${esc(rep.notes || '')}</textarea></label>
+    <div class="row" style="justify-content:space-between">
+      <span class="small muted">${rep.snap ? `End-of-week position recorded ${fmt(rep.saved)} by ${esc(rep.by)}.` : cur ? 'Record the end-of-week position on Friday so next week\'s report can show the change.' : 'No end-of-week position was recorded for this week.'}</span>
+      ${cur ? `<button class="btn" data-act="repsave">${rep.snap ? 'Update end-of-week position' : 'Record end-of-week position'}</button>` : ''}
+    </div>
+    ${saved.length ? `<div class="row small"><span class="muted">Recorded weeks:</span>${saved.slice(0, 8).map(k => `<button class="btn sm ${k === ws ? 'primary' : ''}" data-act="repgo" data-w="${k}">${fmt(k)}</button>`).join('')}</div>` : ''}
+  </div></section>
+  <div class="scroll" id="rep-sheet">${reportSheet(ws)}</div>`;
 }
 
 /* =========================================================
@@ -1836,6 +2084,202 @@ const ATT = {
     return out;
   },
 };
+
+/* =========================================================
+   Password protection (Web Crypto, on this device only)
+   Records and scans are encrypted with a random data key. That key is stored
+   twice: once locked with the password and once with the printed recovery key.
+   ========================================================= */
+const VKEY = 'kyc-refresh-desk.vault.v1', TRIES_KEY = 'kyc-refresh-desk.tries';
+const PW_ITER = 600000, RK_ITER = 150000, MIN_PW = 10;
+let vault = null, DK = null, writeChain = Promise.resolve();
+const te = new TextEncoder(), td = new TextDecoder();
+const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+function b64(buf) { const a = new Uint8Array(buf); let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); }
+function unb64(s) { const b = atob(s), a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+function readVault() { try { const r = localStorage.getItem(VKEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+function writeVault() { try { localStorage.setItem(VKEY, JSON.stringify(vault)); storageOK = true; } catch (e) { storageOK = false; } }
+async function kek(secret, salt, iter) {
+  const base = await crypto.subtle.importKey('raw', te.encode(secret), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function seal(key, bytes) { const iv = rnd(12); return { iv: b64(iv), ct: b64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes)) }; }
+async function unseal(key, box) { return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(box.iv) }, key, unb64(box.ct))); }
+const importDK = raw => crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
+const RK_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const normRK = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+function newRK() { return [...rnd(24)].map(x => RK_ALPHA[x % 32]).join('').match(/.{4}/g).join('-'); }
+// raw data key from the password ('p') or the recovery key ('r'); throws if wrong
+async function unwrapWith(secret, which) {
+  if (which === 'r') return unseal(await kek(normRK(secret), unb64(vault.rsalt), vault.riter), vault.wrapR);
+  return unseal(await kek(secret, unb64(vault.salt), vault.iter), vault.wrapP);
+}
+async function wrapPassword(raw, pw) { const salt = rnd(16); vault.salt = b64(salt); vault.iter = PW_ITER; vault.wrapP = await seal(await kek(pw, salt, PW_ITER), raw); }
+async function wrapRecovery(raw) { const rk = newRK(), rsalt = rnd(16); vault.rsalt = b64(rsalt); vault.riter = RK_ITER; vault.wrapR = await seal(await kek(normRK(rk), rsalt, RK_ITER), raw); return rk; }
+
+// scans: encrypted at rest whenever a password is set
+async function putFile(id, rec) {
+  if (!vault) return ATT.put(id, rec);
+  const meta = te.encode(JSON.stringify({ name: rec.name, type: rec.type, size: rec.size, added: rec.added }));
+  const bytes = new Uint8Array(await rec.blob.arrayBuffer());
+  return ATT.put(id, { enc: 1, m: await seal(DK, meta), b: await seal(DK, bytes) });
+}
+async function getFile(id) {
+  const r = await ATT.get(id);
+  if (!r || !r.enc) return r || null;
+  if (!DK) return null;
+  const meta = JSON.parse(td.decode(await unseal(DK, r.m)));
+  return Object.assign(meta, { blob: new Blob([await unseal(DK, r.b)], { type: meta.type }) });
+}
+
+async function enableVault(name, user, pw) {
+  const raw = rnd(32);
+  const plain = await ATT.all().catch(() => []);
+  vault = { v: 1, user, data: null };
+  await wrapPassword(raw, pw);
+  const rk = await wrapRecovery(raw);
+  DK = await importDK(raw);
+  for (const [id, r] of plain) if (r && !r.enc) await putFile(id, r);
+  S.settings.user = name;
+  log0(`Password protection turned on. Records and scans are now encrypted on this computer.`);
+  save(); await writeChain;
+  try { localStorage.removeItem(KEY); } catch (e) { /* already gone */ }
+  return rk;
+}
+function log0(t) { (S.syslog || (S.syslog = [])).unshift({ d: iso(TODAY), t, by: me() }); }
+
+function tries() { try { return JSON.parse(localStorage.getItem(TRIES_KEY)) || { n: 0, until: 0 }; } catch (e) { return { n: 0, until: 0 }; } }
+function setTries(t) { try { localStorage.setItem(TRIES_KEY, JSON.stringify(t)); } catch (e) { /* ignore */ } }
+async function openVault(raw) {
+  DK = await importDK(raw);
+  const st = vault.data ? JSON.parse(td.decode(await unseal(DK, vault.data))) : null;
+  S = migrate(st || seed());
+  S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
+  setTries({ n: 0, until: 0 });
+  lastActive = Date.now();
+  start();
+}
+
+function showLock(mode = 'login') {
+  closeModal();
+  const login = mode === 'login';
+  $('#app').classList.add('locked');
+  $('#app').innerHTML = `<div class="lockwrap"><form class="lockcard" id="lockform" novalidate>
+    <div class="mark" aria-hidden="true">KYC</div>
+    <h1>KYC Refresh Desk</h1>
+    <p class="muted">${login ? 'Records are locked. Sign in to continue.' : 'Enter the recovery key from the printed sheet and choose a new password.'}</p>
+    ${login ? `<label class="field" for="lk-u">Username<input id="lk-u" autocomplete="username" autocapitalize="off" spellcheck="false"></label>
+      <label class="field" for="lk-p">Password<input id="lk-p" type="password" autocomplete="current-password"></label>`
+    : `<label class="field" for="lk-r">Recovery key<input id="lk-r" class="mono" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"></label>
+      <label class="field" for="lk-n1">New password (at least ${MIN_PW} characters)<input id="lk-n1" type="password" autocomplete="new-password"></label>
+      <label class="field" for="lk-n2">Repeat new password<input id="lk-n2" type="password" autocomplete="new-password"></label>`}
+    <p class="err" id="lk-e" hidden></p>
+    <button class="btn primary" type="submit" id="lk-go">${login ? 'Unlock' : 'Reset password and unlock'}</button>
+    <button class="btn quiet" type="button" id="lk-sw">${login ? 'Forgot your password? Use the recovery key' : 'Back to sign in'}</button>
+  </form></div>`;
+  const err = m => { const e = $('#lk-e'); e.textContent = m; e.hidden = !m; };
+  $('#lk-sw').addEventListener('click', () => showLock(login ? 'recover' : 'login'));
+  $(login ? '#lk-u' : '#lk-r').focus();
+  $('#lockform').addEventListener('submit', async e => {
+    e.preventDefault();
+    const t = tries();
+    if (t.until > Date.now()) return err(`Too many attempts. Try again in ${Math.ceil((t.until - Date.now()) / 1000)} seconds.`);
+    const btn = $('#lk-go'); btn.disabled = true; btn.textContent = 'Checking…'; err('');
+    try {
+      let raw;
+      if (login) {
+        const u = $('#lk-u').value.trim(), p = $('#lk-p').value;
+        if (u.toLowerCase() !== String(vault.user).toLowerCase()) throw new Error('bad');
+        raw = await unwrapWith(p, 'p');
+      } else {
+        const p1 = $('#lk-n1').value, p2 = $('#lk-n2').value;
+        if (p1.length < MIN_PW) { btn.disabled = false; btn.textContent = 'Reset password and unlock'; return err(`Choose a password of at least ${MIN_PW} characters.`); }
+        if (p1 !== p2) { btn.disabled = false; btn.textContent = 'Reset password and unlock'; return err('The two new passwords do not match.'); }
+        raw = await unwrapWith($('#lk-r').value, 'r');
+        await wrapPassword(raw, p1); writeVault();
+      }
+      await openVault(raw);
+      if (!login) { log0('Password reset with the recovery key.'); save(); toast('Password reset'); }
+    } catch (x) {
+      const n = t.n + 1;
+      setTries({ n, until: n >= 5 ? Date.now() + Math.min(900, 30 * 2 ** (n - 5)) * 1000 : 0 });
+      btn.disabled = false; btn.textContent = login ? 'Unlock' : 'Reset password and unlock';
+      err(login ? 'Username or password is incorrect.' : 'That recovery key is not correct.');
+    }
+  });
+}
+function lockNow() {
+  if (!vault || !DK) return;
+  save();
+  writeChain.then(() => { DK = null; S = null; showLock(); });
+}
+let lastActive = Date.now();
+['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { lastActive = Date.now(); }, { passive: true, capture: true }));
+setInterval(() => { if (vault && DK && S && Date.now() - lastActive > S.settings.lockMins * 60000) lockNow(); }, 15000);
+
+function modalSetup() {
+  if (vault) return;
+  const body = `<p>Your records and scans will be encrypted on this computer. Without your password, or the recovery key you'll print next, nobody can read them, even someone who copies the browser's files.</p>
+    <div class="grid2">
+      <label class="field span2" for="su-n">Your full name (shown in the audit trail and on letters)<input id="su-n" value="${esc(S.settings.user === DEFAULT_SETTINGS.user ? '' : S.settings.user)}"></label>
+      <label class="field span2" for="su-u">Username<input id="su-u" autocomplete="username" autocapitalize="off" spellcheck="false"></label>
+      <label class="field" for="su-p1">Password (at least ${MIN_PW} characters)<input id="su-p1" type="password" autocomplete="new-password"></label>
+      <label class="field" for="su-p2">Repeat password<input id="su-p2" type="password" autocomplete="new-password"></label>
+    </div>
+    <p class="note">A passphrase of three or four unrelated words is strong and easy to remember. If you forget the password and lose the recovery key, nobody can recover the records.</p>`;
+  modal('Protect your records with a password', body, [{ label: 'Set password', cls: 'primary', fn: async dlg => {
+    const name = $('#su-n', dlg).value.trim(), user = $('#su-u', dlg).value.trim(), p1 = $('#su-p1', dlg).value, p2 = $('#su-p2', dlg).value;
+    if (!name) return fail(dlg, 'Enter your full name.');
+    if (!user) return fail(dlg, 'Choose a username.');
+    if (p1.length < MIN_PW) return fail(dlg, `Choose a password of at least ${MIN_PW} characters.`);
+    if (p1 !== p2) return fail(dlg, 'The two passwords do not match.');
+    let rk;
+    try { rk = await enableVault(name, user, p1); } catch (e) { vault = null; DK = null; return fail(dlg, 'This browser could not encrypt the records. Use a current version of Chrome or Edge.'); }
+    render();
+    later(() => modalRecovery(rk));
+  } }], { cancel: 'Not now' });
+}
+function rkSheet(rk) {
+  return `<div class="sheet"><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(S.settings.firm || 'KYC Refresh Desk')}</div>
+    <h3>Recovery key</h3>
+    <p>This key unlocks the KYC Refresh Desk records if the password is forgotten. Keep it in the office safe, away from the computer. Anyone who has this key and access to the computer can read the records.</p>
+    <div class="rk" style="color:#111;border-color:#333;background:#fff">${esc(rk)}</div>
+    <div class="meta"><span><b>Username:</b> ${esc(vault.user)}</span><span><b>Issued:</b> ${fmtD(TODAY)}</span><span><b>Issued to:</b> ${esc(me())}</span></div>
+    <p>A new recovery key replaces this one. Destroy this sheet when that happens.</p>
+    <div class="sig"><div>Placed in safe by (signature)</div><div>Date</div></div></div>`;
+}
+function modalRecovery(rk) {
+  const body = `<p>Print this key or write it down, and keep it in the office safe. It is the only way back in if the password is forgotten. It won't be shown again.</p>
+    <div class="rk" id="rk-v">${esc(rk)}</div>
+    <label class="check" for="rk-ok"><input type="checkbox" id="rk-ok"> I have printed or written down the recovery key and will keep it in the safe</label>`;
+  modal('Your recovery key', body, [
+    { label: 'Print', hidden: FRAMED, fn: () => { printHTML(rkSheet(rk)); return false; } },
+    { label: 'Done', cls: 'primary', fn: dlg => ($('#rk-ok', dlg).checked ? true : fail(dlg, 'Tick the box once the key is safely recorded.')) },
+  ], { noCancel: true });
+}
+function modalChangePassword() {
+  const body = `<div class="grid2"><label class="field span2" for="cp-c">Current password<input id="cp-c" type="password" autocomplete="current-password"></label>
+    <label class="field" for="cp-1">New password (at least ${MIN_PW} characters)<input id="cp-1" type="password" autocomplete="new-password"></label>
+    <label class="field" for="cp-2">Repeat new password<input id="cp-2" type="password" autocomplete="new-password"></label></div>`;
+  modal('Change password', body, [{ label: 'Change password', cls: 'primary', fn: async dlg => {
+    const p1 = $('#cp-1', dlg).value;
+    if (p1.length < MIN_PW) return fail(dlg, `Choose a password of at least ${MIN_PW} characters.`);
+    if (p1 !== $('#cp-2', dlg).value) return fail(dlg, 'The two new passwords do not match.');
+    let raw; try { raw = await unwrapWith($('#cp-c', dlg).value, 'p'); } catch (e) { return fail(dlg, 'The current password is not correct.'); }
+    await wrapPassword(raw, p1); writeVault();
+    log0('Password changed.'); save(); toast('Password changed');
+  } }]);
+}
+function modalNewRecovery() {
+  modal('Create a new recovery key', `<p>The old recovery key stops working. Use this if the printed key is lost or may have been seen by someone else.</p><label class="field" for="nr-c">Current password<input id="nr-c" type="password" autocomplete="current-password"></label>`,
+    [{ label: 'Create new key', cls: 'primary', fn: async dlg => {
+      let raw; try { raw = await unwrapWith($('#nr-c', dlg).value, 'p'); } catch (e) { return fail(dlg, 'The password is not correct.'); }
+      const rk = await wrapRecovery(raw); writeVault();
+      log0('New recovery key issued. The previous key no longer works.'); save();
+      later(() => modalRecovery(rk));
+    } }]);
+}
+
 let pendingAttach = null;
 $('#filepick').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = '';
@@ -1843,7 +2287,7 @@ $('#filepick').addEventListener('change', async e => {
   const { c, k } = pendingAttach; pendingAttach = null;
   const id = `${c.id}-${k}-${Date.now()}`;
   try {
-    await ATT.put(id, { name: f.name, type: f.type, size: f.size, added: iso(TODAY), blob: f });
+    await putFile(id, { name: f.name, type: f.type, size: f.size, added: iso(TODAY), blob: f });
     const d = doc(c, k);
     if (d.att) ATT.del(d.att).catch(() => {});
     d.att = id; d.scan = true;
@@ -1853,7 +2297,7 @@ $('#filepick').addEventListener('change', async e => {
 });
 async function viewAttachment(c, k) {
   const d = doc(c, k);
-  let rec; try { rec = await ATT.get(d.att); } catch (e) { rec = null; }
+  let rec; try { rec = await getFile(d.att); } catch (e) { rec = null; }
   if (!rec) { modal('Scan not found', '<p>The scan is not stored in this browser. It may have been attached on another computer, or the browser data was cleared. Restore a backup or attach it again.</p>', [], { cancel: 'Close' }); return; }
   const url = URL.createObjectURL(rec.blob);
   const isImg = (rec.type || '').startsWith('image/');
@@ -1881,6 +2325,16 @@ function dataToBlob(u) {
   return new Blob([arr], { type });
 }
 async function exportBackup() {
+  if (vault) {
+    // encrypted backup: the vault and scans as stored, unreadable without the password or recovery key
+    save(); await writeChain;
+    const files = {};
+    try { for (const [id, rec] of await ATT.all()) files[id] = rec; } catch (e) { /* no scans */ }
+    download(`kyc-refresh-desk-backup-${iso(TODAY)}.json`, JSON.stringify({ app: 'kyc-refresh-desk', v: 2, enc: true, exported: new Date().toISOString(), vault, files }), 'application/json');
+    log0(`Encrypted backup saved with ${plural(Object.keys(files).length, 'scan')}.`); save();
+    toast(`Encrypted backup saved with ${plural(Object.keys(files).length, 'scan')}`);
+    return;
+  }
   const files = {};
   try { for (const [id, rec] of await ATT.all()) files[id] = { name: rec.name, type: rec.type, size: rec.size, added: rec.added, data: await blobToData(rec.blob) }; } catch (e) { /* no scans */ }
   download(`kyc-refresh-desk-backup-${iso(TODAY)}.json`, JSON.stringify({ app: 'kyc-refresh-desk', v: 1, exported: new Date().toISOString(), state: S, files }), 'application/json');
@@ -1949,12 +2403,22 @@ function importCSV(text) {
 }
 function importBackup(text) {
   let data; try { data = JSON.parse(text); } catch (e) { data = null; }
-  if (!data || data.app !== 'kyc-refresh-desk' || !data.state) { toast('That file is not a KYC Refresh Desk backup.'); return; }
+  if (!data || data.app !== 'kyc-refresh-desk' || !(data.state || data.enc)) { toast('That file is not a KYC Refresh Desk backup.'); return; }
+  if (data.enc) {
+    modal('Restore encrypted backup', `<p>Restore the password-protected backup from ${fmt((data.exported || '').slice(0, 10))} with ${plural(Object.keys(data.files || {}).length, 'scan')}?</p><p class="callout warn">This replaces every record in this browser, and the password. Afterwards, sign in with the username and password that were in use when the backup was saved, or with that backup's recovery key.</p>`,
+      [{ label: 'Replace and restore', cls: 'danger solid', fn: async () => {
+        try { await ATT.clear(); for (const [id, x] of Object.entries(data.files || {})) await ATT.put(id, x); } catch (e) { toast('Scans could not be restored in this browser.'); }
+        vault = data.vault; writeVault();
+        try { localStorage.removeItem(KEY); } catch (e) { /* none */ }
+        DK = null; S = null; later(() => showLock());
+      } }]);
+    return;
+  }
   const n = data.state.clients.length, f = Object.keys(data.files || {}).length;
   modal('Restore backup', `<p>Restore ${plural(n, 'client')} and ${plural(f, 'scan')} from ${fmt((data.exported || '').slice(0, 10))}?</p><p class="callout warn">This replaces every record currently in this browser.</p>`,
     [{ label: 'Replace and restore', cls: 'danger solid', fn: async () => {
       S = migrate(data.state); S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
-      try { await ATT.clear(); for (const [id, x] of Object.entries(data.files || {})) await ATT.put(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) }); } catch (e) { toast('Records restored, but scans could not be saved in this browser.'); }
+      try { await ATT.clear(); for (const [id, x] of Object.entries(data.files || {})) await putFile(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) }); } catch (e) { toast('Records restored, but scans could not be saved in this browser.'); }
       commit('Backup restored'); later(() => go('overview'));
     } }]);
 }
@@ -2022,6 +2486,16 @@ const ACT = {
     } }], { cancel: 'Keep it' });
   },
   backup: () => exportBackup(),
+  setup: () => modalSetup(),
+  lock: () => lockNow(),
+  chpw: () => modalChangePassword(),
+  newrk: () => modalNewRecovery(),
+  workpack: () => modalWorkPack(),
+  printproc: () => printHTML(procedureSheet()),
+  printrep: () => printHTML(reportSheet(repWeek)),
+  repweek: el => { const n = +el.dataset.w, cur = iso(mondayOf(TODAY)); repWeek = n === 0 ? cur : iso(addDays(parse(repWeek), 7 * n)); if (repWeek > cur) repWeek = cur; render(); },
+  repgo: el => { repWeek = el.dataset.w; render(); },
+  repsave: () => { S.reports[repWeek] = Object.assign(S.reports[repWeek] || {}, { snap: snapshot(), saved: iso(TODAY), by: me() }); commit('End-of-week position recorded'); },
   restore: () => { importMode = 'json'; $('#importpick').accept = '.json,application/json'; $('#importpick').click(); },
   exportcsv: () => exportCSV(),
   importcsv: () => {
@@ -2032,11 +2506,11 @@ const ACT = {
        { label: 'Choose CSV file', cls: 'primary', fn: () => { importMode = 'csv'; $('#importpick').accept = '.csv,text/csv'; $('#importpick').click(); } }]);
   },
   loadsample: () => modal('Load sample clients', '<p>Replace every record in this browser with the fictional sample clients? Your settings are kept.</p>', [{ label: 'Load sample clients', cls: 'danger solid', fn: async () => {
-    S = seed(S.settings); try { await ATT.clear(); } catch (e) { /* none */ } commit('Sample clients loaded'); later(() => go('overview'));
+    const sys = S.syslog; S = migrate(seed(S.settings)); S.syslog = sys; try { await ATT.clear(); } catch (e) { /* none */ } commit('Sample clients loaded'); later(() => go('overview'));
   } }]),
   erase: () => modal('Erase all records', '<p>Delete every client, document record, scan and audit entry stored in this browser? Settings are kept.</p><p class="callout crit">This cannot be undone. Save a backup first if you may need these records.</p><label class="field" for="er-c">Type ERASE to confirm<input id="er-c" autocomplete="off"></label>', [{ label: 'Erase everything', cls: 'danger solid', fn: async dlg => {
     if ($('#er-c', dlg).value.trim() !== 'ERASE') return fail(dlg, 'Type ERASE in capitals to confirm.');
-    S = emptyState(S.settings); try { await ATT.clear(); } catch (e) { /* none */ } commit('All records erased'); later(() => go('overview'));
+    const sys = S.syslog; S = migrate(emptyState(S.settings)); S.syslog = sys; try { await ATT.clear(); } catch (e) { /* none */ } commit('All records erased'); later(() => go('overview'));
   } }]),
 };
 
@@ -2050,15 +2524,21 @@ document.addEventListener('click', e => {
   if (f) { e.preventDefault(); f(el); }
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !$('#modal').hidden) closeModal();
+  if (e.key === 'Escape' && !$('#modal').hidden && $('#modal [data-close]')) closeModal();
   if (e.key === 'Enter' && e.target.matches('.kcard')) e.target.click();
 });
+let notesT;
 document.addEventListener('input', e => {
   if (e.target.id === 'q') { F.q = e.target.value; renderClientRows(); }
+  if (e.target.id === 'rep-notes') {
+    (S.reports[repWeek] || (S.reports[repWeek] = {})).notes = e.target.value;
+    clearTimeout(notesT); notesT = setTimeout(() => { save(); const sh = $('#rep-sheet'); if (sh) sh.innerHTML = reportSheet(repWeek); }, 400);
+  }
 });
 document.addEventListener('change', e => {
   const el = e.target, ds = el.dataset;
   if (ds.filter) { F[ds.filter] = el.value; renderClientRows(); return; }
+  if (el.id === 'rep-names') { S.settings.reportNames = el.checked; save(); $('#rep-sheet').innerHTML = reportSheet(repWeek); return; }
   if (ds.set) {
     const path = ds.set.split('.');
     let v = el.type === 'number' ? Math.max(Number(el.min) || 0, Number(el.value) || 0) : el.value.trim();
@@ -2100,9 +2580,22 @@ document.addEventListener('change', e => {
 });
 window.addEventListener('hashchange', route);
 
-shell();
-save();
-route();
+function start() {
+  shell(); save(); route();
+  if (!vault && !FRAMED) {
+    let asked = null;
+    try { asked = sessionStorage.getItem('kyc-setup-asked'); sessionStorage.setItem('kyc-setup-asked', '1'); } catch (e) { /* ignore */ }
+    if (!asked) later(modalSetup);
+  }
+}
+function boot() {
+  vault = readVault();
+  if (vault) { showLock(); return; }
+  S = migrate(load() || seed());
+  S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
+  start();
+}
+boot();
 })();
 </script>
 </body>

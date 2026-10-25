@@ -39,6 +39,27 @@ Use **Change risk status** on the client file for any change outside a periodic 
 
 At sign-off, a PEP must be confirmed as High and senior management approval to continue the relationship must be ticked. If services are restricted, the approver must choose whether to lift the restriction or keep it.
 
+## Password protection
+
+The first time the app opens, it offers to set a username and password. Once set:
+
+- Every record and scan is encrypted on the computer (AES-256, with the key derived from your password using PBKDF2). Without the password or the recovery key, the stored data is unreadable, even to someone who copies the browser's files.
+- You get a **recovery key** to print and keep in the office safe. It is the only way back in if the password is forgotten. Nobody, including the app's author, can recover the records without one of the two.
+- The app locks after 10 idle minutes (adjustable) and after 5 wrong passwords it makes you wait before trying again.
+- Backups saved while a password is set are encrypted too. Restoring one also restores the password and recovery key that were in use when it was saved.
+- Printed pages, CSV exports and downloaded scans are not encrypted. Handle them like the paper files.
+
+## Working with an assistant
+
+Only the compliance officer uses the app. The assistant works on paper. The **Procedure** page sets out who does what, where files live and the first checks on documents received; print it and both sign it.
+
+- **Work pack** (Outreach or Paper files page): pick the week's files, check them out to the assistant, and print a pack with each file's task, contact details, outstanding items and a hand-back slip.
+- **Cover sheet**: now includes a contact record and a documents-received log for the assistant to fill in by hand. Reprint it after each update so paper and app agree.
+
+## Weekly report
+
+The **Weekly report** page prints a one-page summary for management: work done in the week (reviews completed and started, requests and reminders, documents received and verified, scans, screenings, risk decisions, escalations), the position at the end of the week compared with the previous report, completed reviews, risk decisions, overdue reviews, and your notes. Press **Record end-of-week position** each Friday so the next report can show the change. Client names can be hidden so the report shows client IDs only.
+
 ## Moving from paper
 
 1. Put your existing client register into a spreadsheet and save it as CSV. Columns: `name, type, risk, pep, country, last_review, contact, email, phone, address, file_ref, file_location`. Only `name` is required.
