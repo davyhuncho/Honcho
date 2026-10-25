@@ -60,6 +60,35 @@ Only the compliance officer uses the app. The assistant works on paper. The **Pr
 
 The **Weekly report** page prints a one-page summary for management: work done in the week (reviews completed and started, requests and reminders, documents received and verified, scans, screenings, risk decisions, escalations), the position at the end of the week compared with the previous report, completed reviews, risk decisions, overdue reviews, and your notes. Press **Record end-of-week position** each Friday so the next report can show the change. Client names can be hidden so the report shows client IDs only.
 
+## Onboarding new clients
+
+**Add client** asks whether this is a new client or an existing one. A new client goes through onboarding: request identification documents, verify, screen and assess risk, then **Accept or decline**. Accepting sets the first periodic review date. Declining records the reason and can open an internal suspicious activity report straight away. A PEP can't be accepted without senior management approval.
+
+## Suspicious activity register
+
+Confidential to the MLRO. Log each internal report, record your decision and reasoning (report or not), the date and reference of any report to the Financial Intelligence Agency, follow-up notes, and closure. Each record prints for the MLRO's separate confidential file. Nothing appears on the client's file, work packs or the weekly report. If you restrict a client's services, their file shows only "Restricted by the MLRO". The annual report shows totals only, and you can switch them off.
+
+## Matters and source of funds
+
+Each client file has a **Matters** panel for transactions: value, where the money comes from, whether evidence is verified, and whether it fits what you know about the client. Unverified source of funds and transactions that don't fit go on the worklist, and a mismatch can open an internal report pre-filled with the details.
+
+## Training register
+
+The **Training** page lists staff, their last AML/CFT training and when the refresher is due (every 12 months by default). Record a session once for everyone who attended. The register prints for inspections.
+
+## Record retention and destruction
+
+When a client is exited or declined, the end date is recorded and records are kept for 5 years by default (set in Settings). Check this against your legal requirement. The **Paper files** page shows which files can now be destroyed. A client with an open internal report, or one you place on hold, can't be destroyed. Recording a destruction deletes the digital record and scans and keeps a permanent line in the destruction log.
+
+## Inspection pack and annual report
+
+- **Inspection pack** (Clients page): pick files (all high risk, a random 10, or your own choice) and print an index plus, for each file, the cover sheet, the due diligence history, matters, audit trail and, if wanted, every decision note.
+- **Reports → Annual**: the MLRO's annual report for senior management, covering the client base, reviews, client decisions, suspicious activity totals, matters, training and retention, with your commentary.
+
+## Backup reminder
+
+If no backup has been saved for 7 days (adjustable), the Overview and sidebar remind you.
+
 ## Moving from paper
 
 1. Put your existing client register into a spreadsheet and save it as CSV. Columns: `name, type, risk, pep, country, last_review, contact, email, phone, address, file_ref, file_location`. Only `name` is required.

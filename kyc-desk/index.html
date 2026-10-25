@@ -11,16 +11,18 @@
 /* Layout: a floating frosted sidebar over a soft colour-field wallpaper. Every panel is translucent glass with a specular top edge; records sit in hairline tables. */
 :root {
   --bg: #e8edf4;
-  --orb-1: rgba(48, 148, 255, .42);
-  --orb-2: rgba(80, 210, 196, .36);
-  --orb-3: rgba(170, 132, 255, .30);
-  --orb-4: rgba(255, 190, 130, .34);
-  --glass: rgba(255, 255, 255, .56);
-  --glass-strong: rgba(255, 255, 255, .80);
-  --glass-soft: rgba(255, 255, 255, .34);
-  --glass-edge: rgba(255, 255, 255, .72);
+  --orb-1: rgba(40, 140, 255, .55);
+  --orb-2: rgba(60, 205, 190, .48);
+  --orb-3: rgba(165, 120, 255, .44);
+  --orb-4: rgba(255, 170, 110, .44);
+  --orb-5: rgba(255, 120, 170, .26);
+  --glass: rgba(255, 255, 255, .40);
+  --glass-strong: rgba(255, 255, 255, .64);
+  --glass-soft: rgba(255, 255, 255, .24);
+  --glass-edge: rgba(255, 255, 255, .62);
   --glass-hi: rgba(255, 255, 255, .95);
-  --sheen: linear-gradient(180deg, rgba(255, 255, 255, .45), rgba(255, 255, 255, 0) 38%);
+  --glass-glow: rgba(255, 255, 255, .45);
+  --sheen: linear-gradient(140deg, rgba(255, 255, 255, .62) 0%, rgba(255, 255, 255, .16) 30%, rgba(255, 255, 255, .03) 58%, rgba(255, 255, 255, .20) 100%);
   --scrim: rgba(18, 26, 40, .22);
   --ink: #0b1220;
   --muted: #5b6475;
@@ -41,7 +43,7 @@
   --bar-high: #ff3b30; --bar-medium: #ff9500; --bar-low: #34c759;
   --shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 12px 32px -10px rgba(15, 23, 42, .16);
   --shadow-lg: 0 40px 90px -24px rgba(15, 23, 42, .38), 0 2px 8px rgba(15, 23, 42, .08);
-  --blur: blur(30px) saturate(185%);
+  --blur: blur(42px) saturate(210%) brightness(1.03);
   --f-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "Segoe UI Variable Display", "Segoe UI", Roboto, Arial, sans-serif;
   --f-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI Variable Text", "Segoe UI", Roboto, Arial, sans-serif;
   --f-mono: "SF Mono", ui-monospace, Menlo, Consolas, "Liberation Mono", monospace;
@@ -52,10 +54,10 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #06090f;
-    --orb-1: rgba(10, 132, 255, .34); --orb-2: rgba(40, 200, 180, .20); --orb-3: rgba(130, 90, 255, .28); --orb-4: rgba(255, 130, 70, .15);
-    --glass: rgba(30, 34, 46, .52); --glass-strong: rgba(44, 48, 62, .82); --glass-soft: rgba(255, 255, 255, .035);
-    --glass-edge: rgba(255, 255, 255, .10); --glass-hi: rgba(255, 255, 255, .16);
-    --sheen: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, 0) 40%);
+    --orb-1: rgba(10, 132, 255, .46); --orb-2: rgba(40, 200, 180, .28); --orb-3: rgba(140, 90, 255, .38); --orb-4: rgba(255, 130, 70, .20); --orb-5: rgba(255, 90, 150, .16);
+    --glass: rgba(26, 30, 44, .40); --glass-strong: rgba(48, 52, 68, .62); --glass-soft: rgba(255, 255, 255, .04); --glass-glow: rgba(255, 255, 255, .10);
+    --glass-edge: rgba(255, 255, 255, .14); --glass-hi: rgba(255, 255, 255, .22);
+    --sheen: linear-gradient(140deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, .04) 32%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, .07) 100%);
     --scrim: rgba(0, 0, 0, .45);
     --ink: #f2f4f8; --muted: #9ba4b4; --line: rgba(255, 255, 255, .08); --fill: rgba(118, 118, 128, .24); --fill-strong: rgba(118, 118, 128, .36);
     --accent: #0a84ff; --accent-2: #5eb0ff; --accent-soft: rgba(10, 132, 255, .22); --on-accent: #ffffff;
@@ -70,10 +72,10 @@
 }
 :root[data-theme="dark"] {
   --bg: #06090f;
-  --orb-1: rgba(10, 132, 255, .34); --orb-2: rgba(40, 200, 180, .20); --orb-3: rgba(130, 90, 255, .28); --orb-4: rgba(255, 130, 70, .15);
-  --glass: rgba(30, 34, 46, .52); --glass-strong: rgba(44, 48, 62, .82); --glass-soft: rgba(255, 255, 255, .035);
-  --glass-edge: rgba(255, 255, 255, .10); --glass-hi: rgba(255, 255, 255, .16);
-  --sheen: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, 0) 40%);
+  --orb-1: rgba(10, 132, 255, .46); --orb-2: rgba(40, 200, 180, .28); --orb-3: rgba(140, 90, 255, .38); --orb-4: rgba(255, 130, 70, .20); --orb-5: rgba(255, 90, 150, .16);
+  --glass: rgba(26, 30, 44, .40); --glass-strong: rgba(48, 52, 68, .62); --glass-soft: rgba(255, 255, 255, .04); --glass-glow: rgba(255, 255, 255, .10);
+  --glass-edge: rgba(255, 255, 255, .14); --glass-hi: rgba(255, 255, 255, .22);
+  --sheen: linear-gradient(140deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, .04) 32%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, .07) 100%);
   --scrim: rgba(0, 0, 0, .45);
   --ink: #f2f4f8; --muted: #9ba4b4; --line: rgba(255, 255, 255, .08); --fill: rgba(118, 118, 128, .24); --fill-strong: rgba(118, 118, 128, .36);
   --accent: #0a84ff; --accent-2: #5eb0ff; --accent-soft: rgba(10, 132, 255, .22); --on-accent: #ffffff;
@@ -103,7 +105,11 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 var(-
   radial-gradient(36vmax 34vmax at 92% 14%, var(--orb-3), transparent 70%),
   radial-gradient(40vmax 36vmax at 78% 96%, var(--orb-2), transparent 70%),
   radial-gradient(30vmax 28vmax at 22% 88%, var(--orb-4), transparent 70%),
-  var(--bg); }
+  radial-gradient(26vmax 24vmax at 55% 48%, var(--orb-5), transparent 70%),
+  var(--bg);
+  background-size: 125% 125%; background-position: 0% 0%; }
+@media (prefers-reduced-motion: no-preference) { .wallpaper { animation: drift 48s ease-in-out infinite alternate; } }
+@keyframes drift { to { background-position: 100% 100%; } }
 h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
 h1 { font-size: 2.05rem; font-weight: 700; line-height: 1.1; letter-spacing: -.028em; }
 h2 { font-size: 1.06rem; font-weight: 650; letter-spacing: -.012em; }
@@ -124,7 +130,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   -webkit-backdrop-filter: var(--blur);
   backdrop-filter: var(--blur);
   border: 1px solid var(--glass-edge);
-  box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow);
+  box-shadow: inset 0 1px 0 var(--glass-hi), inset 1px 0 0 var(--glass-glow), inset 0 -1px 0 var(--glass-glow), inset 0 0 28px -10px var(--glass-glow), var(--shadow);
 }
 
 /* ---------- shell ---------- */
@@ -230,6 +236,10 @@ table.t { width: 100%; border-collapse: collapse; font-size: .86rem; }
 .tile.is-info { --tone: var(--accent); }
 .tile.is-ok { --tone: var(--bar-low); }
 .tile.is-manila { --tone: #ffb340; }
+.kpis.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpis.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 920px) { .kpis.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .kpis.three { grid-template-columns: minmax(0, 1fr); } }
 .split { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .chart svg { width: 100%; height: auto; display: block; }
 .chart .ax { fill: var(--muted); font: 500 10.5px var(--f-body); }
@@ -351,6 +361,14 @@ textarea.letter { width: 100%; min-height: 360px; font: 13px/1.6 var(--f-mono); 
 
 #toast { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); background: var(--sheen), var(--glass-strong); color: var(--ink); padding: 10px 20px; border-radius: 999px; font-size: .86rem; font-weight: 600; box-shadow: inset 0 1px 0 var(--glass-hi), var(--shadow-lg); max-width: calc(100% - 32px); }
 #print-area { display: none; }
+.btn:not(.primary):not(.quiet):not(.solid), .field input, .field select, .field textarea, .inp, .kcard, .seg {
+  -webkit-backdrop-filter: blur(18px) saturate(180%); backdrop-filter: blur(18px) saturate(180%);
+}
+.kcard { box-shadow: inset 0 1px 0 var(--glass-hi), inset 0 0 18px -8px var(--glass-glow), 0 2px 10px -3px rgba(15, 23, 42, .14); }
+.nav a[aria-current="page"] { background: linear-gradient(180deg, rgba(90, 170, 255, .95), rgba(0, 122, 255, .92)); }
+.t tbody tr:hover td { background: var(--glass-soft); }
+.pb { display: block; }
+@media print { #print-area .pb { break-before: page; } }
 .app.locked { display: block; }
 .lockwrap { min-height: 100vh; display: grid; place-items: center; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .lockcard { width: min(400px, 100%); border-radius: 28px; padding: 30px 26px 22px; display: grid; gap: 14px; }
@@ -455,7 +473,7 @@ const diffDays = (a, b) => Math.round((b - a) / DAY);
 const fmt = s => (s ? parse(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 const fmtD = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const plural = (n, w, pl) => `${n} ${n === 1 ? w : pl || w + 's'}`;
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const FRAMED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
@@ -556,6 +574,7 @@ const DEFAULT_SETTINGS = {
   screen: { high: 6, medium: 12, low: 12 },
   lead: 90, deadline: 30, chase: [14, 30, 60], expiryWarn: 60, fileOutDays: 14, pepTail: 12,
   assistant: '', lockMins: 10, reportNames: true,
+  backupDays: 7, retentionYears: 5, trainingMonths: 12, annualSar: true,
 };
 
 /* =========================================================
@@ -584,7 +603,10 @@ function emptyState(settings) {
 let S;
 
 const get = id => S.clients.find(c => c.id === id);
-const active = () => S.clients.filter(c => c.status !== 'exited');
+function isClosed(c) { return c.status === 'exited' || c.status === 'declined'; }
+const active = () => S.clients.filter(c => !isClosed(c));
+// clients on the books: excludes prospective clients being onboarded
+const onBook = () => S.clients.filter(c => c.status === 'active' || c.status === 'restricted');
 const nextId = () => `CL-${String(++S.seq).padStart(4, '0')}`;
 const me = () => S.settings.user || 'Compliance Officer';
 function log(c, t, d) { c.history.unshift({ d: d || iso(TODAY), t, by: me() }); }
@@ -622,8 +644,13 @@ const service = c => RISK_FACTORS[2].o[c.ra.svc || 0][0];
 // bring records saved by earlier versions up to date
 function migrate(st) {
   if (!st.reports) st.reports = {};
+  if (!st.sars) st.sars = [];
+  if (!st.training) st.training = { staff: [], records: [] };
+  if (!st.destroyed) st.destroyed = [];
+  if (!st.annual) st.annual = {};
   st.clients.forEach(c => {
     if (!c.decisions) c.decisions = [];
+    if (!c.matters) c.matters = [];
     if (c.pep === undefined) c.pep = c.ra && c.ra.pep ? newPep() : null;
   });
   return st;
@@ -677,6 +704,9 @@ function seed(settings) {
     { name: 'Joaquín Herrera', type: 'individual', risk: 'high', country: 'Venezuela', ra: { svc: 2, jur: 2, sow: 2, chan: 1 }, due: 9, stage: 'awaiting', reqAgo: 33, chases: 1, scan: .5 },
     { name: 'Cobalt Shoals Shipping Ltd', type: 'company', risk: 'medium', country: 'Bermuda', ra: { svc: 1, jur: 1, struct: 1 }, due: -48, stage: 'awaiting', reqAgo: 80, chases: 2, escalated: 12, status: 'restricted', scan: .3, contact: 'Ivor Pemberton',
       parties: [['Ivor Pemberton', 'Director', '', 300], ['Ivor Pemberton', 'Beneficial owner', 100, 300]] },
+    { name: 'Marlowe Cay Ventures Ltd', type: 'company', risk: 'medium', country: 'Turks and Caicos Islands', ra: { svc: 1, struct: 1, chan: 1 }, due: -2100, status: 'exited', exitedAgo: 2050, exitReason: 'Company dissolved. No further instructions.', scan: .5, contact: 'Harriet Cay',
+      parties: [['Harriet Cay', 'Director', '', -1500]] },
+    { name: 'Petra Lindqvist', type: 'individual', risk: 'low', country: 'Sweden', ra: { svc: 2 }, due: -500, status: 'exited', exitedAgo: 420, exitReason: 'Property sale completed. Client relocated.', scan: .8 },
   ];
 
   specs.forEach((sp, i) => {
@@ -692,7 +722,7 @@ function seed(settings) {
       contact: sp.contact || sp.name, email: `${slug}@example.com`, phone: `+1 649 555 01${pad(10 + i)}`,
       address: `${12 + i * 3} ${['Leeward Highway', 'Airport Road', 'Front Street', 'Kings Road', 'Grace Way'][i % 5]}\n${['Providenciales', 'Grand Turk', 'North Caicos', 'Providenciales', 'Salt Cay'][i % 5]}\nTurks and Caicos Islands`,
       rm: RMs[i % RMs.length], onboarded: onb, last, ra, note: sp.note || '',
-      docs: {}, parties: [], outreach: [], history: [], reviews: [], refresh: null, screening: null, pep: null, decisions: [],
+      docs: {}, parties: [], outreach: [], history: [], reviews: [], refresh: null, screening: null, pep: null, decisions: [], matters: [],
       file: { ref: `${TYPE_CODE[sp.type]}/${id.slice(3)}`, loc: `Cabinet ${'ABCD'[i % 4]} · Drawer ${1 + (i % 4)}`, out: null },
     };
     // documents on file from the last review
@@ -743,9 +773,39 @@ function seed(settings) {
       if (sp.escalated && sp.status === 'restricted') c.decisions.unshift({ id: 'd3', d: D(-sp.escalated), type: 'restrict', from: 'Active', to: 'Restricted', reason: 'No response to the final reminder. Services restricted until the review is complete.', by: 'MLRO', recordedBy: 'Compliance Officer', effects: ['Services suspended until the restriction is lifted'] });
       if (sp.escalated) c.history.unshift({ d: D(-sp.escalated), t: 'Escalated to MLRO: no response to final reminder. Services restricted pending review.', by: 'Compliance Officer' });
     }
+    if (sp.status === 'exited') {
+      c.ended = D(-sp.exitedAgo);
+      c.decisions.unshift({ id: 'd4', d: c.ended, type: 'exit', from: 'Active', to: 'Exited', reason: sp.exitReason, by: 'MLRO', recordedBy: 'Compliance Officer', effects: ['Client removed from the active register and worklist'] });
+      c.history.unshift({ d: c.ended, t: `Relationship exited (Active → Exited). Approved by MLRO. Reason: ${sp.exitReason}`, by: 'Compliance Officer' });
+    }
     if (sp.fileOut) c.file.out = { to: 'J. Rigby (Corporate)', since: D(-sp.fileOut), purpose: 'Annual return filing' };
     st.clients.push(c);
   });
+  const byName = n => st.clients.find(c => c.name === n);
+  [['Marcus A. Delancy', 'Property purchase', 'Purchase of beachfront villa', 1850000, 'requested', 'unclear', 20, 'Said to be savings and the sale of a property in Nassau. Evidence requested.'],
+   ['Leeward Crest Developments Ltd', 'Property sale', 'Sale of four development lots', 3200000, 'verified', 'yes', 60, 'Sale proceeds paid by the buyer through a local bank escrow account.'],
+   ['Joaquín Herrera', 'Property purchase', 'Purchase of a condominium unit', 640000, 'outstanding', 'no', 9, 'Said to come from a family business the client would not name.'],
+   ['Coralline Ventures Ltd', 'Company formation or administration', 'Annual corporate administration', 12000, 'na', 'yes', 300, 'Company operating account.'],
+   ['Gerald and Simone Fenwick', 'Property purchase', 'Holiday home purchase', 780000, 'verified', 'yes', 150, 'Sale of their US residence. Settlement statement and bank transfer records seen.'],
+  ].forEach(([n, type, desc, value, sofStatus, fit, ago, sof]) => { const c = byName(n); c.matters.push({ id: 'm' + (c.matters.length + 1), ref: `${c.file.ref}/M${c.matters.length + 1}`, type, desc, value: String(value), cur: 'USD', opened: D(-ago), sof, sofStatus, fit, status: 'open', closed: '', note: '' }); });
+  st.sars = [
+    { received: D(-300), reporter: 'J. Rigby (Corporate)', how: 'By email', clientId: byName('Silverpalm Hospitality Ltd').id, grounds: 'Annual fees were paid by a company with no apparent connection to the client.',
+      decision: { outcome: 'no', d: D(-298), by: 'Compliance Officer', reasoning: 'The payer is the client\'s management company under a documented services agreement, which was seen. No grounds for suspicion.' }, fia: null, closed: D(-290), closeNote: 'Explanation verified and placed on the confidential file.',
+      notes: [{ d: D(-300), t: 'Internal report received by the MLRO.', by: 'Compliance Officer' }, { d: D(-298), t: 'MLRO decided not to report.', by: 'Compliance Officer' }, { d: D(-290), t: 'Matter closed. Explanation verified.', by: 'Compliance Officer' }] },
+    { received: D(-24), reporter: 'Compliance Officer', how: 'Identified by the MLRO', clientId: byName('Cobalt Shoals Shipping Ltd').id, grounds: 'The beneficial owner would not explain a series of incoming transfers from unrelated third parties, then stopped responding to document requests.',
+      decision: { outcome: 'report', d: D(-21), by: 'Compliance Officer', reasoning: 'Unexplained third-party funds combined with a refusal to provide due diligence give reasonable grounds to suspect.' }, fia: { d: D(-20), ref: 'SAMPLE-0412', method: 'Online' }, closed: '',
+      notes: [{ d: D(-24), t: 'Internal report received by the MLRO.', by: 'Compliance Officer' }, { d: D(-21), t: 'MLRO decided to report to the Financial Intelligence Agency.', by: 'Compliance Officer' }, { d: D(-20), t: 'Report submitted to the FIA (reference SAMPLE-0412).', by: 'Compliance Officer' }] },
+    { received: D(-2), reporter: 'S. Forbes (Conveyancing)', how: 'In person', clientId: byName('Joaquín Herrera').id, grounds: 'The client asked whether the balance of the condominium purchase could be paid in cash in several instalments, and said the money would come from a family business he would not name.',
+      decision: null, fia: null, closed: '', notes: [{ d: D(-2), t: 'Internal report received by the MLRO.', by: 'Compliance Officer' }] },
+  ];
+  const perYear = {};
+  st.sars.forEach(x => { const y = x.received.slice(0, 4); perYear[y] = (perYear[y] || 0) + 1; x.id = `IR-${y}-${String(perYear[y]).padStart(3, '0')}`; x.subject = ''; });
+  st.sars.reverse();
+  st.training = { staff: [['s1', 'K. Talbot', 'Partner'], ['s2', 'A. Lightbourne', 'Partner'], ['s3', 'J. Rigby', 'Corporate administrator'], ['s4', 'S. Forbes', 'Conveyancing paralegal'], ['s5', 'M. Gardiner', 'Receptionist']].map(([id, name, role]) => ({ id, name, role, active: true })), records: [] };
+  const sess = (ago, course, ids) => ids.forEach(sid => st.training.records.push({ id: `r${ago}${sid}`, staffId: sid, d: D(-ago), course, provider: 'MLRO', hours: '2' }));
+  sess(420, 'Annual AML/CFT refresher', ['s4']);
+  sess(330, 'Annual AML/CFT refresher', ['s1', 's2', 's3']);
+  sess(40, 'Spotting suspicious transactions in conveyancing', ['s1', 's4']);
   st.seq = st.seq + specs.length * 3 + 1;
   return st;
 }
@@ -759,7 +819,8 @@ function tasks() {
   for (const c of active()) {
     const days = daysToReview(c), r = c.refresh;
     const add = (sev, kind, text, act, label, type) => out.push({ c, sev, kind, text, act, label, type });
-    if (!r) {
+    if (!r && c.status === 'onboarding') add(1, 'onboard', 'New client: onboarding not started', 'start', 'Start onboarding');
+    else if (!r) {
       if (days < 0) add(c.risk === 'high' ? 0 : 1, 'overdue', `Periodic review overdue by ${plural(-days, 'day')}`, 'start', 'Start refresh');
       else if (days <= 30) add(2, 'due', `Review due in ${plural(days, 'day')}, not started`, 'start', 'Start refresh');
     } else if (r.stage === 'awaiting') {
@@ -771,7 +832,7 @@ function tasks() {
       else if (waited >= c1 && r.chases < 1) add(2, 'chase', `Requested ${waited} days ago. Send first reminder`, 'chase', 'Log reminder');
     } else if (r.stage === 'verify') add(2, 'verify', 'Documents received. Verify and certify', 'open', 'Verify');
     else if (r.stage === 'screening') add(2, 'screening', 'Run sanctions, PEP and adverse media screening', 'screen', 'Record screening');
-    else if (r.stage === 'signoff') add(2, 'signoff', 'Ready for MLRO sign-off', 'signoff', 'Sign off');
+    else if (r.stage === 'signoff') { if (c.status === 'onboarding') add(2, 'accept', 'New client ready to accept or decline', 'accept', 'Accept or decline'); else add(2, 'signoff', 'Ready for MLRO sign-off', 'signoff', 'Sign off'); }
 
     for (const t of defs(c)) {
       const d = c.docs[t.k];
@@ -786,11 +847,17 @@ function tasks() {
       if (e < 0) add(1, 'expired', `ID for ${p.name} (${p.role}) expired ${fmt(p.idExp)}`, 'open', 'Open file');
       else if (e <= s.expiryWarn) add(3, 'expiring', `ID for ${p.name} (${p.role}) expires ${fmt(p.idExp)}`, 'open', 'Open file');
     }
+    for (const m of c.matters) {
+      if (m.status !== 'open') continue;
+      if (m.fit === 'no') add(1, 'fit', `Matter ${m.ref} doesn't fit the client's profile. Consider an internal report`, 'sarnew', 'Log report');
+      else if (m.fit === 'unclear') add(2, 'fit', `Matter ${m.ref}: check it fits what you know about the client`, 'open', 'Open file');
+      if (m.sofStatus === 'outstanding' || m.sofStatus === 'requested') add(2, 'sof', `Matter ${m.ref}: source of funds ${SOF[m.sofStatus][0].toLowerCase()}`, 'open', 'Open file');
+    }
     if (c.pep && c.pep.status === 'current' && !c.pep.approvedBy) add(1, 'pep', 'PEP: record the public function and senior management approval', 'decide', 'Record approval', 'pepupd');
     const tail = pepTailEnd(c);
     if (c.pep && c.pep.status === 'former' && tail && !isPep(c) && c.risk === 'high' && c.last < iso(tail) && !c.decisions.some(x => x.d >= iso(tail) && ['lower', 'review'].includes(x.type))) add(2, 'peptail', `Former PEP: enhanced measures ended ${fmtD(tail)}. Decide whether to lower the rating`, 'decide', 'Review rating', 'lower');
     if (c.status === 'restricted' && !r) add(1, 'restricted', 'Services restricted with no review in progress. Start a review or decide on the restriction', 'decide', 'Decide', 'lift');
-    if (!r && screenStale(c)) add(2, 'rescreen', `Screening last run ${c.screening ? fmt(c.screening.date) : 'never'}. Re-screen`, 'screen', 'Record screening');
+    if (!r && c.status !== 'onboarding' && screenStale(c)) add(2, 'rescreen', `Screening last run ${c.screening ? fmt(c.screening.date) : 'never'}. Re-screen`, 'screen', 'Record screening');
     if (c.file.out) {
       const o = diffDays(parse(c.file.out.since), TODAY);
       if (o >= s.fileOutDays) add(3, 'file', `Paper file out with ${c.file.out.to} for ${o} days`, 'checkin', 'Mark returned');
@@ -804,6 +871,8 @@ function tasks() {
    ========================================================= */
 const riskPill = r => `<span class="pill ${RISK_CLS[r]}">${cap(r)}</span>`;
 function dueChip(c) {
+  if (c.status === 'onboarding') return '<span class="pill info plain">Onboarding</span>';
+  if (isClosed(c)) return '<span class="pill neutral plain">Closed</span>';
   const d = daysToReview(c);
   if (d < 0) return `<span class="pill crit">Overdue ${-d}d</span>`;
   if (d === 0) return `<span class="pill crit">Due today</span>`;
@@ -816,6 +885,8 @@ function stageChip(c) {
   return daysToReview(c) <= S.settings.lead ? '<span class="pill warn plain">Not started</span>' : '<span class="muted small">—</span>';
 }
 function statusChip(c) {
+  if (c.status === 'onboarding') return '<span class="pill info plain">Onboarding</span>';
+  if (c.status === 'declined') return '<span class="pill neutral plain">Declined</span>';
   if (c.status === 'restricted') return '<span class="pill crit plain">Services restricted</span>';
   if (c.status === 'exited') return '<span class="pill neutral plain">Exited</span>';
   return '';
@@ -835,7 +906,9 @@ const VIEWS = {
   pipeline: { n: 'Refresh pipeline', r: () => viewPipeline() },
   outreach: { n: 'Outreach', r: () => viewOutreach() },
   files: { n: 'Paper files', r: () => viewFiles() },
-  report: { n: 'Weekly report', r: () => viewReport() },
+  sar: { n: 'Suspicious activity', r: () => viewSar() },
+  training: { n: 'Training', r: () => viewTraining() },
+  report: { n: 'Reports', r: () => viewReport() },
   procedure: { n: 'Procedure', r: () => viewProcedure() },
   settings: { n: 'Settings', r: () => viewSettings() },
 };
@@ -871,6 +944,8 @@ function renderNav() {
     pipeline: [active().filter(c => c.refresh).length, false],
     outreach: [T.filter(t => t.kind === 'chase' || t.kind === 'escalate').length, true],
     files: [active().filter(c => c.file.out).length, false],
+    sar: [S.sars.filter(sarActionNeeded).length, true],
+    training: [trainingDue(), true],
   };
   const sel = view === 'client' ? 'clients' : view;
   $('#nav').innerHTML = Object.entries(VIEWS).map(([k, v]) => {
@@ -879,7 +954,7 @@ function renderNav() {
     return `<a href="#${k}" ${sel === k ? 'aria-current="page"' : ''}><span>${v.n}</span>${badge}</a>`;
   }).join('');
   $('#firm-name').textContent = S.settings.firm || 'Add your firm name in Settings';
-  $('#side-foot').innerHTML = `<span>Signed in as <strong>${esc(me())}</strong></span><span>${fmtD(TODAY)}</span>${storageOK ? '' : '<span class="pill crit plain">Not saving: browser storage blocked</span>'}${vault ? '<button class="btn sm" data-act="lock" style="margin-top:8px">Lock</button>' : '<span class="pill warn plain" style="margin-top:8px;justify-self:start">Not password-protected</span><button class="btn sm" data-act="setup" style="margin-top:6px">Set a password</button>'}`;
+  $('#side-foot').innerHTML = `<span>Signed in as <strong>${esc(me())}</strong></span><span>${fmtD(TODAY)}</span>${storageOK ? '' : '<span class="pill crit plain">Not saving: browser storage blocked</span>'}${backupDue() !== null ? '<span class="pill warn plain" style="margin-top:8px;justify-self:start">Backup due</span>' : ''}${vault ? '<button class="btn sm" data-act="lock" style="margin-top:8px">Lock</button>' : '<span class="pill warn plain" style="margin-top:8px;justify-self:start">Not password-protected</span><button class="btn sm" data-act="setup" style="margin-top:6px">Set a password</button>'}`;
 }
 function render() {
   if (!S) return;
@@ -907,7 +982,7 @@ function sampleBanner() {
    ========================================================= */
 let showAllTasks = false;
 function viewOverview() {
-  const A = active(), s = S.settings, T = tasks();
+  const A = onBook(), s = S.settings, T = tasks();
   const ds = A.map(daysToReview);
   const overdue = ds.filter(d => d < 0).length;
   const due = ds.filter(d => d >= 0 && d <= s.lead).length;
@@ -924,6 +999,7 @@ function viewOverview() {
 
   return `
   ${sampleBanner()}
+  ${backupBanner()}
   <div class="page-head">
     <div><div class="eyebrow">${fmtD(TODAY)}</div><h1>Periodic review overview</h1>
     <p class="lede">What is overdue, what is coming up, and who you are waiting on. Review dates follow each client's risk rating: high every ${s.cycles.high} months, medium every ${s.cycles.medium}, low every ${s.cycles.low}.</p></div>
@@ -1005,14 +1081,14 @@ function dueChart(A) {
 /* =========================================================
    Clients
    ========================================================= */
-const BUCKETS = { '': 'All', overdue: 'Overdue', due: 'Due soon', inprog: 'In progress', expiry: 'Expiries', pep: 'PEPs', current: 'Current', restricted: 'Restricted', exited: 'Exited' };
+const BUCKETS = { '': 'All', overdue: 'Overdue', due: 'Due soon', inprog: 'In progress', expiry: 'Expiries', pep: 'PEPs', current: 'Current', restricted: 'Restricted', onboarding: 'Onboarding', exited: 'Closed' };
 function viewClients() {
   const sel = (id, k, opts) => `<select class="inp sm" id="${id}" data-filter="${k}" aria-label="${k}">${opts.map(([v, n]) => `<option value="${v}" ${F[k] === v ? 'selected' : ''}>${n}</option>`).join('')}</select>`;
   return `
   ${sampleBanner()}
   <div class="page-head">
     <div><h1>Clients</h1><p class="lede">Every client on the register, with their review date, documents and paper file. Select a row to open the client file.</p></div>
-    <div class="row">${FRAMED ? '' : '<button class="btn" data-act="exportcsv">Export register (CSV)</button>'}<button class="btn" data-act="importcsv">Import from CSV</button><button class="btn primary" data-act="add">Add client</button></div>
+    <div class="row">${FRAMED ? '' : '<button class="btn" data-act="exportcsv">Export register (CSV)</button>'}<button class="btn" data-act="inspection">Inspection pack</button><button class="btn" data-act="importcsv">Import from CSV</button><button class="btn primary" data-act="add">Add client</button></div>
   </div>
   <section class="card">
     <div class="toolbar">
@@ -1028,7 +1104,7 @@ function filteredClients() {
   const q = F.q.trim().toLowerCase(), s = S.settings;
   const T = F.bucket === 'expiry' || F.bucket === 'chase' ? tasks() : [];
   return S.clients.filter(c => {
-    if (F.bucket !== 'exited' && c.status === 'exited') return false;
+    if (F.bucket !== 'exited' && isClosed(c)) return false;
     if (q && ![c.name, c.id, c.file.ref, c.country, c.contact].join(' ').toLowerCase().includes(q)) return false;
     if (F.risk && c.risk !== F.risk) return false;
     if (F.type && c.type !== F.type) return false;
@@ -1039,7 +1115,8 @@ function filteredClients() {
       case 'inprog': return !!c.refresh;
       case 'current': return d > s.lead && !c.refresh;
       case 'restricted': return c.status === 'restricted';
-      case 'exited': return c.status === 'exited';
+      case 'exited': return isClosed(c);
+      case 'onboarding': return c.status === 'onboarding';
       case 'pep': return !!c.pep;
       case 'expiry': return T.some(t => t.c === c && (t.kind === 'expired' || t.kind === 'expiring'));
       case 'chase': return T.some(t => t.c === c && (t.kind === 'chase' || t.kind === 'escalate'));
@@ -1073,14 +1150,15 @@ function viewPipeline() {
   const card = c => {
     const r = c.refresh;
     let meta = '';
-    if (!r) { const d = daysToReview(c); meta = d < 0 ? `<span class="pill crit">Overdue ${-d}d</span>` : `Due ${fmtD(nextReview(c))}`; }
+    if (!r && c.status === 'onboarding') meta = 'New client, onboarding not started';
+    else if (!r) { const d = daysToReview(c); meta = d < 0 ? `<span class="pill crit">Overdue ${-d}d</span>` : `Due ${fmtD(nextReview(c))}`; }
     else if (r.stage === 'awaiting') { const w = diffDays(parse(r.requested), TODAY); meta = `Requested ${w}d ago · ${plural(r.chases, 'reminder')}${r.escalated ? ' · <span class="pill crit plain">Escalated</span>' : ''}`; }
     else if (r.stage === 'verify') { const p = docProgress(c); meta = `${p.ok}/${p.n} verified`; }
     else if (r.stage === 'screening') meta = c.screening && c.screening.date >= r.started ? 'Screening recorded' : 'Screening not yet run';
     else meta = `Review due ${fmtD(nextReview(c))}`;
-    return `<div class="kcard" data-act="open" data-id="${c.id}" tabindex="0" role="link"><div class="top"><span class="nm">${esc(c.name)}</span>${riskPill(c.risk)}</div><span class="meta mono">${c.id} · ${TYPES[c.type]}</span><span class="meta">${meta}</span></div>`;
+    return `<div class="kcard" data-act="open" data-id="${c.id}" tabindex="0" role="link"><div class="top"><span class="nm">${esc(c.name)}</span>${riskPill(c.risk)}</div><span class="meta mono">${c.id} · ${TYPES[c.type]}</span>${c.status === 'onboarding' ? '<span class="pill info plain" style="justify-self:start">New client</span>' : ''}<span class="meta">${meta}</span></div>`;
   };
-  const inCol = k => A.filter(c => k === 'due' ? (!c.refresh && daysToReview(c) <= s.lead) : (c.refresh && c.refresh.stage === k)).sort((a, b) => daysToReview(a) - daysToReview(b));
+  const inCol = k => A.filter(c => k === 'due' ? (!c.refresh && (c.status === 'onboarding' || daysToReview(c) <= s.lead)) : (c.refresh && c.refresh.stage === k)).sort((a, b) => daysToReview(a) - daysToReview(b));
   return `
   ${sampleBanner()}
   <div class="page-head"><div><h1>Refresh pipeline</h1><p class="lede">Each periodic review moves left to right. Open a card to take the next step; a stage only completes when its checks are done.</p></div></div>
@@ -1128,7 +1206,7 @@ function viewOutreach() {
 /* =========================================================
    Paper files
    ========================================================= */
-function viewFiles() {
+function viewFilesBase() {
   const A = active();
   let sc = 0, sn = 0; A.forEach(c => { const p = scanProgress(c); sc += p.s; sn += p.n; });
   const out = A.filter(c => c.file.out);
@@ -1136,7 +1214,7 @@ function viewFiles() {
   return `
   ${sampleBanner()}
   <div class="page-head"><div><h1>Paper files</h1><p class="lede">The physical file stays the record of truth. This register tracks where each file is, who has it, and how much of it has been scanned into the digital copy.</p></div><div class="row"><button class="btn primary" data-act="workpack">Work pack for ${esc(asst())}</button></div></div>
-  <section class="kpis" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+  <section class="kpis three">
     <div class="tile is-manila" style="cursor:default"><span class="l">Documents scanned</span><span class="k">${sn ? Math.round(sc / sn * 100) : 0}%</span><span class="s">${sc} of ${sn} documents held on paper</span></div>
     <div class="tile ${out.length ? 'is-warn' : 'is-ok'}" style="cursor:default"><span class="l">Files checked out</span><span class="k">${out.length}</span><span class="s">${out.filter(c => diffDays(parse(c.file.out.since), TODAY) >= S.settings.fileOutDays).length} out longer than ${S.settings.fileOutDays} days</span></div>
     <div class="tile is-info" style="cursor:default"><span class="l">Scanning backlog</span><span class="k">${sn - sc}</span><span class="s">Across ${plural(backlog.length, 'file')}</span></div>
@@ -1161,16 +1239,19 @@ function viewClient(c) {
   const dueCls = d < 0 ? 'crit' : d <= 30 ? 'warn' : d <= s.lead ? 'info' : 'ok';
   const dueTxt = d < 0 ? `Overdue by ${plural(-d, 'day')}` : d === 0 ? 'Due today' : `In ${plural(d, 'day')}`;
   const si = r ? STAGES.findIndex(x => x.k === r.stage) : -1;
-  const steps = [{ n: 'Due', d: 'Review date reached' }, ...STAGES];
+  const onb = c.status === 'onboarding';
+  const steps = [{ n: onb ? 'New client' : 'Due' }, ...STAGES.map(x => (onb && x.k === 'signoff' ? { n: 'Accept or decline' } : x))];
   const stepper = `<div class="stepper" aria-label="Refresh progress">${steps.map((x, i) => {
-    const cls = !r ? (i === 0 && d <= s.lead ? 'now' : '') : i - 1 < si ? 'done' : i - 1 === si ? 'now' : '';
+    const cls = !r ? (i === 0 && (onb || d <= s.lead) ? 'now' : '') : i - 1 < si ? 'done' : i - 1 === si ? 'now' : '';
     return `<div class="step ${cls}"><span class="idx">${cls === 'done' ? 'Done' : 'Step ' + (i + 1)}</span><b>${x.n}</b></div>`;
   }).join('')}</div>`;
 
   // stage action bar
   let bar = '';
   const g = gate(c);
-  if (!r) {
+  if (!r && onb) {
+    bar = `<span class="why">New client. Start onboarding to request identification documents and draft the letter.</span><button class="btn primary" data-act="start" data-id="${c.id}">Start onboarding</button>`;
+  } else if (!r) {
     bar = `<span class="why">${d <= s.lead ? 'This review is due. Start the refresh to choose what to request and draft the letter.' : `No refresh due until ${fmtD(nr)}. You can start one early after a trigger event (new owner, adverse media, unusual activity).`}</span><button class="btn ${d <= s.lead ? 'primary' : ''}" data-act="start" data-id="${c.id}">Start refresh</button>`;
   } else if (r.stage === 'awaiting') {
     const out = outstanding(c);
@@ -1180,6 +1261,8 @@ function viewClient(c) {
     bar = `<span class="why">${g ? `Still to verify: ${esc(g.slice(0, 4).join('; '))}${g.length > 4 ? ` and ${g.length - 4} more` : ''}.` : 'All required documents and connected parties are verified.'}</span><button class="btn primary" data-act="advance" data-id="${c.id}" ${g ? 'disabled' : ''}>Verification complete</button>`;
   } else if (r.stage === 'screening') {
     bar = `<span class="why">${g ? 'Run sanctions, PEP and adverse media screening on the client and every connected party, then confirm the risk assessment.' : `Screening recorded ${fmt(c.screening.date)}: ${esc(c.screening.result)}.`}</span><div class="row"><button class="btn ${g ? 'primary' : ''}" data-act="screen" data-id="${c.id}">Record screening</button><button class="btn ${g ? '' : 'primary'}" data-act="advance" data-id="${c.id}" ${g ? 'disabled' : ''}>Send to sign-off</button></div>`;
+  } else if (onb) {
+    bar = `<span class="why">Due diligence is complete. Accept the client, which sets the first review date, or decline.</span><button class="btn primary" data-act="accept" data-id="${c.id}">Accept or decline</button>`;
   } else {
     bar = `<span class="why">Everything is in place. The approver confirms the risk rating, and the next review date is set from it.</span><button class="btn primary" data-act="signoff" data-id="${c.id}">Sign off review</button>`;
   }
@@ -1193,12 +1276,14 @@ function viewClient(c) {
     <div>
       <div class="eyebrow">${TYPES[c.type]} · ${esc(c.country)}</div>
       <h1>${esc(c.name)}</h1>
-      <div class="ids"><span class="mono">${c.id}</span>${riskPill(c.risk)}<span class="tag">${cap(c.risk)} risk</span>${c.pep ? `<span class="pill ${isPep(c) ? 'crit' : 'neutral'} plain">${esc(pepLabel(c))}</span>` : ''}${statusChip(c)}<span class="tag">${esc(service(c))}</span><button class="btn sm" data-act="decide" data-id="${c.id}">Change risk status</button></div>
+      <div class="ids"><span class="mono">${c.id}</span>${riskPill(c.risk)}<span class="tag">${cap(c.risk)} risk</span>${c.pep ? `<span class="pill ${isPep(c) ? 'crit' : 'neutral'} plain">${esc(pepLabel(c))}</span>` : ''}${statusChip(c)}<span class="tag">${esc(service(c))}</span>${c.status === 'declined' ? '' : `<button class="btn sm" data-act="decide" data-id="${c.id}">Change risk status</button>`}</div>
     </div>
-    <div class="due-box"><span class="eyebrow">Next periodic review</span><span class="d num">${fmtD(nr)}</span><span class="pill ${dueCls}" style="justify-self:start">${dueTxt}</span><span class="small muted">Every ${s.cycles[c.risk]} months · last ${fmt(c.last)}</span></div>
+    ${onb ? `<div class="due-box"><span class="eyebrow">Onboarding</span><span class="d">${r ? esc(stageName(r.stage)) : 'Not started'}</span><span class="pill info" style="justify-self:start">New client</span><span class="small muted">${r ? 'Started ' + fmt(r.started) : 'Not yet started'}</span></div>`
+      : isClosed(c) ? `<div class="due-box"><span class="eyebrow">${cap(c.status)}</span><span class="d">${endDate(c) ? fmt(endDate(c)) : 'End date not set'}</span><span class="small muted">${retention(c).until ? 'Keep records until ' + fmtD(retention(c).until) : 'Set the end date on the Paper files page'}</span></div>`
+      : `<div class="due-box"><span class="eyebrow">Next periodic review</span><span class="d num">${fmtD(nr)}</span><span class="pill ${dueCls}" style="justify-self:start">${dueTxt}</span><span class="small muted">Every ${s.cycles[c.risk]} months · last ${fmt(c.last)}</span></div>`}
   </div>
-  ${stepper}
-  <div class="actionbar">${bar}</div>
+  ${isClosed(c) ? '' : stepper}
+  ${isClosed(c) ? '' : `<div class="actionbar">${bar}</div>`}
   <div class="cols">
     <div class="stack">
       <section class="card">
@@ -1210,6 +1295,7 @@ function viewClient(c) {
         <div class="scroll">${partiesTable(c)}</div>
       </section>
       ${decisionsCard(c)}
+      ${mattersCard(c)}
       <section class="card">
         <header><div><h2>Outreach</h2><p>Requests and reminders sent to this client</p></div><button class="btn sm" data-act="letter" data-id="${c.id}" data-kind="${r && r.chases ? 'final' : r ? 'reminder' : 'request'}">Draft letter</button></header>
         <div class="body">${c.outreach.length ? `<ul class="timeline">${c.outreach.map(x => `<li><time>${x.d}</time><span><b>${esc(x.kind)}</b> · ${esc(x.m)}<br><span class="muted">${esc(x.note)}${x.by ? ' · ' + esc(x.by) : ''}</span></span></li>`).join('')}</ul>` : '<p class="muted small">No contact recorded.</p>'}</div>
@@ -1247,7 +1333,7 @@ function viewClient(c) {
         <div class="body">${c.screening ? `<dl class="kv"><dt>Last run</dt><dd>${fmt(c.screening.date)} ${screenStale(c) ? '<span class="pill crit plain">Due</span>' : ''}</dd><dt>Result</dt><dd>${esc(c.screening.result)}</dd><dt>Checked</dt><dd>${esc(c.screening.lists)}</dd><dt>By</dt><dd>${esc(c.screening.by)}</dd></dl>` : '<p class="muted small">Not screened yet.</p>'}
         <p class="note" style="margin-top:8px">${cap(c.risk)} risk clients are re-screened every ${s.screen[c.risk]} months.</p></div>
       </section>
-      ${c.status === 'exited' ? '' : `<button class="btn quiet" data-act="cancelrefresh" data-id="${c.id}" ${r ? '' : 'hidden'}>Cancel this refresh</button>`}
+      ${isClosed(c) || onb ? '' : `<button class="btn quiet" data-act="cancelrefresh" data-id="${c.id}" ${r ? '' : 'hidden'}>Cancel this refresh</button>`}
     </div>
   </div>`;
 }
@@ -1312,7 +1398,7 @@ function viewSettings() {
     <label class="field span2" for="s-firm">Firm name (used on letters)<input id="s-firm" data-set="firm" value="${esc(s.firm)}" placeholder="Your firm's name"></label>
     <label class="field" for="s-user">Your name (letters and audit trail)<input id="s-user" data-set="user" value="${esc(s.user)}"></label>
     <label class="field" for="s-title">Your title<input id="s-title" data-set="title" value="${esc(s.title)}"></label>
-    <label class="field" for="s-mlro">MLRO / approver name<input id="s-mlro" data-set="mlro" value="${esc(s.mlro)}" placeholder="Name of the person who signs off reviews"></label>
+    <label class="field" for="s-mlro">MLRO name (leave blank if it's you)<input id="s-mlro" data-set="mlro" value="${esc(s.mlro)}" placeholder="${esc(me())}"></label>
     <label class="field" for="s-asst">Assistant's name (work packs and procedure)<input id="s-asst" data-set="assistant" value="${esc(s.assistant)}" placeholder="e.g. Jane Smith"></label>
   </div></section>
   <section class="card"><header><div><h2>Password and security</h2><p>Who can open the records on this computer</p></div></header><div class="body" style="display:grid;gap:14px">
@@ -1337,6 +1423,11 @@ function viewSettings() {
   <section class="card"><header><div><h2>Politically exposed persons</h2><p>How long enhanced measures continue after a PEP leaves office</p></div></header><div class="body grid3">
     <label class="field" for="s-pt">Enhanced measures after leaving office, months${num('s-pt', 'pepTail', s.pepTail, 0, 120)}</label>
     <p class="note span2" style="align-self:end">The client stays rated High for this period. Afterwards the worklist asks you to decide whether to lower the rating. Set it to match your firm's policy.</p>
+  </div></section>
+  <section class="card"><header><div><h2>Records, training and backups</h2><p>Retention, refresher training and backup reminders</p></div></header><div class="body grid3">
+    <label class="field" for="s-ret">Keep records after a relationship ends, years${num('s-ret', 'retentionYears', s.retentionYears, 1, 30)}</label>
+    <label class="field" for="s-trn">AML/CFT refresher training every, months${num('s-trn', 'trainingMonths', s.trainingMonths, 1, 60)}</label>
+    <label class="field" for="s-bk">Remind me to back up after, days${num('s-bk', 'backupDays', s.backupDays, 1, 60)}</label>
   </div></section>
   <section class="card"><header><div><h2>Chasing clients</h2><p>Days after the first request</p></div></header><div class="body grid3">
     <label class="field" for="s-c1">First reminder${num('s-c1', 'chase.0', s.chase[0], 1, 180)}</label>
@@ -1390,6 +1481,7 @@ function commit(msg) { save(); render(); if (msg) toast(msg); }
 
 /* ---------- start refresh ---------- */
 function modalStart(c) {
+  const onbK = c.status === 'onboarding';
   const s = S.settings, horizon = s.cycles[c.risk] * 30;
   const items = defs(c).map(t => {
     const d = doc(c, t.k), st = docState(d), e = expDays(d.exp);
@@ -1410,19 +1502,19 @@ function modalStart(c) {
     <p>Choose what to ask ${esc(c.name)} for. Items that change at every review, or that are missing or expiring, are already ticked.</p>
     <div class="reqlist">${items.map((x, i) => `<label class="check" for="rq${i}"><input type="checkbox" id="rq${i}" name="req" value="${x.v}" ${x.pre ? 'checked' : ''}><span>${esc(x.n)}<span class="why">${esc(x.why)}</span></span></label>`).join('')}</div>
     <div class="grid2"><label class="field" for="st-m">How the request is sent${methodSel('st-m', c.email ? 'Email' : 'Letter by post')}</label><label class="field" for="st-d">Date sent<input type="date" id="st-d" value="${iso(TODAY)}"></label></div>`;
-  modal(`Start refresh: ${c.name}`, body, [{ label: 'Start refresh and draft letter', cls: 'primary', fn: dlg => {
+  modal(`${onbK ? 'Start onboarding' : 'Start refresh'}: ${c.name}`, body, [{ label: onbK ? 'Start onboarding and draft letter' : 'Start refresh and draft letter', cls: 'primary', fn: dlg => {
     const keys = $$('input[name=req]:checked', dlg).map(i => i.value);
     if (!keys.length) return fail(dlg, 'Tick at least one item to request.');
     const date = $('#st-d', dlg).value || iso(TODAY), method = $('#st-m', dlg).value;
-    c.refresh = { stage: 'awaiting', started: date, requested: date, lastContact: date, chases: 0, method, escalated: '' };
+    c.refresh = { stage: 'awaiting', started: date, requested: date, lastContact: date, chases: 0, method, escalated: '', kind: onbK ? 'onboarding' : 'refresh' };
     keys.forEach(k => {
       const [kind, id] = k.split(':');
       if (kind === 'd') { const d = doc(c, id); d.s = 'requested'; d.req = date; }
       else { const p = c.parties.find(x => x.id === id); if (p) p.req = true; }
     });
     c.outreach.unshift({ d: date, m: method, kind: 'Document request', note: `${keys.length} items requested`, by: me() });
-    log(c, `Periodic review started. ${keys.length} items requested (${method.toLowerCase()}).`);
-    commit('Refresh started');
+    log(c, `${onbK ? 'Onboarding started' : 'Periodic review started'}. ${keys.length} items requested (${method.toLowerCase()}).`);
+    commit(onbK ? 'Onboarding started' : 'Refresh started');
     later(() => modalLetter(c, 'request'));
   } }], { wide: true });
 }
@@ -1492,7 +1584,7 @@ function modalScreen(c) {
 function modalSignoff(c) {
   const sug = suggested(c), s = S.settings;
   const body = `<p>Signing off completes this periodic review of ${esc(c.name)}. The risk rating you confirm sets the next review date.</p>
-    <div class="grid2"><label class="field" for="so-a">Approved by<input id="so-a" value="${esc(s.mlro)}" placeholder="MLRO or delegated approver"></label>
+    <div class="grid2"><label class="field" for="so-a">Approved by<input id="so-a" value="${esc(s.mlro || me())}" placeholder="MLRO or delegated approver"></label>
     <label class="field" for="so-d">Date<input type="date" id="so-d" value="${iso(TODAY)}"></label>
     <label class="field" for="so-r">Confirmed risk rating<select id="so-r">${RISKS.map(r => `<option value="${r}" ${r === c.risk ? 'selected' : ''}>${cap(r)} (review every ${s.cycles[r]} months)</option>`).join('')}</select></label>
     <div class="field"><span>Risk assessment suggests</span>${riskPill(sug)} <span class="small muted">Score ${raScore(c)}</span></div>
@@ -1532,12 +1624,15 @@ const DECISIONS = {
   exit: { n: 'Exit the relationship', done: 'Relationship exited', g: 'Relationship' },
   reinstate: { n: 'Reinstate client', done: 'Client reinstated', g: 'Relationship' },
   review: { n: 'Rating changed at review', done: 'Rating changed at periodic review', g: '' },
+  accept: { n: 'Accept client', done: 'Client accepted', g: '' },
+  decline: { n: 'Decline client', done: 'Client declined', g: '' },
 };
 const PEP_REL = ['PEP', 'Family member', 'Close associate'];
 const PEP_CAT = ['Foreign', 'Domestic', 'International organisation'];
 const PEP_SRC = ['Screening match', 'Client declaration', 'Public source or media', 'Other'];
 function availableDecisions(c) {
-  if (c.status === 'exited') return ['reinstate'];
+  if (isClosed(c)) return c.status === 'exited' ? ['reinstate'] : [];
+  if (c.status === 'onboarding') { const o = c.pep && c.pep.status === 'current' ? ['pepupd', 'pepoff'] : ['pep']; if (c.risk !== 'high') o.push('raise'); if (c.risk !== 'low') o.push('lower'); return o; }
   const a = c.pep && c.pep.status === 'current' ? ['pepupd', 'pepoff'] : ['pep'];
   if (c.risk !== 'high') a.push('raise');
   if (c.risk !== 'low') a.push('lower');
@@ -1581,13 +1676,14 @@ function decisionFields(c, type, toRisk) {
 }
 function modalDecision(c, type, toRisk) {
   const s = S.settings, avail = availableDecisions(c);
+  if (!avail.length) { toast('No risk status changes apply to a declined client.'); return; }
   if (!avail.includes(type)) type = avail[0];
   const groups = [...new Set(avail.map(k => DECISIONS[k].g))];
   const body = `<label class="field" for="dc-t">What is changing?<select id="dc-t">${groups.map(g => `<optgroup label="${g}">${avail.filter(k => DECISIONS[k].g === g).map(k => `<option value="${k}" ${k === type ? 'selected' : ''}>${DECISIONS[k].n}</option>`).join('')}</optgroup>`).join('')}</select></label>
     <div id="dc-x" style="display:grid;gap:14px"></div>
     <div class="grid2">
       <label class="field" for="dc-d">Effective date<input type="date" id="dc-d" value="${iso(TODAY)}"></label>
-      <label class="field" for="dc-by"><span id="dc-by-l">Approved by</span><input id="dc-by" value="${esc(s.mlro)}" placeholder="MLRO or senior manager"></label>
+      <label class="field" for="dc-by"><span id="dc-by-l">Approved by</span><input id="dc-by" value="${esc(s.mlro || me())}" placeholder="MLRO or senior manager"></label>
       <label class="field span2" for="dc-r">Reason<textarea id="dc-r" placeholder="What happened and why this decision was made"></textarea></label>
     </div>
     <label class="check" for="dc-rf" id="dc-rf-w"><input type="checkbox" id="dc-rf" checked> Start a refresh now</label>`;
@@ -1631,10 +1727,10 @@ function recordDecision(c, dlg) {
   } else if (type === 'restrict') { dec.from = 'Active'; dec.to = 'Restricted'; c.status = 'restricted'; fx.push('Services suspended until the restriction is lifted'); }
   else if (type === 'lift') { dec.from = 'Restricted'; dec.to = 'Active'; c.status = 'active'; fx.push('Services resume'); }
   else if (type === 'exit') {
-    dec.from = cap(c.status === 'restricted' ? 'restricted' : 'active'); dec.to = 'Exited'; c.status = 'exited';
+    dec.from = cap(c.status === 'restricted' ? 'restricted' : 'active'); dec.to = 'Exited'; c.status = 'exited'; c.ended = d;
     if (c.refresh) { c.refresh = null; c.parties.forEach(p => { p.req = false; }); fx.push('Refresh in progress cancelled'); }
     fx.push('Client removed from the active register and worklist');
-  } else if (type === 'reinstate') { dec.from = 'Exited'; dec.to = 'Active'; c.status = 'active'; }
+  } else if (type === 'reinstate') { dec.from = 'Exited'; dec.to = 'Active'; c.status = 'active'; c.ended = ''; c.hold = null; }
   if (c.risk !== oldRisk) {
     if (isPepType) fx.push(`Risk rating raised from ${cap(oldRisk)} to High`);
     fx.push(`Next review ${fmtD(nextReview(c))} (every ${s.cycles[c.risk]} months)`, `Screening every ${s.screen[c.risk]} months`);
@@ -1695,6 +1791,7 @@ function modalClient(c) {
   const isNew = !c;
   const v = c || { name: '', type: 'individual', risk: 'medium', country: 'Turks and Caicos Islands', contact: '', email: '', phone: '', address: '', rm: '', onboarded: iso(TODAY), last: iso(TODAY), status: 'active', ra: { svc: 0, pep: 0 }, file: { ref: '', loc: '' }, note: '' };
   const body = `<div class="grid2">
+    ${isNew ? '<label class="field span2" for="cf-kind">This is<select id="cf-kind"><option value="new">A new client: start onboarding</option><option value="existing">An existing client already on the books</option></select></label>' : ''}
     <label class="field span2" for="cf-n">Client name<input id="cf-n" value="${esc(v.name)}" placeholder="Full legal name"></label>
     <label class="field" for="cf-t">Client type<select id="cf-t" ${isNew ? '' : 'disabled'}>${Object.entries(TYPES).map(([k, n]) => `<option value="${k}" ${v.type === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     <label class="field" for="cf-r">Risk rating<select id="cf-r" ${isNew ? '' : 'disabled'}>${RISKS.map(r => `<option value="${r}" ${v.risk === r ? 'selected' : ''}>${cap(r)}</option>`).join('')}</select></label>
@@ -1705,20 +1802,21 @@ function modalClient(c) {
     <label class="field" for="cf-e">Email<input id="cf-e" type="email" value="${esc(v.email)}"></label>
     <label class="field" for="cf-p">Phone<input id="cf-p" value="${esc(v.phone)}"></label>
     <label class="field span2" for="cf-a">Postal address<textarea id="cf-a">${esc(v.address)}</textarea></label>
-    <label class="field" for="cf-o">Onboarded<input id="cf-o" type="date" value="${v.onboarded || ''}"></label>
-    <label class="field" for="cf-l">Last periodic review (or onboarding date)<input id="cf-l" type="date" value="${v.last || ''}"></label>
+    <label class="field" for="cf-o" id="cf-o-w" ${isNew ? 'hidden' : ''}>Onboarded<input id="cf-o" type="date" value="${v.onboarded || ''}"></label>
+    <label class="field" for="cf-l" id="cf-l-w" ${isNew ? 'hidden' : ''}>Last periodic review (or onboarding date)<input id="cf-l" type="date" value="${v.last || ''}"></label>
     <label class="field" for="cf-f">Paper file reference<input id="cf-f" value="${esc(v.file.ref)}" placeholder="e.g. CORP/0187"></label>
     <label class="field" for="cf-fl">File location<input id="cf-fl" value="${esc(v.file.loc)}" placeholder="e.g. Cabinet B · Drawer 2"></label>
-    <label class="field" for="cf-st">Relationship status<select id="cf-st" ${isNew ? '' : 'disabled'}>${[['active', 'Active'], ['restricted', 'Services restricted'], ['exited', 'Exited']].map(([k, n]) => `<option value="${k}" ${v.status === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+    <label class="field" for="cf-st" id="cf-st-w" ${isNew ? 'hidden' : ''}>Relationship status<select id="cf-st" ${isNew ? '' : 'disabled'}>${[['active', 'Active'], ['restricted', 'Services restricted'], ['exited', 'Exited']].map(([k, n]) => `<option value="${k}" ${v.status === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     ${isNew ? '<label class="check" for="cf-pep" style="align-self:end"><input type="checkbox" id="cf-pep"> Politically exposed person</label>' : '<p class="note" style="align-self:end">To change the risk rating, PEP status or relationship status, use <b>Change risk status</b> on the client file so the decision is approved and recorded.</p>'}
     <label class="field span2" for="cf-note">Note<input id="cf-note" value="${esc(v.note)}" placeholder="Anything a reviewer should know"></label>
   </div>`;
-  modal(isNew ? 'Add client' : `Edit ${c.name}`, body, [{ label: isNew ? 'Add client' : 'Save changes', cls: 'primary', fn: dlg => {
+  const dlgC = modal(isNew ? 'Add client' : `Edit ${c.name}`, body, [{ label: isNew ? 'Add client' : 'Save changes', cls: 'primary', fn: dlg => {
     const val = id => $(id, dlg).value.trim();
     if (!val('#cf-n')) return fail(dlg, 'Enter the client name.');
-    if (!val('#cf-l')) return fail(dlg, 'Enter the last review date. Use the onboarding date if the client has never been reviewed.');
+    const kindNew = isNew && $('#cf-kind', dlg).value === 'new';
+    if (!kindNew && !val('#cf-l')) return fail(dlg, 'Enter the last review date. Use the onboarding date if the client has never been reviewed.');
     const t = isNew ? val('#cf-t') : c.type;
-    const x = c || { id: nextId(), type: t, docs: {}, parties: [], outreach: [], history: [], reviews: [], refresh: null, screening: null, ra: { jur: 0, pep: 0, svc: 0, chan: 0, sow: 0, struct: t === 'individual' ? 0 : 1, media: 0 }, pep: null, decisions: [], file: { ref: '', loc: '', out: null } };
+    const x = c || { id: nextId(), type: t, docs: {}, parties: [], outreach: [], history: [], reviews: [], refresh: null, screening: null, ra: { jur: 0, pep: 0, svc: 0, chan: 0, sow: 0, struct: t === 'individual' ? 0 : 1, media: 0 }, pep: null, decisions: [], matters: [], file: { ref: '', loc: '', out: null } };
     const changes = [];
     const set = (k, nv, label) => { if (x[k] !== nv) { if (!isNew && label) changes.push(`${label}: ${x[k] || '—'} → ${nv || '—'}`); x[k] = nv; } };
     set('name', val('#cf-n'), 'Name'); if (isNew) set('risk', val('#cf-r')); set('country', val('#cf-c'), 'Country');
@@ -1729,17 +1827,19 @@ function modalClient(c) {
     x.ra.svc = svc;
     const pepNew = isNew && $('#cf-pep', dlg).checked;
     if (pepNew) { x.pep = newPep(); x.risk = 'high'; }
+    if (kindNew) { x.status = 'onboarding'; x.last = iso(TODAY); x.onboarded = ''; }
     x.file.ref = val('#cf-f') || `${TYPE_CODE[t]}/${x.id.slice(3)}`; x.file.loc = val('#cf-fl') || 'Not recorded';
     if (isNew) {
       DOC_LIB[t].forEach(d => doc(x, d.k));
-      x.history.unshift({ d: iso(TODAY), t: `Client added to the register.${pepNew ? ' Marked as PEP and rated High.' : ''}`, by: me() });
+      x.history.unshift({ d: iso(TODAY), t: `${kindNew ? 'Prospective client added. Onboarding to follow.' : 'Client added to the register.'}${pepNew ? ' Marked as PEP and rated High.' : ''}`, by: me() });
       S.clients.push(x);
-      save(); later(() => { go('client-' + x.id); if (pepNew) later(() => modalDecision(x, 'pepupd')); }); toast('Client added');
+      save(); later(() => { go('client-' + x.id); if (pepNew) later(() => modalDecision(x, 'pepupd')); else if (kindNew) later(() => modalStart(x)); }); toast('Client added');
     } else {
       if (changes.length) log(x, `Details updated. ${changes.join('; ')}.`);
       commit('Saved');
     }
   } }], { wide: true });
+  if (isNew) $('#cf-kind', dlgC).addEventListener('change', e => { ['#cf-o-w', '#cf-l-w', '#cf-st-w'].forEach(q => { $(q, dlgC).hidden = e.target.value === 'new'; }); });
 }
 
 /* ---------- letters ---------- */
@@ -1748,12 +1848,13 @@ function letterText(c, kind) {
   const items = outstanding(c);
   const due = fmtD(addDays(TODAY, kind === 'final' ? 14 : s.deadline));
   const greet = c.type === 'individual' ? c.name : c.contact || c.name;
+  const onb = c.status === 'onboarding';
   const intro = {
-    request: `As part of our obligations under the anti-money laundering laws of the Turks and Caicos Islands, we periodically review and update the information we hold about each client. Your file is now due for review.`,
-    reminder: `We wrote to you on ${c.refresh ? fmt(c.refresh.requested) : '[date]'} asking for updated documents for our periodic review of your file. We have not yet received everything we need.`,
-    final: `We have written to you about the periodic review of your file, most recently on ${c.refresh ? fmt(c.refresh.lastContact) : '[date]'}. Some documents are still outstanding. This is our final request.`,
+    request: onb ? 'Thank you for instructing us. Before we can act for you, the anti-money laundering laws of the Turks and Caicos Islands require us to verify your identity and understand where the funds involved come from.' : `As part of our obligations under the anti-money laundering laws of the Turks and Caicos Islands, we periodically review and update the information we hold about each client. Your file is now due for review.`,
+    reminder: onb ? `We wrote to you on ${c.refresh ? fmt(c.refresh.requested) : '[date]'} asking for the documents we need before we can act for you. We have not yet received everything.` : `We wrote to you on ${c.refresh ? fmt(c.refresh.requested) : '[date]'} asking for updated documents for our periodic review of your file. We have not yet received everything we need.`,
+    final: onb ? `We have written to you about the documents we need before we can act for you, most recently on ${c.refresh ? fmt(c.refresh.lastContact) : '[date]'}. Some are still outstanding. This is our final request.` : `We have written to you about the periodic review of your file, most recently on ${c.refresh ? fmt(c.refresh.lastContact) : '[date]'}. Some documents are still outstanding. This is our final request.`,
   }[kind];
-  const close = kind === 'final'
+  const close = onb ? (kind === 'final' ? `If we do not receive these documents by ${due}, we will not be able to act for you.` : 'If you have any questions, please contact me on the details below.') : kind === 'final'
     ? `If we do not receive these documents by ${due}, we may have to suspend or restrict our services until the review is complete, as the law requires.`
     : `If any of your details have not changed since our last review, please confirm this in writing. If you have any questions, please contact me on the details below.`;
   return `${firm}
@@ -1766,7 +1867,7 @@ Our ref: ${c.id} / ${c.file.ref}
 
 Dear ${greet},
 
-Periodic review of your client information
+${onb ? 'Documents we need before we can act for you' : 'Periodic review of your client information'}
 
 ${intro}
 
@@ -1919,9 +2020,9 @@ function procedureSheet() {
   const row = (t, x, y) => `<tr><td>${t}</td><td style="text-align:center">${x ? '✓' : ''}</td><td style="text-align:center">${y ? '✓' : ''}</td></tr>`;
   return `<div class="sheet">
     <div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>KYC file procedure</h3><div>Periodic reviews and client document collection · issued ${fmtD(TODAY)}</div></div>
-    <p>Every client has one paper file and one digital record. The paper file is kept in the locked cabinet. The digital record is kept in the KYC Refresh Desk app on the compliance officer's computer, and nowhere else. Only the compliance officer uses the app.</p>
+    <p>Every client has one paper file and one digital record. The paper file is kept in the locked cabinet. The digital record is kept in the KYC Refresh Desk app on the MLRO's computer, and nowhere else. Only the MLRO uses the app.</p>
     <h4>Who does what</h4>
-    <table><thead><tr><th>Task</th><th style="width:22%">${a}</th><th style="width:22%">Compliance officer (${co})</th></tr></thead><tbody>
+    <table><thead><tr><th>Task</th><th style="width:22%">${a}</th><th style="width:22%">MLRO (${co})</th></tr></thead><tbody>
       ${row('Decide which files need work each week and print the work pack', 0, 1)}
       ${row('Prepare request letters, reminders and final notices', 0, 1)}
       ${row('Take files from the cabinet and leave an out card in the slot', 1, 0)}
@@ -1937,29 +2038,30 @@ function procedureSheet() {
       ${row('Weekly backup to the encrypted USB drive kept in the safe', 0, 1)}
     </tbody></table>
     <h4>Where a file can be</h4>
-    <ol><li>In the locked cabinet, at the location printed on its cover sheet.</li><li>In ${a}'s <b>In progress</b> tray, while working on it.</li><li>In the compliance officer's <b>Ready for review</b> tray, waiting to be updated in the app.</li></ol>
+    <ol><li>In the locked cabinet, at the location printed on its cover sheet.</li><li>In ${a}'s <b>In progress</b> tray, while working on it.</li><li>In the MLRO's <b>Ready for review</b> tray, waiting to be updated in the app.</li></ol>
     <p>Files never leave the office. When a file leaves the cabinet, an out card with the name and date goes in its place.</p>
     <h4>Weekly routine</h4>
-    <ul><li><b>Monday:</b> the compliance officer checks the app's worklist, prints the work pack and letters, and checks the files out to ${a}.</li>
+    <ul><li><b>Monday:</b> the MLRO checks the app's worklist, prints the work pack and letters, and checks the files out to ${a}.</li>
       <li><b>During the week:</b> ${a} sends letters, phones clients, logs contact and files documents as they arrive.</li>
-      <li><b>When a file's task is done, and at the latest on Friday:</b> the file goes in the Ready for review tray with its hand-back slip. The compliance officer updates the app, verifies, scans, reprints the cover sheet, refiles and saves the backup.</li></ul>
+      <li><b>When a file's task is done, and at the latest on Friday:</b> the file goes in the Ready for review tray with its hand-back slip. The MLRO updates the app, verifies, scans, reprints the cover sheet, refiles and saves the backup.</li></ul>
     <h4>First checks when documents arrive</h4>
     <ul><li>Date-stamp it and tick it on the cover sheet.</li>
       <li>Copies of ID and address documents are certified as true copies, with the certifier's signature, name, position, contact details and date.</li>
       <li>Proof of address is dated within the last three months. ID is not expired.</li>
       <li>Names and dates of birth match across documents. All pages are present and legible.</li>
-      <li>Anything that fails a check: write the problem on the hand-back slip. Do not return documents to the client or ask for replacements without speaking to compliance.</li></ul>
+      <li>Anything that fails a check: write the problem on the hand-back slip. Do not return documents to the client or ask for replacements without speaking to the MLRO.</li></ul>
     <h4>Rules</h4>
     <ul><li>Never take files or copies home, and never put client documents on a personal phone, personal email or messaging app.</li>
-      <li>Do not use the scanner's scan-to-email or scan-to-cloud functions for client documents. Scanning is done by compliance.</li>
-      <li>If a client emails documents, forward the email to compliance and then delete it from your mailbox.</li>
-      <li>Do not tell a client, or anyone outside compliance, that a file has been escalated, restricted or reported. Tipping off is a criminal offence.</li></ul>
-    <h4>Tell compliance the same day if</h4>
+      <li>Do not use the scanner's scan-to-email or scan-to-cloud functions for client documents. Scanning is done by the MLRO.</li>
+      <li>If a client emails documents, forward the email to the MLRO and then delete it from your mailbox.</li>
+      <li>If anything makes you suspicious, tell the MLRO the same day, in person or in a sealed note. Don't write it on the client's file or discuss it with anyone else.</li>
+      <li>Do not tell a client, or anyone else, that a file has been escalated, restricted or reported. Tipping off is a criminal offence.</li></ul>
+    <h4>Tell the MLRO the same day if</h4>
     <ul><li>A client refuses to provide documents, or asks why they are needed in an unusual way.</li>
       <li>A document looks altered, or details don't match what is on file.</li>
       <li>Someone other than the client offers to provide documents or information, or offers payment in cash.</li>
       <li>A client mentions a new owner, director, trustee, a public office, or a change of country.</li></ul>
-    <div class="sig"><div>${a} (signature)</div><div>Date</div><div>Compliance officer (signature)</div><div>Date</div></div>
+    <div class="sig"><div>${a} (signature)</div><div>Date</div><div>MLRO (signature)</div><div>Date</div></div>
   </div>`;
 }
 function viewProcedure() {
@@ -1994,33 +2096,35 @@ function weekActivity(w) {
   return a;
 }
 function snapshot() {
-  const A = active(), s = S.settings, ds = A.map(daysToReview);
+  const A = onBook(), s = S.settings, ds = A.map(daysToReview);
   let sc = 0, sn = 0; A.forEach(c => { const p = scanProgress(c); sc += p.s; sn += p.n; });
   return {
     active: A.length, overdue: ds.filter(d => d < 0).length, due30: ds.filter(d => d >= 0 && d <= 30).length,
     inprog: A.filter(c => c.refresh).length, waiting: A.filter(c => c.refresh && c.refresh.stage === 'awaiting').length,
     high: A.filter(c => c.risk === 'high').length, peps: A.filter(isPep).length, restricted: A.filter(c => c.status === 'restricted').length,
     scanned: sn ? Math.round(sc / sn * 100) : 0,
+    onboarding: S.clients.filter(c => c.status === 'onboarding').length,
     overdueList: A.filter(c => daysToReview(c) < 0).map(c => ({ id: c.id, name: c.name, risk: c.risk, days: -daysToReview(c), stage: c.refresh ? stageName(c.refresh.stage) : 'Not started' })).sort((x, y) => y.days - x.days),
   };
 }
-const SNAP_ROWS = [['active', 'Active clients'], ['overdue', 'Overdue reviews', 1], ['due30', 'Due within 30 days'], ['inprog', 'Reviews in progress'], ['waiting', 'Waiting on clients', 1], ['high', 'High-risk clients'], ['peps', 'PEPs'], ['restricted', 'Services restricted', 1], ['scanned', 'Documents scanned (%)', -1]];
+const SNAP_ROWS = [['active', 'Active clients'], ['overdue', 'Overdue reviews', 1], ['due30', 'Due within 30 days'], ['inprog', 'Reviews in progress'], ['waiting', 'Waiting on clients', 1], ['high', 'High-risk clients'], ['peps', 'PEPs'], ['restricted', 'Services restricted', 1], ['onboarding', 'Clients being onboarded'], ['scanned', 'Documents scanned (%)', -1]];
 function reportSheet(ws) {
   const s = S.settings, w = weekOf(ws), rep = S.reports[ws] || {}, cur = ws === iso(mondayOf(TODAY));
   const snap = rep.snap || (cur ? snapshot() : null);
   const prevKey = Object.keys(S.reports).filter(k => k < ws && S.reports[k].snap).sort().pop();
   const prev = prevKey ? S.reports[prevKey].snap : null;
   const a = weekActivity(w), names = s.reportNames !== false;
+  a.reviews = a.reviews.filter(r => r.kind !== 'onboarding');
   const nm = c => (names ? `${esc(c.name)} <span style="font-family:var(--f-mono)">${c.id}</span>` : `<span style="font-family:var(--f-mono)">${c.id}</span>`);
   const stat = (n, l) => `<div><b>${n}</b>${l}</div>`;
   const delta = (k, dir) => { if (!prev || prev[k] == null) return '—'; const d = snap[k] - prev[k]; if (!d) return 'No change'; const good = dir === -1 ? d > 0 : dir === 1 ? d < 0 : null; return `${d > 0 ? '+' : ''}${d}${good === null ? '' : good ? ' (better)' : ' (worse)'}`; };
   return `<div class="sheet">
     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>KYC weekly report</h3><div>${fmt(w[0])} to ${fmt(w[1])}</div></div><div style="text-align:right">Prepared by ${esc(me())}<br>${esc(s.title)}<br>${fmtD(TODAY)}</div></div>
     <h4>Work done this week</h4>
-    <div class="stats">${stat(a.reviews.length, 'Reviews completed')}${stat(a.n.started, 'Reviews started')}${stat(a.requests + a.reminders, `Requests and reminders sent`)}${stat(a.n.received + a.n.verified, 'Documents received or verified')}${stat(a.n.scanned, 'Documents scanned')}${stat(a.n.screened, 'Screenings run')}${stat(a.decisions.length, 'Risk decisions')}${stat(a.n.escalated, 'Escalations to MLRO')}</div>
+    <div class="stats">${stat(a.reviews.length, 'Reviews completed')}${stat(a.n.started, 'Reviews started')}${stat(a.requests + a.reminders, `Requests and reminders sent`)}${stat(a.n.received + a.n.verified, 'Documents received or verified')}${stat(a.n.scanned, 'Documents scanned')}${stat(a.n.screened, 'Screenings run')}${stat(a.decisions.length, 'Risk decisions')}${stat(a.n.escalated, 'Escalations to MLRO')}${stat(a.decisions.filter(x => x.type === 'accept').length, 'New clients accepted')}${stat(S.clients.reduce((n, c) => n + c.matters.filter(m => inWeek(m.opened, w)).length, 0), 'Matters opened')}${stat(new Set(S.training.records.filter(r => inWeek(r.d, w)).map(r => r.staffId)).size, 'Staff trained')}${stat(S.destroyed.filter(x => inWeek(x.destroyed, w)).length, 'Files destroyed')}</div>
     <h4>Position at the end of the week</h4>
     ${snap ? `<table><thead><tr><th>Measure</th><th>This week</th><th>${prevKey ? `Week of ${fmt(prevKey)}` : 'Previous report'}</th><th>Change</th></tr></thead><tbody>
-      ${SNAP_ROWS.map(([k, l, dir]) => `<tr><td>${l}</td><td>${snap[k]}</td><td>${prev ? prev[k] : '—'}</td><td>${delta(k, dir)}</td></tr>`).join('')}</tbody></table>
+      ${SNAP_ROWS.map(([k, l, dir]) => `<tr><td>${l}</td><td>${snap[k]}</td><td>${prev && prev[k] != null ? prev[k] : '—'}</td><td>${delta(k, dir)}</td></tr>`).join('')}</tbody></table>
       ${rep.snap ? '' : '<p class="muted-p">Live figures. They are fixed when you record the end-of-week position.</p>'}`
     : '<p class="muted-p">The end-of-week position was not recorded for this week. The activity figures above are complete.</p>'}
     <h4>Reviews completed</h4>
@@ -2034,14 +2138,16 @@ function reportSheet(ws) {
     <div class="sig"><div>Prepared by (signature)</div><div>Date</div><div>Reviewed by (signature)</div><div>Date</div></div>
   </div>`;
 }
-function viewReport() {
+function viewReport() { return repMode === 'year' ? viewAnnual() : viewWeekly(); }
+function viewWeekly() {
   const ws = repWeek, rep = S.reports[ws] || {}, cur = ws === iso(mondayOf(TODAY)), w = weekOf(ws);
   const saved = Object.keys(S.reports).filter(k => S.reports[k].snap).sort().reverse();
   return `<div class="page-head"><div><h1>Weekly report</h1><p class="lede">What was done in the week and where things stand, ready to print for management. Activity comes from the audit trail, so it is complete for any week.</p></div>
     <div class="row">${FRAMED ? '' : '<button class="btn primary" data-act="printrep">Print report</button>'}</div></div>
   <section class="card"><div class="body" style="padding-top:18px;display:grid;gap:14px">
     <div class="row" style="justify-content:space-between">
-      <div class="seg" role="group" aria-label="Week"><button data-act="repweek" data-w="-1">‹ Previous</button><button data-act="repweek" data-w="0" aria-pressed="${cur}">This week</button><button data-act="repweek" data-w="1" ${cur ? 'disabled' : ''}>Next ›</button></div>
+      <div class="row"><div class="seg" role="group" aria-label="Report"><button data-act="repmode" data-m="week" aria-pressed="true">Weekly</button><button data-act="repmode" data-m="year" aria-pressed="false">Annual</button></div>
+      <div class="seg" role="group" aria-label="Week"><button data-act="repweek" data-w="-1">‹ Previous</button><button data-act="repweek" data-w="0" aria-pressed="${cur}">This week</button><button data-act="repweek" data-w="1" ${cur ? 'disabled' : ''}>Next ›</button></div></div>
       <b>${fmt(w[0])} to ${fmt(w[1])}</b>
       <label class="check" for="rep-names"><input type="checkbox" id="rep-names" ${S.settings.reportNames !== false ? 'checked' : ''}> Show client names</label>
     </div>
@@ -2053,6 +2159,456 @@ function viewReport() {
     ${saved.length ? `<div class="row small"><span class="muted">Recorded weeks:</span>${saved.slice(0, 8).map(k => `<button class="btn sm ${k === ws ? 'primary' : ''}" data-act="repgo" data-w="${k}">${fmt(k)}</button>`).join('')}</div>` : ''}
   </div></section>
   <div class="scroll" id="rep-sheet">${reportSheet(ws)}</div>`;
+}
+
+
+/* ---------- onboarding: accept or decline a new client ---------- */
+function modalAccept(c) {
+  const s = S.settings, sug = suggested(c), pre = RANK[sug] > RANK[c.risk] ? sug : c.risk;
+  const body = `<p>Customer due diligence for ${esc(c.name)} is complete. Decide whether to take the client on. The risk rating you confirm sets the first periodic review date.</p>
+    <div class="grid2">
+      <label class="field" for="ac-o">Decision<select id="ac-o"><option value="accept">Accept the client</option><option value="decline">Decline the client</option></select></label>
+      <label class="field" for="ac-d">Date<input type="date" id="ac-d" value="${iso(TODAY)}"></label>
+      <label class="field" for="ac-a">Approved by<input id="ac-a" value="${esc(s.mlro || me())}"></label>
+      <label class="field" for="ac-r">Risk rating<select id="ac-r">${RISKS.map(r => `<option value="${r}" ${r === pre ? 'selected' : ''}>${cap(r)} (first review after ${s.cycles[r]} months)</option>`).join('')}</select></label>
+      <div class="field"><span>Risk assessment suggests</span>${riskPill(sug)} <span class="small muted">Score ${raScore(c)}</span></div>
+      <label class="field span2" for="ac-n">Notes<textarea id="ac-n" placeholder="Summary of the due diligence and any conditions. Required if declining."></textarea></label>
+      ${isPep(c) ? '<label class="check span2" for="ac-pep"><input type="checkbox" id="ac-pep"> Senior management has approved establishing the relationship with this PEP</label>' : ''}
+    </div>
+    <div id="ac-dec" class="callout warn" hidden>Don't tell the client the reason if it involves suspicion. If you are declining because something is suspicious, log an internal report.
+      <label class="check" for="ac-sar" style="margin-top:8px"><input type="checkbox" id="ac-sar"> Log an internal suspicious activity report next</label></div>`;
+  const dlg = modal(`Accept or decline: ${c.name}`, body, [{ label: 'Record decision', cls: 'primary', fn: dlg => {
+    const out = $('#ac-o', dlg).value, d = $('#ac-d', dlg).value || iso(TODAY), by = $('#ac-a', dlg).value.trim(), risk = $('#ac-r', dlg).value, note = $('#ac-n', dlg).value.trim();
+    if (!by) return fail(dlg, 'Enter who approved this decision.');
+    const id = 'd' + Date.now().toString(36);
+    c.parties.forEach(p => { p.req = false; });
+    if (out === 'accept') {
+      if (isPep(c) && risk !== 'high') return fail(dlg, 'A PEP must be rated High.');
+      if (isPep(c) && !$('#ac-pep', dlg).checked) return fail(dlg, 'Confirm senior management approval to take on this PEP.');
+      c.status = 'active'; c.risk = risk; c.last = d; c.onboarded = d; c.refresh = null;
+      if (isPep(c)) { c.pep.approvedBy = by; c.pep.approvedOn = d; }
+      c.reviews.unshift({ d, by, risk, note, kind: 'onboarding' });
+      c.decisions.unshift({ id, d, type: 'accept', from: 'Prospective client', to: 'Active', reason: note || 'Customer due diligence completed.', by, recordedBy: me(), effects: [`Risk rating ${cap(risk)}`, `First periodic review ${fmtD(nextReview(c))}`] });
+      log(c, `Client accepted by ${by}. Customer due diligence complete. Risk rating ${cap(risk)}. First periodic review ${fmtD(nextReview(c))}.${note ? ' Notes: ' + note : ''}`, d);
+      commit('Client accepted');
+    } else {
+      if (!note) return fail(dlg, 'Record the reason for declining.');
+      const sar = $('#ac-sar', dlg).checked;
+      c.status = 'declined'; c.ended = d; c.refresh = null;
+      c.decisions.unshift({ id, d, type: 'decline', from: 'Prospective client', to: 'Declined', reason: sar ? 'Declined by the MLRO. Reason held in a separate confidential record.' : note, by, recordedBy: me(), effects: ['Client not taken on', `Records kept until ${fmtD(addMonths(parse(d), 12 * s.retentionYears))}`] });
+      log(c, `Client declined by ${by}.${sar ? '' : ' Reason: ' + note}`, d);
+      commit('Client declined');
+      if (sar) later(() => modalSarNew(c, note));
+    }
+  } }]);
+  $('#ac-o', dlg).addEventListener('change', e => { $('#ac-dec', dlg).hidden = e.target.value !== 'decline'; });
+}
+
+/* ---------- suspicious activity register (MLRO only) ---------- */
+function sarStatus(x) {
+  if (x.closed) return ['Closed', 'neutral'];
+  if (!x.decision) return ['Awaiting decision', 'crit'];
+  if (x.decision.outcome === 'report') return x.fia && x.fia.d ? ['Reported to FIA', 'info'] : ['Report not yet submitted', 'crit'];
+  return ['Not reported', 'ok'];
+}
+const sarActionNeeded = x => !x.closed && (!x.decision || (x.decision.outcome === 'report' && !(x.fia && x.fia.d)));
+const sarSubject = x => { const c = x.clientId && get(x.clientId); return c ? c.name : x.subject || 'Not recorded'; };
+function nextSarId(d) { const y = d.slice(0, 4); return `IR-${y}-${String(S.sars.filter(x => x.id.startsWith(`IR-${y}-`)).length + 1).padStart(3, '0')}`; }
+const TIPOFF = '<p class="callout crit">Confidential. Do not tell the client, or anyone outside the MLRO function, that a report has been made or is being considered. Tipping off is a criminal offence.</p>';
+function modalSarNew(c, grounds) {
+  const body = `${TIPOFF}<div class="grid2">
+    <label class="field" for="sr-d">Date received by the MLRO<input type="date" id="sr-d" value="${iso(TODAY)}"></label>
+    <label class="field" for="sr-by">Reported by<input id="sr-by" value="${esc(me())}" placeholder="Person raising the concern"></label>
+    <label class="field" for="sr-c">Client<select id="sr-c"><option value="">Not a client on the register</option>${S.clients.slice().sort((a, b) => a.name.localeCompare(b.name)).map(x => `<option value="${x.id}" ${c && c.id === x.id ? 'selected' : ''}>${esc(x.name)} (${x.id})</option>`).join('')}</select></label>
+    <label class="field" for="sr-s">Subject, if not a client<input id="sr-s" placeholder="Name of the person or entity"></label>
+    <label class="field" for="sr-h">How it was raised<select id="sr-h">${opts(['In person', 'In writing', 'By email', 'By phone', 'Identified by the MLRO'])}</select></label>
+    <label class="field span2" for="sr-g">What raised the suspicion<textarea id="sr-g" style="min-height:110px" placeholder="Facts only: what happened, when, amounts and who was involved">${esc(grounds || '')}</textarea></label></div>`;
+  modal('Log an internal report', body, [{ label: 'Log report', cls: 'primary', fn: dlg => {
+    const d = $('#sr-d', dlg).value || iso(TODAY), cid = $('#sr-c', dlg).value, subj = $('#sr-s', dlg).value.trim(), g = $('#sr-g', dlg).value.trim();
+    if (!cid && !subj) return fail(dlg, 'Choose the client, or enter who the report is about.');
+    if (!g) return fail(dlg, 'Describe what raised the suspicion.');
+    const x = { id: nextSarId(d), received: d, reporter: $('#sr-by', dlg).value.trim() || me(), how: $('#sr-h', dlg).value, clientId: cid, subject: subj, grounds: g, decision: null, fia: null, notes: [{ d, t: 'Internal report received by the MLRO.', by: me() }], closed: '' };
+    S.sars.unshift(x);
+    commit('Internal report logged');
+    later(() => { go('sar'); later(() => modalSar(x)); });
+  } }], { wide: true });
+}
+function sarSheet(x) {
+  const [st] = sarStatus(x), c = x.clientId && get(x.clientId);
+  const row = (k, v) => (v ? `<tr><th style="width:28%">${k}</th><td style="white-space:pre-wrap">${v}</td></tr>` : '');
+  return `<div class="sheet">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">Strictly confidential · MLRO only</div><h3>Internal suspicious activity report</h3></div><div style="text-align:right;font-family:var(--f-mono)"><b style="font-size:15px">${x.id}</b><br>${esc(st)}</div></div>
+    <table><tbody>
+      ${row('Subject', esc(sarSubject(x)) + (c ? ` (${c.id}, file ${esc(c.file.ref)})` : ''))}
+      ${row('Received by MLRO', fmt(x.received))}${row('Reported by', esc(x.reporter))}${row('How raised', esc(x.how))}
+      ${row('Grounds for suspicion', esc(x.grounds))}
+      ${x.decision ? row('MLRO decision', `${x.decision.outcome === 'report' ? 'Report to the Financial Intelligence Agency' : 'Do not report'} (${fmt(x.decision.d)}, ${esc(x.decision.by)})`) + row('Reasoning', esc(x.decision.reasoning)) : row('MLRO decision', 'Not yet decided')}
+      ${x.fia ? row('Submitted to FIA', `${fmt(x.fia.d)} · ${esc(x.fia.method)} · reference ${esc(x.fia.ref || 'not recorded')}`) : ''}
+      ${x.closed ? row('Closed', `${fmt(x.closed)}${x.closeNote ? ' · ' + esc(x.closeNote) : ''}`) : ''}
+    </tbody></table>
+    <h4>Notes</h4><table><tbody>${x.notes.map(n => `<tr><td style="width:18%">${fmt(n.d)}</td><td>${esc(n.t)}</td><td style="width:20%">${esc(n.by)}</td></tr>`).join('')}</tbody></table>
+    <p>Keep this record in the MLRO's confidential file. Never place it on the client's file.</p>
+    <div class="sig"><div>MLRO (signature)</div><div>Date</div></div></div>`;
+}
+function modalSar(x) {
+  const [st, cls] = sarStatus(x);
+  const body = `<div class="row"><span class="pill ${cls}">${st}</span><span class="mono small">${x.id}</span><span class="small muted">Received ${fmt(x.received)}, ${plural(diffDays(parse(x.received), TODAY), 'day')} ago</span></div>
+    <dl class="kv"><dt>Subject</dt><dd>${esc(sarSubject(x))}${x.clientId ? ` <span class="mono small">${x.clientId}</span>` : ''}</dd><dt>Reported by</dt><dd>${esc(x.reporter)} · ${esc(x.how)}</dd><dt>Grounds</dt><dd style="white-space:pre-wrap">${esc(x.grounds)}</dd>
+    ${x.decision ? `<dt>Decision</dt><dd><b>${x.decision.outcome === 'report' ? 'Report to the FIA' : 'Do not report'}</b>, ${fmt(x.decision.d)}<br><span class="muted" style="white-space:pre-wrap">${esc(x.decision.reasoning)}</span></dd>` : ''}
+    ${x.fia ? `<dt>Submitted</dt><dd>${fmt(x.fia.d)} · ${esc(x.fia.method)} · ref <span class="mono">${esc(x.fia.ref || '—')}</span></dd>` : ''}
+    ${x.closed ? `<dt>Closed</dt><dd>${fmt(x.closed)}${x.closeNote ? ' · ' + esc(x.closeNote) : ''}</dd>` : ''}</dl>
+    ${!x.decision && !x.closed ? '<p class="callout warn">No decision yet. Decide as soon as practicable whether there are grounds to report to the Financial Intelligence Agency, and record your reasoning either way.</p>' : ''}
+    <h3>Notes</h3><ul class="timeline">${x.notes.map(n => `<li><time>${n.d}</time><span>${esc(n.t)} <span class="muted">· ${esc(n.by)}</span></span></li>`).join('')}</ul>
+    ${x.closed ? '' : '<label class="field" for="sn-t">Add a note<textarea id="sn-t" placeholder="e.g. FIA acknowledged receipt; consent to proceed received"></textarea></label>'}`;
+  const again = () => later(() => modalSar(x));
+  modal(`Internal report ${x.id}`, body, [
+    { label: 'Print record', hidden: FRAMED, fn: () => { printHTML(sarSheet(x)); return false; } },
+    { label: 'Save note', hidden: !!x.closed, fn: dlg => { const t = $('#sn-t', dlg).value.trim(); if (!t) return fail(dlg, 'Write the note first.'); x.notes.push({ d: iso(TODAY), t, by: me() }); commit('Note saved'); again(); } },
+    { label: 'Close the matter', hidden: !!x.closed || !x.decision || sarActionNeeded(x), fn: () => { later(() => modalSarClose(x)); } },
+    { label: 'Record FIA submission', cls: 'primary', hidden: !(x.decision && x.decision.outcome === 'report' && !x.fia && !x.closed), fn: () => { later(() => modalSarFia(x)); } },
+    { label: 'Record decision', cls: 'primary', hidden: !!x.decision || !!x.closed, fn: () => { later(() => modalSarDecision(x)); } },
+  ], { wide: true, cancel: 'Close' });
+}
+function modalSarDecision(x) {
+  const c = x.clientId && get(x.clientId);
+  const body = `${TIPOFF}<div class="grid2">
+    <label class="field" for="sd-o">Decision<select id="sd-o"><option value="report">Report to the Financial Intelligence Agency</option><option value="no">Do not report</option></select></label>
+    <label class="field" for="sd-d">Date of decision<input type="date" id="sd-d" value="${iso(TODAY)}"></label>
+    <label class="field span2" for="sd-r">Reasoning<textarea id="sd-r" style="min-height:110px" placeholder="Why you did, or did not, find grounds for knowledge or suspicion of money laundering or terrorist financing"></textarea></label></div>
+    <div id="sd-rep" style="display:grid;gap:12px">
+      <div class="grid3"><label class="field" for="sd-fd">Submitted to FIA on (if done)<input type="date" id="sd-fd"></label><label class="field" for="sd-fr">FIA reference<input id="sd-fr"></label><label class="field" for="sd-fm">Method<select id="sd-fm">${opts(['Online', 'By hand', 'By email', 'Other'])}</select></label></div>
+      ${c && c.status === 'active' ? `<label class="check" for="sd-x"><input type="checkbox" id="sd-x"> Restrict services to ${esc(c.name)}. The client file shows only "Restricted by the MLRO".</label>` : ''}
+    </div>`;
+  const dlg = modal(`Decision on ${x.id}`, body, [{ label: 'Record decision', cls: 'primary', fn: dlg => {
+    const out = $('#sd-o', dlg).value, d = $('#sd-d', dlg).value || iso(TODAY), why = $('#sd-r', dlg).value.trim();
+    if (!why) return fail(dlg, 'Record your reasoning. It is required whichever way you decide.');
+    x.decision = { outcome: out, d, by: me(), reasoning: why };
+    x.notes.push({ d, t: out === 'report' ? 'MLRO decided to report to the Financial Intelligence Agency.' : 'MLRO decided not to report.', by: me() });
+    if (out === 'report' && $('#sd-fd', dlg).value) { x.fia = { d: $('#sd-fd', dlg).value, ref: $('#sd-fr', dlg).value.trim(), method: $('#sd-fm', dlg).value }; x.notes.push({ d: x.fia.d, t: 'Report submitted to the FIA.', by: me() }); }
+    if (out === 'report' && $('#sd-x', dlg) && $('#sd-x', dlg).checked) {
+      c.status = 'restricted';
+      c.decisions.unshift({ id: 'd' + Date.now().toString(36), d, type: 'restrict', from: 'Active', to: 'Restricted', reason: 'Restricted by the MLRO. Reason held in a separate confidential record.', by: me(), recordedBy: me(), effects: ['Services suspended until the restriction is lifted'] });
+      log(c, 'Services restricted by the MLRO.', d);
+    }
+    commit('Decision recorded'); later(() => modalSar(x));
+  } }], { wide: true });
+  $('#sd-o', dlg).addEventListener('change', e => { $('#sd-rep', dlg).hidden = e.target.value !== 'report'; });
+}
+function modalSarFia(x) {
+  modal(`FIA submission for ${x.id}`, `<div class="grid3"><label class="field" for="sf-d">Submitted on<input type="date" id="sf-d" value="${iso(TODAY)}"></label><label class="field" for="sf-r">FIA reference<input id="sf-r"></label><label class="field" for="sf-m">Method<select id="sf-m">${opts(['Online', 'By hand', 'By email', 'Other'])}</select></label></div>`,
+    [{ label: 'Save', cls: 'primary', fn: dlg => {
+      x.fia = { d: $('#sf-d', dlg).value || iso(TODAY), ref: $('#sf-r', dlg).value.trim(), method: $('#sf-m', dlg).value };
+      x.notes.push({ d: x.fia.d, t: `Report submitted to the FIA${x.fia.ref ? ` (reference ${x.fia.ref})` : ''}.`, by: me() });
+      commit('Submission recorded'); later(() => modalSar(x));
+    } }]);
+}
+function modalSarClose(x) {
+  modal(`Close ${x.id}`, `<p>Close the matter once no further action is needed. The record is kept.</p><div class="grid2"><label class="field" for="sc2-d">Date<input type="date" id="sc2-d" value="${iso(TODAY)}"></label><label class="field span2" for="sc2-n">Closing note<textarea id="sc2-n" placeholder="e.g. No further contact from the FIA; relationship exited"></textarea></label></div>`,
+    [{ label: 'Close the matter', cls: 'primary', fn: dlg => {
+      x.closed = $('#sc2-d', dlg).value || iso(TODAY); x.closeNote = $('#sc2-n', dlg).value.trim();
+      x.notes.push({ d: x.closed, t: `Matter closed.${x.closeNote ? ' ' + x.closeNote : ''}`, by: me() });
+      commit('Matter closed'); later(() => modalSar(x));
+    } }]);
+}
+function viewSar() {
+  const y = String(TODAY.getFullYear()), inY = x => x.received.startsWith(y);
+  const list = S.sars.slice().sort((a, b) => (sarActionNeeded(b) - sarActionNeeded(a)) || b.received.localeCompare(a.received));
+  const tile = (k, l, s, cls) => `<div class="tile ${cls}" style="cursor:default"><span class="l">${l}</span><span class="k">${k}</span><span class="s">${s}</span></div>`;
+  return `<div class="page-head"><div><h1>Suspicious activity</h1><p class="lede">Internal reports to the MLRO, the MLRO's decision, and reports to the Financial Intelligence Agency. Nothing here appears on client files, work packs or the weekly report.</p></div>
+      <div class="row"><button class="btn primary" data-act="sarnew">Log internal report</button></div></div>
+    <p class="callout crit">Confidential to the MLRO. Lock the screen when you step away. Keep paper records in a separate locked file, never on the client's file.</p>
+    <section class="kpis four">
+      ${tile(S.sars.filter(x => !x.closed && !x.decision).length, 'Awaiting decision', 'Decide as soon as practicable', S.sars.some(x => !x.closed && !x.decision) ? 'is-crit' : 'is-ok')}
+      ${tile(S.sars.filter(x => !x.closed && x.decision && x.decision.outcome === 'report' && !x.fia).length, 'Reports to submit', 'Decided, not yet sent to the FIA', 'is-warn')}
+      ${tile(S.sars.filter(x => inY(x) && x.decision && x.decision.outcome === 'report').length, `Reported in ${y}`, 'Internal reports sent to the FIA', 'is-info')}
+      ${tile(S.sars.filter(x => inY(x) && x.decision && x.decision.outcome === 'no').length, `Not reported in ${y}`, 'Reasoning recorded', 'is-ok')}
+    </section>
+    <section class="card"><header><div><h2>Register</h2><p>${plural(S.sars.length, 'internal report')}</p></div></header>
+      <div class="scroll">${list.length ? `<table class="t"><thead><tr><th>Ref</th><th>Received</th><th>Subject</th><th>Reported by</th><th>Status</th><th>FIA reference</th></tr></thead><tbody>
+      ${list.map(x => { const [st, cls] = sarStatus(x); return `<tr class="click" data-act="sar" data-sar="${x.id}"><td class="mono">${x.id}</td><td class="num">${fmt(x.received)}</td><td><b>${esc(sarSubject(x))}</b>${x.clientId ? `<span class="sub">${x.clientId}</span>` : ''}</td><td>${esc(x.reporter)}</td><td><span class="pill ${cls}">${st}</span>${!x.decision && !x.closed ? `<span class="sub">${plural(diffDays(parse(x.received), TODAY), 'day')} waiting</span>` : ''}</td><td class="mono">${esc((x.fia && x.fia.ref) || '—')}</td></tr>`; }).join('')}
+      </tbody></table>` : '<p class="empty">No internal reports logged.</p>'}</div></section>`;
+}
+
+/* ---------- matters and source of funds ---------- */
+const MATTER_TYPES = ['Property purchase', 'Property sale', 'Company formation or administration', 'Trust or estate', 'Litigation', 'Other'];
+const SOF = { outstanding: ['Outstanding', 'warn'], requested: ['Requested', 'info'], verified: ['Verified', 'ok'], na: ['Not required', 'neutral'] };
+const FIT = { yes: ['Fits profile', 'ok'], unclear: ['Unclear', 'warn'], no: ["Doesn't fit", 'crit'] };
+const money = (v, cur) => (v ? `${cur || 'USD'} ${Number(v).toLocaleString('en-US')}` : '—');
+function mattersCard(c) {
+  const ms = c.matters.slice().sort((a, b) => (a.status === 'closed') - (b.status === 'closed') || b.opened.localeCompare(a.opened));
+  return `<section class="card">
+    <header><div><h2>Matters</h2><p>Each transaction with its value and source of funds, checked against what you know about the client</p></div><button class="btn sm" data-act="matter" data-id="${c.id}">Add matter</button></header>
+    <div class="scroll">${ms.length ? `<table class="t"><thead><tr><th>Opened</th><th>Matter</th><th>Value</th><th>Source of funds</th><th>Profile</th><th></th></tr></thead><tbody>
+      ${ms.map(m => `<tr><td class="mono num" style="white-space:nowrap">${m.opened}</td><td><b>${esc(m.type)}</b>${m.status === 'closed' ? ' <span class="tag">Closed</span>' : ''}<span class="sub">${esc(m.ref)}</span><span class="small muted">${esc(m.desc)}</span></td><td class="num" style="white-space:nowrap">${money(m.value, m.cur)}</td><td><span class="pill ${SOF[m.sofStatus][1]} plain">${SOF[m.sofStatus][0]}</span></td><td><span class="pill ${FIT[m.fit][1]} plain">${FIT[m.fit][0]}</span></td><td class="right"><button class="btn sm" data-act="matter" data-id="${c.id}" data-m="${m.id}">Edit</button></td></tr>`).join('')}
+    </tbody></table>` : '<p class="empty">No matters recorded.</p>'}</div></section>`;
+}
+function modalMatter(c, m) {
+  const isNew = !m;
+  const v = m || { ref: `${c.file.ref}/M${c.matters.length + 1}`, type: MATTER_TYPES[0], desc: '', value: '', cur: 'USD', opened: iso(TODAY), sof: '', sofStatus: 'outstanding', fit: 'yes', status: 'open', note: '' };
+  const sel = (id, map, val) => `<select id="${id}">${Object.entries(map).map(([k, x]) => `<option value="${k}" ${k === val ? 'selected' : ''}>${x[0]}</option>`).join('')}</select>`;
+  const body = `<div class="grid2">
+    <label class="field" for="mt-r">Matter reference<input id="mt-r" value="${esc(v.ref)}"></label>
+    <label class="field" for="mt-t">Type<select id="mt-t">${opts(MATTER_TYPES, v.type)}</select></label>
+    <label class="field span2" for="mt-d">Description<input id="mt-d" value="${esc(v.desc)}" placeholder="e.g. Purchase of Unit 4, Leeward Highway"></label>
+    <label class="field" for="mt-v">Value<input id="mt-v" type="number" min="0" step="1" value="${esc(v.value)}"></label>
+    <label class="field" for="mt-c">Currency<input id="mt-c" value="${esc(v.cur)}" maxlength="3"></label>
+    <label class="field" for="mt-o">Opened<input id="mt-o" type="date" value="${v.opened}"></label>
+    <label class="field" for="mt-s">Status<select id="mt-s"><option value="open" ${v.status === 'open' ? 'selected' : ''}>Open</option><option value="closed" ${v.status === 'closed' ? 'selected' : ''}>Closed</option></select></label>
+    <label class="field span2" for="mt-f">Where the money comes from<textarea id="mt-f" placeholder="e.g. Sale of property in Toronto, proceeds held at Bank X; mortgage from Bank Y">${esc(v.sof)}</textarea></label>
+    <label class="field" for="mt-fs">Evidence of source of funds${sel('mt-fs', SOF, v.sofStatus)}</label>
+    <label class="field" for="mt-ft">Consistent with what we know about the client?${sel('mt-ft', FIT, v.fit)}</label>
+    <label class="field span2" for="mt-n">Notes<input id="mt-n" value="${esc(v.note)}"></label></div>
+    <div id="mt-w" class="callout crit" ${v.fit === 'no' ? '' : 'hidden'}>A transaction that doesn't fit the client's profile may give grounds for suspicion. Don't proceed until you're satisfied.
+      <label class="check" for="mt-sar" style="margin-top:8px"><input type="checkbox" id="mt-sar"> Log an internal suspicious activity report next</label></div>`;
+  const dlg = modal(isNew ? `Add matter: ${c.name}` : `Matter ${m.ref}`, body, [{ label: isNew ? 'Add matter' : 'Save changes', cls: 'primary', fn: dlg => {
+    const val = id => $(id, dlg).value.trim();
+    if (!val('#mt-r')) return fail(dlg, 'Enter a matter reference.');
+    const x = m || { id: 'm' + Date.now().toString(36) };
+    const before = m ? clone(m) : null;
+    Object.assign(x, { ref: val('#mt-r'), type: val('#mt-t'), desc: val('#mt-d'), value: val('#mt-v'), cur: (val('#mt-c') || 'USD').toUpperCase(), opened: val('#mt-o') || iso(TODAY), sof: val('#mt-f'), sofStatus: val('#mt-fs'), fit: val('#mt-ft'), status: val('#mt-s'), note: val('#mt-n') });
+    if (x.status === 'closed' && !x.closed) x.closed = iso(TODAY);
+    if (x.status === 'open') x.closed = '';
+    if (isNew) { c.matters.push(x); log(c, `Matter opened: ${x.ref} (${x.type}, ${money(x.value, x.cur)}). Source of funds ${SOF[x.sofStatus][0].toLowerCase()}.`); }
+    else {
+      const ch = [];
+      if (before.sofStatus !== x.sofStatus) ch.push(`source of funds ${SOF[before.sofStatus][0]} → ${SOF[x.sofStatus][0]}`);
+      if (before.fit !== x.fit) ch.push(`profile ${FIT[before.fit][0]} → ${FIT[x.fit][0]}`);
+      if (before.value !== x.value) ch.push(`value ${money(before.value, before.cur)} → ${money(x.value, x.cur)}`);
+      if (before.status !== x.status) ch.push(x.status === 'closed' ? 'closed' : 'reopened');
+      log(c, `Matter ${x.ref} updated${ch.length ? ': ' + ch.join('; ') : ''}.`);
+    }
+    const sar = $('#mt-sar', dlg).checked && x.fit === 'no';
+    commit(isNew ? 'Matter added' : 'Matter saved');
+    if (sar) later(() => modalSarNew(c, `Matter ${x.ref} (${x.type}${x.desc ? ': ' + x.desc : ''}), ${money(x.value, x.cur)}. Source of funds given: ${x.sof || 'not stated'}. This doesn't fit what we know about the client because: `));
+  } }], { wide: true });
+  $('#mt-ft', dlg).addEventListener('change', e => { $('#mt-w', dlg).hidden = e.target.value !== 'no'; });
+}
+
+/* ---------- training register ---------- */
+function staffStatus(p) {
+  const recs = S.training.records.filter(r => r.staffId === p.id).sort((a, b) => b.d.localeCompare(a.d));
+  const last = recs[0];
+  if (!last) return { last: null, next: null, recs, st: ['Never trained', 'crit'] };
+  const next = addMonths(parse(last.d), S.settings.trainingMonths), days = diffDays(TODAY, next);
+  return { last, next, recs, st: days < 0 ? ['Overdue', 'crit'] : days <= 60 ? ['Due soon', 'warn'] : ['Up to date', 'ok'] };
+}
+const activeStaff = () => S.training.staff.filter(p => p.active !== false);
+const trainingDue = () => activeStaff().filter(p => staffStatus(p).st[1] === 'crit').length;
+function trainingSheet() {
+  const s = S.settings;
+  return `<div class="sheet"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>AML/CFT training register</h3><div>Printed ${fmtD(TODAY)} · refresher every ${s.trainingMonths} months</div></div>
+    <table><thead><tr><th>Name</th><th>Role</th><th>Last training</th><th>Course</th><th>Next due</th><th>Status</th></tr></thead><tbody>
+    ${activeStaff().map(p => { const x = staffStatus(p); return `<tr><td>${esc(p.name)}</td><td>${esc(p.role)}</td><td>${x.last ? fmt(x.last.d) : '—'}</td><td>${x.last ? esc(x.last.course) : '—'}</td><td>${x.next ? fmtD(x.next) : 'Now'}</td><td>${x.st[0]}</td></tr>`; }).join('')}</tbody></table>
+    <h4>Sessions</h4><table><thead><tr><th>Date</th><th>Course</th><th>Provider</th><th>Hours</th><th>Attended</th></tr></thead><tbody>
+    ${trainingSessions().slice(0, 30).map(g => `<tr><td>${fmt(g.d)}</td><td>${esc(g.course)}</td><td>${esc(g.provider)}</td><td>${esc(g.hours)}</td><td>${g.names.map(esc).join(', ')}</td></tr>`).join('')}</tbody></table>
+    <div class="sig"><div>MLRO (signature)</div><div>Date</div></div></div>`;
+}
+function trainingSessions() {
+  const groups = {};
+  for (const r of S.training.records) {
+    const k = r.d + '|' + r.course;
+    (groups[k] || (groups[k] = { d: r.d, course: r.course, provider: r.provider, hours: r.hours, names: [] })).names.push((S.training.staff.find(p => p.id === r.staffId) || {}).name || 'Former staff');
+  }
+  return Object.values(groups).sort((a, b) => b.d.localeCompare(a.d));
+}
+function viewTraining() {
+  const st = activeStaff(), xs = st.map(p => ({ p, x: staffStatus(p) }));
+  const n = cls => xs.filter(o => o.x.st[1] === cls).length;
+  const tile = (k, l, s, cls) => `<div class="tile ${cls}" style="cursor:default"><span class="l">${l}</span><span class="k">${k}</span><span class="s">${s}</span></div>`;
+  return `<div class="page-head"><div><h1>Training</h1><p class="lede">Who has had AML/CFT training, when, and when each person's refresher is due (every ${S.settings.trainingMonths} months).</p></div>
+      <div class="row">${FRAMED ? '' : '<button class="btn" data-act="printtrain">Print register</button>'}<button class="btn" data-act="staff">Add staff member</button><button class="btn primary" data-act="train">Record training session</button></div></div>
+    <section class="kpis four">
+      ${tile(st.length, 'Staff', 'Current staff on the register', 'is-info')}${tile(n('ok'), 'Up to date', 'Trained within the cycle', 'is-ok')}${tile(n('warn'), 'Due soon', 'Within 60 days', n('warn') ? 'is-warn' : 'is-ok')}${tile(n('crit'), 'Overdue or never trained', 'Book training now', n('crit') ? 'is-crit' : 'is-ok')}
+    </section>
+    <section class="card"><header><div><h2>Staff</h2><p>Everyone who deals with clients or their files</p></div></header>
+      <div class="scroll">${xs.length ? `<table class="t"><thead><tr><th>Name</th><th>Role</th><th>Last training</th><th>Next due</th><th>Status</th><th></th></tr></thead><tbody>
+      ${xs.sort((a, b) => (a.x.next || 0) - (b.x.next || 0)).map(({ p, x }) => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.role)}</td><td>${x.last ? `${fmt(x.last.d)}<span class="sub" style="font-family:var(--f-body)">${esc(x.last.course)}</span>` : '—'}</td><td class="num">${x.next ? fmtD(x.next) : 'Now'}</td><td><span class="pill ${x.st[1]}">${x.st[0]}</span></td><td class="right"><div class="row" style="justify-content:flex-end"><button class="btn sm" data-act="train" data-staff="${p.id}">Record training</button><button class="btn sm quiet" data-act="staffleft" data-staff="${p.id}">Left the firm</button></div></td></tr>`).join('')}
+      </tbody></table>` : '<p class="empty">Add the people who need AML/CFT training.</p>'}</div></section>
+    <section class="card"><header><div><h2>Sessions</h2><p>Newest first</p></div></header>
+      <div class="scroll">${S.training.records.length ? `<table class="t"><thead><tr><th>Date</th><th>Course</th><th>Provider</th><th>Hours</th><th>Attended</th></tr></thead><tbody>
+      ${trainingSessions().slice(0, 40).map(g => `<tr><td class="mono num">${g.d}</td><td><b>${esc(g.course)}</b></td><td>${esc(g.provider)}</td><td class="num">${esc(g.hours)}</td><td>${g.names.map(esc).join(', ')}</td></tr>`).join('')}
+      </tbody></table>` : '<p class="empty">No sessions recorded.</p>'}</div></section>`;
+}
+function modalStaff() {
+  modal('Add staff member', `<div class="grid2"><label class="field" for="sf-n">Full name<input id="sf-n"></label><label class="field" for="sf-r">Role<input id="sf-r" placeholder="e.g. Conveyancing paralegal"></label></div>`,
+    [{ label: 'Add', cls: 'primary', fn: dlg => {
+      const name = $('#sf-n', dlg).value.trim(); if (!name) return fail(dlg, 'Enter the name.');
+      S.training.staff.push({ id: 's' + Date.now().toString(36), name, role: $('#sf-r', dlg).value.trim(), active: true, added: iso(TODAY) });
+      commit('Staff member added');
+    } }]);
+}
+function modalTraining(staffId) {
+  const st = activeStaff();
+  if (!st.length) { modalStaff(); return; }
+  const body = `<div class="grid2">
+    <label class="field" for="tr-d">Date<input type="date" id="tr-d" value="${iso(TODAY)}"></label>
+    <label class="field" for="tr-h">Hours<input id="tr-h" type="number" min="0" step="0.5" value="2"></label>
+    <label class="field span2" for="tr-c">Course or topic<input id="tr-c" placeholder="e.g. Annual AML/CFT refresher: red flags and internal reporting"></label>
+    <label class="field span2" for="tr-p">Delivered by<input id="tr-p" value="${esc(me())}"></label></div>
+    <div class="field"><span>Attended</span><div class="reqlist">${st.map(p => `<label class="check" for="ta-${p.id}"><input type="checkbox" id="ta-${p.id}" name="ta" value="${p.id}" ${!staffId || staffId === p.id ? 'checked' : ''}><span>${esc(p.name)}<span class="why">${esc(p.role)}</span></span></label>`).join('')}</div></div>`;
+  modal('Record training session', body, [{ label: 'Save session', cls: 'primary', fn: dlg => {
+    const ids = $$('input[name=ta]:checked', dlg).map(i => i.value), course = $('#tr-c', dlg).value.trim();
+    if (!course) return fail(dlg, 'Enter the course or topic.');
+    if (!ids.length) return fail(dlg, 'Tick who attended.');
+    const d = $('#tr-d', dlg).value || iso(TODAY);
+    ids.forEach(sid => S.training.records.push({ id: 'r' + Date.now().toString(36) + sid, staffId: sid, d, course, provider: $('#tr-p', dlg).value.trim(), hours: $('#tr-h', dlg).value }));
+    commit(`Training recorded for ${plural(ids.length, 'person', 'people')}`);
+  } }], { wide: true });
+}
+
+/* ---------- record retention and destruction ---------- */
+function endDate(c) { return c.ended || ((c.decisions.find(x => x.type === 'exit' || x.type === 'decline') || {}).d) || ''; }
+function retention(c) {
+  const e = endDate(c), until = e ? addMonths(parse(e), 12 * S.settings.retentionYears) : null;
+  const sarHold = S.sars.some(x => x.clientId === c.id && !x.closed), hold = !!c.hold || sarHold;
+  return { e, until, hold, sarHold, eligible: !!until && until <= TODAY && !hold };
+}
+function retentionCard() {
+  const closed = S.clients.filter(isClosed).map(c => ({ c, r: retention(c) })).sort((a, b) => (b.r.eligible - a.r.eligible) || ((a.r.until || 0) - (b.r.until || 0)));
+  const chip = r => (r.hold ? '<span class="pill warn plain">On hold</span>' : !r.e ? '<span class="pill neutral plain">End date missing</span>' : r.eligible ? '<span class="pill crit plain">Can be destroyed</span>' : '<span class="pill ok plain">Keep</span>');
+  return `<section class="card"><header><div><h2>Retention and destruction</h2><p>Records of exited and declined clients are kept for ${S.settings.retentionYears} years from the end of the relationship, then destroyed</p></div></header>
+    <div class="scroll">${closed.length ? `<table class="t"><thead><tr><th>Client</th><th>Ended</th><th>Keep until</th><th>Status</th><th></th></tr></thead><tbody>
+    ${closed.map(({ c, r }) => `<tr><td><a class="name" href="#client-${c.id}">${esc(c.name)}</a><span class="sub">${c.id} · ${esc(c.file.ref)} · ${cap(c.status)}</span></td><td class="num">${r.e ? fmt(r.e) : '—'}</td><td class="num">${r.until ? fmtD(r.until) : '—'}</td><td>${chip(r)}${c.destroyedPaper ? `<span class="sub">Paper destroyed ${fmt(c.destroyedPaper)}</span>` : ''}</td>
+      <td class="right"><div class="row" style="justify-content:flex-end">${r.e ? '' : `<button class="btn sm" data-act="ended" data-id="${c.id}">Set end date</button>`}${r.sarHold ? '' : `<button class="btn sm quiet" data-act="hold" data-id="${c.id}">${c.hold ? 'Release hold' : 'Put on hold'}</button>`}${r.eligible ? `<button class="btn sm primary" data-act="destroy" data-id="${c.id}">Record destruction</button>` : ''}</div></td></tr>`).join('')}
+    </tbody></table>` : '<p class="empty">No exited or declined clients.</p>'}</div>
+    ${S.destroyed.length ? `<header style="padding-top:6px"><div><h3>Destruction log</h3><p>Kept permanently as evidence that records were destroyed on time</p></div></header><div class="scroll"><table class="t"><thead><tr><th>Destroyed</th><th>Client</th><th>File ref</th><th>Ended</th><th>Method</th><th>Witness</th><th>What</th></tr></thead><tbody>
+      ${S.destroyed.map(x => `<tr><td class="num">${fmt(x.destroyed)}</td><td>${esc(x.name)}<span class="sub">${x.id}</span></td><td class="mono">${esc(x.fileRef)}</td><td class="num">${fmt(x.ended)}</td><td>${esc(x.method)}${x.cert ? `<span class="sub">${esc(x.cert)}</span>` : ''}</td><td>${esc(x.witness)}</td><td>${x.digital ? 'Paper and digital' : 'Paper only'}</td></tr>`).join('')}
+    </tbody></table></div>` : ''}</section>`;
+}
+function viewFiles() { return viewFilesBase() + retentionCard(); }
+function modalEnded(c) {
+  modal(`End date: ${c.name}`, `<p>When the relationship ended. The retention period runs from this date.</p><label class="field" for="en-d">End date<input type="date" id="en-d"></label>`,
+    [{ label: 'Save', cls: 'primary', fn: dlg => { const d = $('#en-d', dlg).value; if (!d) return fail(dlg, 'Choose the date.'); c.ended = d; log(c, `Relationship end date recorded as ${fmt(d)}.`); commit('End date saved'); } }]);
+}
+function modalHold(c) {
+  if (c.hold) { const r = c.hold.reason; c.hold = null; log(c, `Retention hold released (was: ${r}).`); commit('Hold released'); return; }
+  modal(`Put ${c.name} on hold`, '<p>A hold stops the records being destroyed, for example during an investigation, litigation or a regulator\'s request.</p><label class="field" for="hd-r">Reason<input id="hd-r"></label>',
+    [{ label: 'Put on hold', cls: 'primary', fn: dlg => { const r = $('#hd-r', dlg).value.trim(); if (!r) return fail(dlg, 'Give the reason.'); c.hold = { reason: r, d: iso(TODAY) }; log(c, `Retention hold placed: ${r}.`); commit('Hold placed'); } }]);
+}
+function modalDestroy(c) {
+  const r = retention(c);
+  const body = `<p>${esc(c.name)} (${c.id}) ended on ${fmt(r.e)}. The ${S.settings.retentionYears}-year retention period ended on ${fmtD(r.until)}.</p>
+    <div class="grid2"><label class="field" for="ds-d">Date destroyed<input type="date" id="ds-d" value="${iso(TODAY)}"></label>
+    <label class="field" for="ds-m">Method<select id="ds-m">${opts(['Cross-cut shredding in the office', 'Secure shredding contractor', 'Other'])}</select></label>
+    <label class="field" for="ds-c">Contractor certificate or reference<input id="ds-c"></label>
+    <label class="field" for="ds-w">Witnessed by<input id="ds-w"></label></div>
+    <label class="check" for="ds-p"><input type="checkbox" id="ds-p"> The paper file has been destroyed</label>
+    <label class="check" for="ds-x"><input type="checkbox" id="ds-x" checked> Delete the digital record and its scans from this app. A line stays in the destruction log.</label>
+    <label class="field" for="ds-k">Type the client ID (${c.id}) to confirm<input id="ds-k" autocomplete="off"></label>`;
+  modal('Record destruction', body, [{ label: 'Record destruction', cls: 'danger solid', fn: async dlg => {
+    if (!$('#ds-p', dlg).checked) return fail(dlg, 'Destroy the paper file first, then tick the box.');
+    if ($('#ds-k', dlg).value.trim().toUpperCase() !== c.id) return fail(dlg, `Type ${c.id} to confirm.`);
+    const d = $('#ds-d', dlg).value || iso(TODAY), digital = $('#ds-x', dlg).checked;
+    S.destroyed.unshift({ id: c.id, name: c.name, type: c.type, fileRef: c.file.ref, ended: r.e, destroyed: d, method: $('#ds-m', dlg).value, cert: $('#ds-c', dlg).value.trim(), witness: $('#ds-w', dlg).value.trim(), by: me(), digital });
+    if (digital) {
+      for (const x of Object.values(c.docs)) if (x.att) await ATT.del(x.att).catch(() => {});
+      S.clients = S.clients.filter(x => x !== c);
+    } else { c.destroyedPaper = d; log(c, `Paper file ${c.file.ref} destroyed (${$('#ds-m', dlg).value.toLowerCase()}).`, d); }
+    log0(`Client file ${c.id} destroyed after the retention period (${digital ? 'paper and digital' : 'paper only'}).`);
+    commit('Destruction recorded');
+  } }], { wide: true });
+}
+
+/* ---------- inspection pack ---------- */
+function historySheet(c, o) {
+  const pep = c.pep ? `<p><b>PEP:</b> ${esc(pepLabel(c))}${c.pep.position ? `, ${esc(c.pep.position)}` : ''}${c.pep.country ? ` (${esc(c.pep.country)})` : ''}${c.pep.approvedBy ? `. Approved by ${esc(c.pep.approvedBy)} on ${fmt(c.pep.approvedOn)}` : ''}.</p>` : '';
+  return `<div class="sheet">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h3>${esc(c.name)}: due diligence history</h3></div><div style="font-family:var(--f-mono)">${c.id} · ${esc(c.file.ref)}</div></div>
+    <div class="meta"><span><b>Status:</b> ${cap(c.status)}</span><span><b>Risk:</b> ${cap(c.risk)} (score ${raScore(c)})</span><span><b>Onboarded:</b> ${fmt(c.onboarded)}</span><span><b>Service:</b> ${esc(service(c))}</span><span><b>Country:</b> ${esc(c.country)}</span><span><b>Screening:</b> ${c.screening ? `${fmt(c.screening.date)}, ${esc(c.screening.result)}` : 'None'}</span></div>
+    ${pep}
+    <h4>Reviews</h4>${c.reviews.length ? `<table><thead><tr><th>Date</th><th>Type</th><th>Risk</th><th>Approved by</th><th>Notes</th></tr></thead><tbody>${c.reviews.map(r => `<tr><td>${fmt(r.d)}</td><td>${r.kind === 'onboarding' ? 'Onboarding' : 'Periodic review'}</td><td>${cap(r.risk)}</td><td>${esc(r.by)}</td><td>${esc(r.note || '')}</td></tr>`).join('')}</tbody></table>` : '<p class="muted-p">None recorded.</p>'}
+    <h4>Risk decisions</h4>${c.decisions.length ? `<table><thead><tr><th>Date</th><th>Decision</th><th>Change</th><th>Reason</th><th>Approved by</th></tr></thead><tbody>${c.decisions.map(x => `<tr><td>${fmt(x.d)}</td><td>${esc(DECISIONS[x.type].done)}</td><td>${x.from ? `${esc(x.from)} → ${esc(x.to)}` : ''}</td><td>${esc(x.reason)}</td><td>${esc(x.by)}</td></tr>`).join('')}</tbody></table>` : '<p class="muted-p">None recorded.</p>'}
+    ${o.matters && c.matters.length ? `<h4>Matters</h4><table><thead><tr><th>Opened</th><th>Matter</th><th>Value</th><th>Source of funds</th><th>Evidence</th><th>Profile</th></tr></thead><tbody>${c.matters.map(m => `<tr><td>${fmt(m.opened)}</td><td>${esc(m.ref)}<br>${esc(m.type)}</td><td>${money(m.value, m.cur)}</td><td>${esc(m.sof)}</td><td>${SOF[m.sofStatus][0]}</td><td>${FIT[m.fit][0]}</td></tr>`).join('')}</tbody></table>` : ''}
+    ${o.audit ? `<h4>Audit trail</h4><table><tbody>${c.history.slice(0, 60).map(h => `<tr><td style="width:15%">${fmt(h.d)}</td><td>${esc(h.t)}</td><td style="width:18%">${esc(h.by)}</td></tr>`).join('')}</tbody></table>` : ''}
+  </div>`;
+}
+function inspectionSheet(list, o) {
+  const s = S.settings;
+  const index = `<div class="sheet"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>Client due diligence files: sample for inspection</h3><div>${esc(o.for || 'Prepared for inspection')} · prepared by ${esc(me())}, ${esc(s.title)}, on ${fmtD(TODAY)}</div></div>
+    <table><thead><tr><th>#</th><th>Client</th><th>ID</th><th>File ref</th><th>Type</th><th>Risk</th><th>Last review</th><th>Next review</th></tr></thead><tbody>
+    ${list.map((c, i) => `<tr><td>${i + 1}</td><td>${esc(c.name)}${c.pep ? ' (PEP)' : ''}</td><td>${c.id}</td><td>${esc(c.file.ref)}</td><td>${TYPES[c.type]}</td><td>${cap(c.risk)}</td><td>${fmt(c.last)}</td><td>${isClosed(c) || c.status === 'onboarding' ? cap(c.status) : fmtD(nextReview(c))}</td></tr>`).join('')}</tbody></table>
+    <p>Each file follows: the cover sheet with document checklist, then the due diligence history${o.notes ? ' and the signed decision notes' : ''}. Original documents are held on the paper files.</p></div>`;
+  return index + list.map(c => `<div class="pb">${sheetHTML(c)}</div><div class="pb">${historySheet(c, o)}</div>${o.notes ? c.decisions.map(x => `<div class="pb">${decisionSheet(c, x)}</div>`).join('') : ''}`).join('');
+}
+function modalInspection() {
+  const all = S.clients.slice().sort((a, b) => a.name.localeCompare(b.name));
+  const body = `<p>Choose the files to include. Each one prints with its cover sheet and due diligence history, after an index page.</p>
+    <div class="row"><button class="btn sm" type="button" id="ip-high">All high risk</button><button class="btn sm" type="button" id="ip-rand">Random 10</button><button class="btn sm" type="button" id="ip-none">Clear</button></div>
+    <div class="reqlist">${all.map((c, i) => `<label class="check" for="ip${i}"><input type="checkbox" id="ip${i}" name="ip" value="${c.id}" data-risk="${c.risk}"><span>${esc(c.name)} <span class="mono">${c.id}</span><span class="why">${cap(c.risk)} risk · ${TYPES[c.type]} · ${cap(c.status)}</span></span></label>`).join('')}</div>
+    <div class="grid2"><label class="field span2" for="ip-for">Prepared for<input id="ip-for" placeholder="e.g. Financial Services Commission on-site inspection"></label></div>
+    <div class="row"><label class="check" for="ip-a"><input type="checkbox" id="ip-a" checked> Audit trail</label><label class="check" for="ip-m"><input type="checkbox" id="ip-m" checked> Matters</label><label class="check" for="ip-n"><input type="checkbox" id="ip-n"> Decision notes</label></div>`;
+  const dlg = modal('Inspection pack', body, [{ label: 'Prepare pack', cls: 'primary', fn: dlg => {
+    const list = $$('input[name=ip]:checked', dlg).map(i => get(i.value));
+    if (!list.length) return fail(dlg, 'Tick at least one client.');
+    const o = { for: $('#ip-for', dlg).value.trim(), audit: $('#ip-a', dlg).checked, matters: $('#ip-m', dlg).checked, notes: $('#ip-n', dlg).checked };
+    later(() => modal(`Inspection pack: ${plural(list.length, 'file')}`, `<p class="note">Each file starts on a new page when printed.</p><div class="scroll" style="display:grid;gap:14px">${inspectionSheet(list, o)}</div>`,
+      [{ label: 'Print', cls: 'primary', hidden: FRAMED, fn: () => { printHTML(inspectionSheet(list, o)); return false; } }], { wide: true, cancel: 'Close' }));
+  } }], { wide: true });
+  const boxes = () => $$('input[name=ip]', dlg);
+  $('#ip-high', dlg).addEventListener('click', () => boxes().forEach(b => { b.checked = b.dataset.risk === 'high'; }));
+  $('#ip-none', dlg).addEventListener('click', () => boxes().forEach(b => { b.checked = false; }));
+  $('#ip-rand', dlg).addEventListener('click', () => { const bs = boxes(); bs.forEach(b => { b.checked = false; }); bs.slice().sort(() => Math.random() - 0.5).slice(0, 10).forEach(b => { b.checked = true; }); });
+}
+
+/* ---------- annual compliance report ---------- */
+let repMode = 'week', repYear = TODAY.getFullYear();
+function annualSheet(y) {
+  const s = S.settings, w = [`${y}-01-01`, `${y}-12-31`], a = weekActivity(w), cur = y === TODAY.getFullYear();
+  const reviews = a.reviews.filter(r => r.kind !== 'onboarding'), dec = t => a.decisions.filter(x => x.type === t).length;
+  const snap = cur ? snapshot() : null, B = onBook();
+  const sars = S.sars.filter(x => inWeek(x.received, w));
+  const staff = activeStaff(), trained = new Set(S.training.records.filter(r => inWeek(r.d, w)).map(r => r.staffId));
+  const matters = S.clients.flatMap(c => c.matters.filter(m => inWeek(m.opened, w)));
+  const destroyed = S.destroyed.filter(x => inWeek(x.destroyed, w)).length;
+  const closed = S.clients.filter(isClosed).map(retention);
+  const notes = (S.annual[y] || {}).notes;
+  const tr = (l, v) => `<tr><td>${l}</td><td style="width:22%">${v}</td></tr>`;
+  return `<div class="sheet">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>MLRO annual report ${y}</h3><div>1 January to 31 December ${y}${cur ? ` (to ${fmtD(TODAY)})` : ''}</div></div><div style="text-align:right">Prepared by ${esc(me())}<br>${esc(s.title)}<br>${fmtD(TODAY)}</div></div>
+    <p>In ${y}, ${plural(reviews.length, 'periodic review')} ${reviews.length === 1 ? 'was' : 'were'} completed, ${plural(dec('accept'), 'new client')} ${dec('accept') === 1 ? 'was' : 'were'} taken on and ${dec('decline')} declined, and ${plural(dec('exit'), 'relationship')} ended.${snap ? ` At ${fmtD(TODAY)}, ${snap.overdue} of ${snap.active} active clients were overdue for review.` : ''}</p>
+    ${snap ? `<h4>Client base at ${fmtD(TODAY)}</h4><table><thead><tr><th>Measure</th><th>Number</th></tr></thead><tbody>
+      ${tr('Active clients', snap.active)}${RISKS.map(r => tr(`&nbsp;&nbsp;${cap(r)} risk`, B.filter(c => c.risk === r).length)).join('')}
+      ${Object.entries(TYPES).map(([k, v]) => tr(`&nbsp;&nbsp;${v}`, B.filter(c => c.type === k).length)).join('')}
+      ${tr('PEPs', snap.peps)}${tr('Services restricted', snap.restricted)}${tr('Being onboarded', snap.onboarding)}${tr('Overdue for review', snap.overdue)}${tr('Documents scanned', snap.scanned + '%')}</tbody></table>` : ''}
+    <h4>Due diligence work</h4><table><tbody>
+      ${tr('Periodic reviews completed', reviews.length)}${RISKS.map(r => tr(`&nbsp;&nbsp;${cap(r)} risk`, reviews.filter(x => x.risk === r).length)).join('')}
+      ${tr('Reviews started', a.n.started)}${tr('Document requests and reminders sent', a.requests + a.reminders)}${tr('Documents received or verified', a.n.received + a.n.verified)}${tr('Documents scanned', a.n.scanned)}${tr('Screenings recorded', a.n.screened)}${tr('Escalations for non-response', a.n.escalated)}</tbody></table>
+    <h4>Client decisions</h4><table><tbody>
+      ${tr('New clients accepted', dec('accept'))}${tr('Prospective clients declined', dec('decline'))}${tr('Relationships exited', dec('exit'))}${tr('Services restricted', dec('restrict'))}${tr('Restrictions lifted', dec('lift'))}${tr('Clients identified as PEPs', dec('pep'))}${tr('PEP status removed', dec('pepoff'))}${tr('Risk ratings raised', dec('raise'))}${tr('Risk ratings lowered', dec('lower'))}${tr('Ratings changed at review', dec('review'))}</tbody></table>
+    ${s.annualSar !== false ? `<h4>Suspicious activity</h4><table><tbody>${tr('Internal reports received by the MLRO', sars.length)}${tr('Reported to the Financial Intelligence Agency', sars.filter(x => x.decision && x.decision.outcome === 'report').length)}${tr('Not reported, reasoning recorded', sars.filter(x => x.decision && x.decision.outcome === 'no').length)}${tr('Awaiting decision', sars.filter(x => !x.decision && !x.closed).length)}</tbody></table>` : ''}
+    <h4>Matters and source of funds</h4><table><tbody>${tr('Matters opened', matters.length)}${tr('Source of funds verified', matters.filter(m => m.sofStatus === 'verified').length)}${tr('Source of funds outstanding or requested', matters.filter(m => m.sofStatus === 'outstanding' || m.sofStatus === 'requested').length)}${tr("Matters that didn't fit the client's profile", matters.filter(m => m.fit === 'no').length)}</tbody></table>
+    <h4>Training</h4><table><tbody>${tr('Staff on the register', staff.length)}${tr(`Staff trained in ${y}`, staff.filter(p => trained.has(p.id)).length)}${tr('Up to date now', staff.filter(p => staffStatus(p).st[1] !== 'crit').length)}${tr('Overdue or never trained now', staff.filter(p => staffStatus(p).st[1] === 'crit').length)}</tbody></table>
+    <h4>Record retention</h4><table><tbody>${tr(`Files destroyed in ${y}`, destroyed)}${tr('Past retention, awaiting destruction', closed.filter(r => r.eligible).length)}${tr('On hold', closed.filter(r => r.hold).length)}</tbody></table>
+    <h4>MLRO commentary</h4><p style="white-space:pre-wrap">${esc(notes || 'None.')}</p>
+    <div class="sig"><div>MLRO (signature)</div><div>Date</div><div>Received by senior management (signature)</div><div>Date</div></div>
+  </div>`;
+}
+function viewAnnual() {
+  const y = repYear, cur = y === TODAY.getFullYear();
+  return `<div class="page-head"><div><h1>Annual report</h1><p class="lede">The MLRO's annual report for senior management: the client base, the year's due diligence work, decisions, suspicious activity, training and record retention.</p></div>
+    <div class="row">${FRAMED ? '' : '<button class="btn primary" data-act="printann">Print report</button>'}</div></div>
+  <section class="card"><div class="body" style="padding-top:18px;display:grid;gap:14px">
+    <div class="row" style="justify-content:space-between">
+      <div class="seg" role="group" aria-label="Report"><button data-act="repmode" data-m="week" aria-pressed="false">Weekly</button><button data-act="repmode" data-m="year" aria-pressed="true">Annual</button></div>
+      <div class="seg" role="group" aria-label="Year"><button data-act="repyear" data-w="-1">‹ ${y - 1}</button><button aria-pressed="true">${y}</button><button data-act="repyear" data-w="1" ${cur ? 'disabled' : ''}>${y + 1} ›</button></div>
+      <label class="check" for="ann-sar"><input type="checkbox" id="ann-sar" ${S.settings.annualSar !== false ? 'checked' : ''}> Include suspicious activity figures</label>
+    </div>
+    <label class="field" for="ann-notes">MLRO commentary<textarea id="ann-notes" style="min-height:110px" placeholder="Assessment of the year, risks seen, changes to policy, resources needed, plans for next year">${esc((S.annual[y] || {}).notes || '')}</textarea></label>
+    <p class="small muted">${cur ? 'Figures run to today and the client base is as it stands now. Print it after the year ends for the final version.' : 'Activity figures come from the audit trail. The client-base table appears only for the current year.'}</p>
+  </div></section>
+  <div class="scroll" id="ann-sheet">${annualSheet(y)}</div>`;
+}
+
+/* ---------- backup reminder ---------- */
+function backupDue() {
+  if (FRAMED) return null;
+  const lb = S.lastBackup, days = lb ? diffDays(parse(lb), TODAY) : null;
+  return !lb ? -1 : days >= S.settings.backupDays ? days : null;
+}
+function backupBanner() {
+  const d = backupDue();
+  if (d === null) return '';
+  return `<div class="banner"><span><strong>Backup due.</strong> ${d < 0 ? 'No backup has been saved from this app yet.' : `The last backup was ${plural(d, 'day')} ago.`} Save one to the encrypted USB drive and keep it in the safe.</span><button class="btn sm primary" data-act="backup">Save backup now</button></div>`;
 }
 
 /* =========================================================
@@ -2327,18 +2883,19 @@ function dataToBlob(u) {
 async function exportBackup() {
   if (vault) {
     // encrypted backup: the vault and scans as stored, unreadable without the password or recovery key
-    save(); await writeChain;
+    S.lastBackup = iso(TODAY); save(); await writeChain;
     const files = {};
     try { for (const [id, rec] of await ATT.all()) files[id] = rec; } catch (e) { /* no scans */ }
     download(`kyc-refresh-desk-backup-${iso(TODAY)}.json`, JSON.stringify({ app: 'kyc-refresh-desk', v: 2, enc: true, exported: new Date().toISOString(), vault, files }), 'application/json');
     log0(`Encrypted backup saved with ${plural(Object.keys(files).length, 'scan')}.`); save();
-    toast(`Encrypted backup saved with ${plural(Object.keys(files).length, 'scan')}`);
+    toast(`Encrypted backup saved with ${plural(Object.keys(files).length, 'scan')}`); render();
     return;
   }
   const files = {};
   try { for (const [id, rec] of await ATT.all()) files[id] = { name: rec.name, type: rec.type, size: rec.size, added: rec.added, data: await blobToData(rec.blob) }; } catch (e) { /* no scans */ }
+  S.lastBackup = iso(TODAY); save();
   download(`kyc-refresh-desk-backup-${iso(TODAY)}.json`, JSON.stringify({ app: 'kyc-refresh-desk', v: 1, exported: new Date().toISOString(), state: S, files }), 'application/json');
-  toast(`Backup saved with ${plural(Object.keys(files).length, 'scan')}`);
+  toast(`Backup saved with ${plural(Object.keys(files).length, 'scan')}`); render();
 }
 const csvCell = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
 function exportCSV() {
@@ -2390,7 +2947,7 @@ function importCSV(text) {
       const id = nextId();
       const c = { id, name: col(r, 'name'), type, risk, country: col(r, 'country', 'jurisdiction') || 'Not recorded', status: 'active', contact: col(r, 'contact', 'contact_person') || col(r, 'name'), email: col(r, 'email'), phone: col(r, 'phone', 'telephone'), address: col(r, 'address'), rm: col(r, 'partner', 'rm', 'responsible_partner'), onboarded: normDate(col(r, 'onboarded', 'onboarding_date')) || '', last: last || iso(addMonths(TODAY, -S.settings.cycles[risk])), note: '',
         ra: { jur: 0, pep: /^y|true|1/i.test(col(r, 'pep')) ? 1 : 0, svc: 0, chan: 0, sow: 0, struct: type === 'individual' ? 0 : 1, media: 0 },
-        docs: {}, parties: [], outreach: [], history: [{ d: iso(TODAY), t: 'Client imported from CSV register.', by: me() }], reviews: [], refresh: null, screening: null, decisions: [],
+        docs: {}, parties: [], outreach: [], history: [{ d: iso(TODAY), t: 'Client imported from CSV register.', by: me() }], reviews: [], refresh: null, screening: null, decisions: [], matters: [],
         pep: /^y|true|1/i.test(col(r, 'pep')) ? newPep() : null,
         file: { ref: col(r, 'file_ref', 'file_reference', 'file') || `${TYPE_CODE[type]}/${id.slice(3)}`, loc: col(r, 'file_location', 'location') || 'Not recorded', out: null } };
       if (c.pep) c.risk = 'high';
@@ -2486,6 +3043,21 @@ const ACT = {
     } }], { cancel: 'Keep it' });
   },
   backup: () => exportBackup(),
+  accept: el => modalAccept(get(el.dataset.id)),
+  sarnew: el => modalSarNew(el.dataset.id ? get(el.dataset.id) : null),
+  sar: el => modalSar(S.sars.find(x => x.id === el.dataset.sar)),
+  matter: el => { const c = get(el.dataset.id); modalMatter(c, el.dataset.m ? c.matters.find(m => m.id === el.dataset.m) : null); },
+  staff: () => modalStaff(),
+  train: el => modalTraining(el.dataset.staff),
+  staffleft: el => { const sp = S.training.staff.find(x => x.id === el.dataset.staff); modal('Left the firm', `<p>Mark ${esc(sp.name)} as having left? Their training records are kept.</p>`, [{ label: 'Mark as left', cls: 'primary', fn: () => { sp.active = false; sp.left = iso(TODAY); commit('Staff member marked as left'); } }]); },
+  printtrain: () => printHTML(trainingSheet()),
+  inspection: () => modalInspection(),
+  destroy: el => modalDestroy(get(el.dataset.id)),
+  hold: el => modalHold(get(el.dataset.id)),
+  ended: el => modalEnded(get(el.dataset.id)),
+  repmode: el => { repMode = el.dataset.m; render(); },
+  repyear: el => { repYear = Math.min(TODAY.getFullYear(), repYear + +el.dataset.w); render(); },
+  printann: () => printHTML(annualSheet(repYear)),
   setup: () => modalSetup(),
   lock: () => lockNow(),
   chpw: () => modalChangePassword(),
@@ -2530,6 +3102,10 @@ document.addEventListener('keydown', e => {
 let notesT;
 document.addEventListener('input', e => {
   if (e.target.id === 'q') { F.q = e.target.value; renderClientRows(); }
+  if (e.target.id === 'ann-notes') {
+    (S.annual[repYear] || (S.annual[repYear] = {})).notes = e.target.value;
+    clearTimeout(notesT); notesT = setTimeout(() => { save(); const sh = $('#ann-sheet'); if (sh) sh.innerHTML = annualSheet(repYear); }, 400);
+  }
   if (e.target.id === 'rep-notes') {
     (S.reports[repWeek] || (S.reports[repWeek] = {})).notes = e.target.value;
     clearTimeout(notesT); notesT = setTimeout(() => { save(); const sh = $('#rep-sheet'); if (sh) sh.innerHTML = reportSheet(repWeek); }, 400);
@@ -2538,6 +3114,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const el = e.target, ds = el.dataset;
   if (ds.filter) { F[ds.filter] = el.value; renderClientRows(); return; }
+  if (el.id === 'ann-sar') { S.settings.annualSar = el.checked; save(); $('#ann-sheet').innerHTML = annualSheet(repYear); return; }
   if (el.id === 'rep-names') { S.settings.reportNames = el.checked; save(); $('#rep-sheet').innerHTML = reportSheet(repWeek); return; }
   if (ds.set) {
     const path = ds.set.split('.');
