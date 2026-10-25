@@ -85,9 +85,23 @@ When a client is exited or declined, the end date is recorded and records are ke
 - **Inspection pack** (Clients page): pick files (all high risk, a random 10, or your own choice) and print an index plus, for each file, the cover sheet, the due diligence history, matters, audit trail and, if wanted, every decision note.
 - **Reports → Annual**: the MLRO's annual report for senior management, covering the client base, reviews, client decisions, suspicious activity totals, matters, training and retention, with your commentary.
 
-## Backup reminder
+## Backups: USB drive and OneDrive or SharePoint
 
-If no backup has been saved for 7 days (adjustable), the Overview and sidebar remind you.
+The app stays offline. It writes encrypted backups into two ordinary folders, and OneDrive uploads the second one by itself whenever the PC is online.
+
+**Set up once (Edge or Chrome):**
+1. Set a password in the app. Cloud backups are only allowed once records are encrypted.
+2. On the encrypted USB drive, make a folder called `KYC Backups`.
+3. In SharePoint, open the document library your firm wants to use and press **Sync** (or **Add shortcut to My files**), so it appears in File Explorer under your firm's name. Make a `KYC Backups` folder inside it.
+4. In the app, go to **Settings → Backups** and choose each folder. Allow the browser to edit files when asked.
+
+**Every day:** press **Back up and lock** in the sidebar when you step away or finish. Each backup writes the encrypted records, any new scans, a copy of the app and restore instructions into a `KYC Refresh Desk backups` folder in each location. The app also backs up before locking itself after being idle, if the folders were already allowed that session. The newest 10 backups are kept, plus one per month for a year.
+
+**To restore** on any computer: open `KYC Refresh Desk.html` from the backup folder in Edge or Chrome, choose **Settings → Restore from a backup folder**, pick the backup, then sign in with the password or recovery key.
+
+**Every 3 months:** test a restore on another computer, or in a Guest window of Edge or Chrome, and record it under **Record a restore test**. The annual report lists backups and restore tests.
+
+The app also asks the browser to protect its storage from being cleared when the disk is nearly full, and Settings shows whether that is in force. If folder backups aren't available (another browser), backups are saved as downloads instead.
 
 ## Moving from paper
 
@@ -116,8 +130,8 @@ If no backup has been saved for 7 days (adjustable), the Overview and sidebar re
 ## Keeping data safe
 
 - Records and scans are stored in the browser on the computer where the app is opened. Use one computer and one browser for it.
-- Use *Save backup* in Settings regularly, and store the backup where your firm keeps compliance records. Clearing browser data deletes everything that hasn't been backed up.
-- Each backup is one **records** file plus **scan** files holding only the scans added since the last backup (in files of about 150 MB). Keep every file. To restore, choose the latest records file together with all the scan files. *Save a full copy of all scans* writes every scan again, for example when starting a new USB drive.
+- Back up daily to the USB drive and the cloud folder (see *Backups* above). Clearing browser data deletes everything that hasn't been backed up.
+- Backups saved as downloads are one **records** file plus **scan** files holding only the scans added since the last download backup. Keep every file, and restore by choosing the records file together with all the scan files.
 
 ## Capacity
 

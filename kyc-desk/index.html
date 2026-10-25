@@ -451,6 +451,8 @@ textarea.letter { width: 100%; min-height: 360px; font: 13px/1.6 var(--f-mono); 
 <script>
 (() => {
 'use strict';
+// the app's own source, captured before anything renders, so every backup can carry a working copy
+const SELF = '<!doctype html>\n' + document.documentElement.outerHTML;
 
 /* =========================================================
    Basics
@@ -576,7 +578,7 @@ const DEFAULT_SETTINGS = {
   screen: { high: 6, medium: 12, low: 12 },
   lead: 90, deadline: 30, chase: [14, 30, 60], expiryWarn: 60, fileOutDays: 14, pepTail: 12,
   assistant: '', lockMins: 10, reportNames: true,
-  backupDays: 7, retentionYears: 5, trainingMonths: 12, annualSar: true,
+  backupDays: 1, retentionYears: 5, trainingMonths: 12, annualSar: true, restoreMonths: 3,
 };
 
 /* =========================================================
@@ -970,7 +972,7 @@ function renderNav() {
     return `<a href="#${k}" ${sel === k ? 'aria-current="page"' : ''}><span>${v.n}</span>${badge}</a>`;
   }).join('');
   $('#firm-name').textContent = S.settings.firm || 'Add your firm name in Settings';
-  $('#side-foot').innerHTML = `<span>Signed in as <strong>${esc(me())}</strong></span><span>${fmtD(TODAY)}</span>${storageOK ? '' : '<span class="pill crit plain">Not saving: browser storage blocked</span>'}${backupDue() !== null ? '<span class="pill warn plain" style="margin-top:8px;justify-self:start">Backup due</span>' : ''}${vault ? '<button class="btn sm" data-act="lock" style="margin-top:8px">Lock</button>' : '<span class="pill warn plain" style="margin-top:8px;justify-self:start">Not password-protected</span><button class="btn sm" data-act="setup" style="margin-top:6px">Set a password</button>'}`;
+  $('#side-foot').innerHTML = `<span>Signed in as <strong>${esc(me())}</strong></span><span>${fmtD(TODAY)}</span>${storageOK ? '' : '<span class="pill crit plain">Not saving: browser storage blocked</span>'}${backupDue() !== null ? '<span class="pill warn plain" style="margin-top:8px;justify-self:start">Backup due</span>' : ''}${vault ? `<button class="btn sm" data-act="lock" style="margin-top:8px">${FS ? 'Back up and lock' : 'Lock'}</button>` : `<span class="pill warn plain" style="margin-top:8px;justify-self:start">Not password-protected</span><button class="btn sm" data-act="setup" style="margin-top:6px">Set a password</button>${FRAMED ? '' : '<button class="btn sm" data-act="backupnow" style="margin-top:6px">Back up now</button>'}`}`;
 }
 function render() {
   if (!S) return;
@@ -979,6 +981,7 @@ function render() {
   const main = $('#main');
   main.innerHTML = view === 'client' ? viewClient(get(current)) : VIEWS[view].r();
   if (view === 'clients') renderClientRows();
+  if (view === 'settings' && FS) paintDestStatus();
 }
 function rerender() {
   // keep keyboard focus on the same control after a re-render
@@ -1016,6 +1019,7 @@ function viewOverview() {
   return `
   ${sampleBanner()}
   ${backupBanner()}
+  ${restoreBanner()}
   <div class="page-head">
     <div><div class="eyebrow">${fmtD(TODAY)}</div><h1>Periodic review overview</h1>
     <p class="lede">What is overdue, what is coming up, and who you are waiting on. Review dates follow each client's risk rating: high every ${s.cycles.high} months, medium every ${s.cycles.medium}, low every ${s.cycles.low}.</p></div>
@@ -1445,6 +1449,7 @@ function viewSettings() {
     <label class="field" for="s-ret">Keep records after a relationship ends, years${num('s-ret', 'retentionYears', s.retentionYears, 1, 30)}</label>
     <label class="field" for="s-trn">AML/CFT refresher training every, months${num('s-trn', 'trainingMonths', s.trainingMonths, 1, 60)}</label>
     <label class="field" for="s-bk">Remind me to back up after, days${num('s-bk', 'backupDays', s.backupDays, 1, 60)}</label>
+    <label class="field" for="s-rt">Test a restore every, months${num('s-rt', 'restoreMonths', s.restoreMonths, 1, 24)}</label>
   </div></section>
   <section class="card"><header><div><h2>Chasing clients</h2><p>Days after the first request</p></div></header><div class="body grid3">
     <label class="field" for="s-c1">First reminder${num('s-c1', 'chase.0', s.chase[0], 1, 180)}</label>
@@ -1452,11 +1457,11 @@ function viewSettings() {
     <label class="field" for="s-c3">Escalate to MLRO${num('s-c3', 'chase.2', s.chase[2], 1, 365)}</label>
     <label class="field" for="s-dl">Response deadline given in letters, days${num('s-dl', 'deadline', s.deadline, 7, 90)}</label>
   </div></section>
+  ${backupCard()}
   <section class="card"><header><div><h2>Your data</h2><p>Where records are kept and how to back them up</p></div></header><div class="body" style="display:grid;gap:14px">
-    <p class="callout info">Records and attached scans are stored in this browser on this computer only${vault ? ', encrypted with your password' : ''}. Nothing is sent anywhere. Clearing browser data deletes them, so save a backup regularly and keep it with your other compliance records. Each backup saves your records in one file, and only the scans added since the last backup in separate files. Keep every file. To restore, choose the latest records file together with all the scan files.${FRAMED ? ' Backups, CSV exports and printing are switched off in this online preview. Open the local copy of the app (kyc-desk/index.html) to use them.' : ''}</p>
+    <p class="callout info">Records and attached scans are stored in this browser on this computer only${vault ? ', encrypted with your password' : ''}. Nothing is sent anywhere. Clearing browser data deletes them, so save a backup regularly and keep it with your other compliance records. Set up backups above.${FRAMED ? ' Backups, CSV exports and printing are switched off in this online preview. Open the local copy of the app (kyc-desk/index.html) to use them.' : ''}</p>
     <div class="row">
-      ${FRAMED ? '' : '<button class="btn primary" data-act="backup">Save backup</button><button class="btn" data-act="backupall">Save a full copy of all scans</button>'}
-      <button class="btn" data-act="restore">Restore from backup</button>
+      ${FRAMED ? '<button class="btn" data-act="restore">Restore from backup files</button>' : ''}
       ${FRAMED ? '' : '<button class="btn" data-act="exportcsv">Export register (CSV)</button>'}
       <button class="btn" data-act="importcsv">Import clients from CSV</button>
     </div>
@@ -2510,7 +2515,8 @@ function modalDestroy(c) {
     <label class="field" for="ds-c">Contractor certificate or reference<input id="ds-c"></label>
     <label class="field" for="ds-w">Witnessed by<input id="ds-w"></label></div>
     <label class="check" for="ds-p"><input type="checkbox" id="ds-p"> The paper file has been destroyed</label>
-    <label class="check" for="ds-x"><input type="checkbox" id="ds-x" checked> Delete the digital record and its scans from this app. A line stays in the destruction log.</label>
+    <label class="check" for="ds-x"><input type="checkbox" id="ds-x" checked> Delete the digital record and its scans from this app and from connected backup folders. A line stays in the destruction log.</label>
+    <p class="note">Older backup files still contain the record until they are rotated out, within 12 months.</p>
     <label class="field" for="ds-k">Type the client ID (${c.id}) to confirm<input id="ds-k" autocomplete="off"></label>`;
   modal('Record destruction', body, [{ label: 'Record destruction', cls: 'danger solid', fn: async dlg => {
     if (!$('#ds-p', dlg).checked) return fail(dlg, 'Destroy the paper file first, then tick the box.');
@@ -2518,7 +2524,9 @@ function modalDestroy(c) {
     const d = $('#ds-d', dlg).value || iso(TODAY), digital = $('#ds-x', dlg).checked;
     S.destroyed.unshift({ id: c.id, name: c.name, type: c.type, fileRef: c.file.ref, ended: r.e, destroyed: d, method: $('#ds-m', dlg).value, cert: $('#ds-c', dlg).value.trim(), witness: $('#ds-w', dlg).value.trim(), by: me(), digital });
     if (digital) {
-      for (const x of Object.values(c.docs)) if (x.att) await ATT.del(x.att).catch(() => {});
+      const atts = Object.values(c.docs).map(x => x.att).filter(Boolean);
+      for (const a of atts) await ATT.del(a).catch(() => {});
+      removeFromDests(atts).catch(() => {});
       S.clients = S.clients.filter(x => x !== c);
     } else { c.destroyedPaper = d; log(c, `Paper file ${c.file.ref} destroyed (${$('#ds-m', dlg).value.toLowerCase()}).`, d); }
     log0(`Client file ${c.id} destroyed after the retention period (${digital ? 'paper and digital' : 'paper only'}).`);
@@ -2595,6 +2603,7 @@ function annualSheet(y) {
     ${s.annualSar !== false ? `<h4>Suspicious activity</h4><table><tbody>${tr('Internal reports received by the MLRO', sars.length)}${tr('Reported to the Financial Intelligence Agency', sars.filter(x => x.decision && x.decision.outcome === 'report').length)}${tr('Not reported, reasoning recorded', sars.filter(x => x.decision && x.decision.outcome === 'no').length)}${tr('Awaiting decision', sars.filter(x => !x.decision && !x.closed).length)}</tbody></table>` : ''}
     <h4>Matters and source of funds</h4><table><tbody>${tr('Matters opened', matters.length)}${tr('Source of funds verified', matters.filter(m => m.sofStatus === 'verified').length)}${tr('Source of funds outstanding or requested', matters.filter(m => m.sofStatus === 'outstanding' || m.sofStatus === 'requested').length)}${tr("Matters that didn't fit the client's profile", matters.filter(m => m.fit === 'no').length)}</tbody></table>
     <h4>Training</h4><table><tbody>${tr('Staff on the register', staff.length)}${tr(`Staff trained in ${y}`, staff.filter(p => trained.has(p.id)).length)}${tr('Up to date now', staff.filter(p => staffStatus(p).st[1] !== 'crit').length)}${tr('Overdue or never trained now', staff.filter(p => staffStatus(p).st[1] === 'crit').length)}</tbody></table>
+    <h4>Backups and restore tests</h4><table><tbody>${tr(`Backups saved in ${y}`, (S.backupLog || []).filter(b => b.ok && inWeek(b.d, w)).length)}${tr('Last backup', S.lastBackup ? fmt(S.lastBackup) : 'None')}${tr(`Restore tests in ${y}`, (S.restoreTests || []).filter(t => inWeek(t.d, w)).length)}${tr('Restore tests passed', (S.restoreTests || []).filter(t => inWeek(t.d, w) && t.result === 'Passed').length)}</tbody></table>
     <h4>Record retention</h4><table><tbody>${tr(`Files destroyed in ${y}`, destroyed)}${tr('Past retention, awaiting destruction', closed.filter(r => r.eligible).length)}${tr('On hold', closed.filter(r => r.hold).length)}</tbody></table>
     <h4>MLRO commentary</h4><p style="white-space:pre-wrap">${esc(notes || 'None.')}</p>
     <div class="sig"><div>MLRO (signature)</div><div>Date</div><div>Received by senior management (signature)</div><div>Date</div></div>
@@ -2616,6 +2625,217 @@ function viewAnnual() {
   <div class="scroll" id="ann-sheet">${annualSheet(y)}</div>`;
 }
 
+
+/* ---------- backups to folders: a USB drive and a OneDrive or SharePoint synced folder ----------
+   The app writes encrypted backups into ordinary folders. OneDrive uploads a synced folder by itself
+   whenever the PC is online; the app never connects to anything. */
+const FS = typeof window.showDirectoryPicker === 'function' && !FRAMED;
+const BK_DIR = 'KYC Refresh Desk backups';
+const DESTS = [
+  { key: 'usb', n: 'USB drive', hint: 'A folder on the encrypted USB drive kept in the safe' },
+  { key: 'cloud', n: 'Cloud folder', hint: 'A folder that OneDrive or SharePoint syncs. Encrypted backups only.' },
+];
+let persisted = null, backingUp = false;
+const destName = k => (S.settings.destNames || {})[k] || '';
+// chosen folders are read from storage once per session, then kept in memory
+const destCache = {};
+async function getDest(k) {
+  if (k in destCache) return destCache[k];
+  try { destCache[k] = (await KV.get('dest-' + k)) || null; } catch (e) { destCache[k] = null; }
+  return destCache[k];
+}
+async function destAccess(h, ask) {
+  try {
+    if ((await h.queryPermission({ mode: 'readwrite' })) === 'granted') return true;
+    return ask && (await h.requestPermission({ mode: 'readwrite' })) === 'granted';
+  } catch (e) { return false; }
+}
+async function chooseDest(key) {
+  if (key === 'cloud' && !vault) { toast('Set a password first. Only encrypted backups go to a cloud folder.'); return; }
+  let h; try { h = await window.showDirectoryPicker({ id: 'kyc-' + key, mode: 'readwrite' }); } catch (e) { return; }
+  await KV.put('dest-' + key, h); destCache[key] = h;
+  (S.settings.destNames || (S.settings.destNames = {}))[key] = h.name;
+  log0(`${DESTS.find(d => d.key === key).n} backup folder set to "${h.name}".`);
+  commit('Backup folder saved');
+}
+async function removeDest(key) {
+  await KV.del('dest-' + key).catch(() => {}); destCache[key] = null;
+  if (S.settings.destNames) delete S.settings.destNames[key];
+  commit('Backup folder removed');
+}
+async function destStatus(key) {
+  const h = await getDest(key); if (!h) return ['Not set', 'neutral'];
+  let perm; try { perm = await h.queryPermission({ mode: 'readwrite' }); } catch (e) { return ['Not connected', 'crit']; }
+  if (perm !== 'granted') return ['Allowed at next backup', 'info'];
+  try { await h.getDirectoryHandle(BK_DIR, { create: true }); return ['Ready', 'ok']; } catch (e) { return ['Not connected', 'crit']; }
+}
+async function paintDestStatus() {
+  for (const d of DESTS) { const el = $('#ds-' + d.key); if (!el) continue; const [t, c] = await destStatus(d.key); el.className = `pill plain ${c}`; el.textContent = t; }
+}
+// the browser writes to a temporary file and swaps it in on close, so an unplugged drive can't leave half a file
+async function writeText(dir, name, text) { const fh = await dir.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(text); await w.close(); }
+// keep the newest 10 records files, plus the newest of each of the last 12 months
+async function pruneRecords(root) {
+  const names = [];
+  for await (const [n, h] of root.entries()) if (h.kind === 'file' && /^records-\d{4}-\d{2}-\d{2}/.test(n)) names.push(n);
+  names.sort().reverse();
+  const keep = new Set(names.slice(0, 10)), months = new Set();
+  for (const n of names) { const m = n.slice(8, 15); if (months.size < 12 && !months.has(m)) { months.add(m); keep.add(n); } }
+  for (const n of names) if (!keep.has(n)) await root.removeEntry(n).catch(() => {});
+}
+async function scanFileText(k, r, exported) {
+  const item = r.enc ? r : { name: r.name, type: r.type, size: r.size, added: r.added, data: await blobToData(r.blob) };
+  return JSON.stringify({ app: 'kyc-refresh-desk', kind: 'scans', v: 1, enc: !!r.enc, exported, files: { [k]: item } });
+}
+const RESTORE_TXT = [
+  'KYC Refresh Desk: how to restore', '',
+  '1. Copy "KYC Refresh Desk.html" from this folder to the computer and open it in Microsoft Edge or Google Chrome.',
+  '2. Go to Settings and choose "Restore from a backup folder". Select the folder that holds this file.',
+  '3. Pick the records file to restore. The newest is selected.',
+  '4. Sign in with the username and password in use when that backup was made, or with the recovery key from the safe.', '',
+  'When a password is set, the records and scans in this folder are encrypted. Without the password or recovery key they cannot be read.', '',
+].join('\r\n');
+async function runBackup(ask = true, quiet = false) {
+  if (backingUp) return [];
+  const list = [];
+  for (const d of DESTS) { const h = await getDest(d.key); if (h) list.push({ d, h }); }
+  if (!FS || !list.length) { if (!quiet) await exportBackup(false); return []; }
+  backingUp = true;
+  try {
+    // ask for folder access first, while the click that started the backup still counts
+    for (const x of list) x.ok = (x.d.key !== 'cloud' || !!vault) && await destAccess(x.h, ask);
+    const now = new Date(), exported = now.toISOString(), stamp = `${iso(now)}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const results = [], prev = S.lastBackup;
+    const ready = list.filter(x => x.ok);
+    if (ready.length) {
+      S.lastBackup = iso(TODAY); save(); await writeChain;
+      const records = JSON.stringify(vault
+        ? { app: 'kyc-refresh-desk', v: 3, enc: true, exported, vault, files: {}, scans: 'separate' }
+        : { app: 'kyc-refresh-desk', v: 3, exported, state: S, files: {}, scans: 'separate' });
+      let keys = []; try { keys = await ATT.keys(); } catch (e) { /* no scans */ }
+      for (const x of ready) {
+        try {
+          const root = await x.h.getDirectoryHandle(BK_DIR, { create: true });
+          await writeText(root, `records-${stamp}.json`, records);
+          const sd = await root.getDirectoryHandle('scans', { create: true });
+          const have = new Set(); for await (const [n] of sd.entries()) have.add(n);
+          let n = 0;
+          for (const k of keys) { if (have.has(k + '.json')) continue; const r = await ATT.get(k); if (!r) continue; await writeText(sd, k + '.json', await scanFileText(k, r, exported)); n++; }
+          await writeText(root, 'KYC Refresh Desk.html', SELF);
+          await writeText(root, 'How to restore.txt', RESTORE_TXT);
+          await pruneRecords(root);
+          results.push({ ok: true, t: `${x.d.n}: saved${n ? `, ${plural(n, 'new scan')}` : ''}` });
+        } catch (e) {
+          results.push({ ok: false, t: `${x.d.n}: failed (${e.name === 'NotFoundError' ? 'drive not connected' : e.name === 'QuotaExceededError' ? 'drive full' : 'could not write'})` });
+        }
+      }
+    }
+    list.filter(x => !x.ok).forEach(x => results.push({ ok: false, t: `${x.d.n}: ${x.d.key === 'cloud' && !vault ? 'skipped, no password set' : 'not connected, or access not allowed'}` }));
+    const ok = results.some(r => r.ok);
+    if (!ok) S.lastBackup = prev;
+    (S.backupLog || (S.backupLog = [])).unshift({ d: iso(TODAY), at: exported, results: results.map(r => r.t), ok });
+    S.backupLog.length = Math.min(S.backupLog.length, 800);
+    save();
+    if (!quiet) { toast(results.map(r => r.t).join(' · ')); render(); }
+    return results;
+  } finally { backingUp = false; }
+}
+async function removeFromDests(ids) {
+  for (const d of DESTS) {
+    const h = await getDest(d.key); if (!h || !(await destAccess(h, false))) continue;
+    try { const sd = await (await h.getDirectoryHandle(BK_DIR)).getDirectoryHandle('scans'); for (const id of ids) await sd.removeEntry(id + '.json').catch(() => {}); } catch (e) { /* not connected */ }
+  }
+}
+async function restoreFromFolder() {
+  let h; try { h = await window.showDirectoryPicker({ id: 'kyc-restore', mode: 'read' }); } catch (e) { return; }
+  let root = h; try { root = await h.getDirectoryHandle(BK_DIR); } catch (e) { /* the backups folder itself was chosen */ }
+  const recs = [];
+  for await (const [n, fh] of root.entries()) if (fh.kind === 'file' && /^records-.*\.json$/.test(n)) recs.push(n);
+  recs.sort().reverse();
+  if (!recs.length) { toast(`No backups found there. Choose the folder named "${BK_DIR}".`); return; }
+  let sd = null; try { sd = await root.getDirectoryHandle('scans'); } catch (e) { /* no scans */ }
+  const label = n => { const m = n.match(/^records-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})/); return m ? `${fmt(m[1])} at ${m[2]}:${m[3]}` : n; };
+  modal('Restore from a backup folder', `<label class="field" for="rf-f">Backup to restore<select id="rf-f">${recs.map((n, i) => `<option value="${esc(n)}">${esc(label(n))}${i === 0 ? ' (newest)' : ''}</option>`).join('')}</select></label><p class="note">${sd ? 'The scans in the folder are restored with it.' : 'This folder has no scans.'}</p>`,
+    [{ label: 'Continue', cls: 'primary', fn: async dlg => {
+      let data; try { data = JSON.parse(await (await (await root.getFileHandle($('#rf-f', dlg).value)).getFile()).text()); } catch (e) { return fail(dlg, 'That backup could not be read.'); }
+      // scans are read one file at a time, so thousands of scans never sit in memory together
+      const loadScans = sd && (async raw => {
+        for await (const [n, fh] of sd.entries()) {
+          if (fh.kind !== 'file' || !n.endsWith('.json')) continue;
+          let d2; try { d2 = JSON.parse(await (await fh.getFile()).text()); } catch (e) { continue; }
+          for (const [id, x] of Object.entries(d2.files || {})) {
+            if (x.enc) { if (raw || vault) await ATT.put(id, x); }
+            else if (raw) await ATT.put(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) });
+            else await putFile(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) });
+          }
+        }
+      });
+      later(() => importBackup(data, [], loadScans));
+    } }]);
+}
+
+/* ---------- restore tests ---------- */
+function restoreDue() {
+  if (FRAMED || !S.lastBackup) return null;
+  const t = (S.restoreTests || [])[0];
+  if (!t) return -1;
+  const due = addMonths(parse(t.d), S.settings.restoreMonths);
+  return due <= TODAY ? diffDays(due, TODAY) : null;
+}
+function restoreBanner() {
+  const d = restoreDue();
+  if (d === null) return '';
+  return `<div class="banner"><span><strong>Restore test due.</strong> ${d < 0 ? 'No restore test has been recorded yet.' : 'The last one was over ' + plural(S.settings.restoreMonths, 'month') + ' ago.'} Restore a backup on another computer to prove it works, then record it.</span><button class="btn sm" data-act="restoretest">Record a restore test</button></div>`;
+}
+function modalRestoreTest() {
+  const steps = ['On another computer, or in a Guest window of Edge or Chrome, opened "KYC Refresh Desk.html" from the backup folder',
+    'Restored the newest backup and signed in with the password',
+    'Opened a sample of clients and checked their documents and scans',
+    'Closed the test copy (a Guest window deletes it when closed)'];
+  const body = `<p>Prove the backups work. Don't test in this browser window: a restore here would replace the live records.</p>
+    <div class="reqlist">${steps.map((t, i) => `<label class="check" for="rt${i}"><input type="checkbox" id="rt${i}" name="rt"><span>${esc(t)}</span></label>`).join('')}</div>
+    <div class="grid2"><label class="field" for="rt-d">Date<input type="date" id="rt-d" value="${iso(TODAY)}"></label>
+    <label class="field" for="rt-w">Backup tested<select id="rt-w">${opts(['USB drive', 'Cloud folder', 'Downloaded backup files'])}</select></label>
+    <label class="field" for="rt-r">Result<select id="rt-r"><option>Passed</option><option>Problems found</option></select></label>
+    <label class="field span2" for="rt-n">Notes<input id="rt-n" placeholder="e.g. All clients and scans restored in 4 minutes"></label></div>`;
+  modal('Record a restore test', body, [{ label: 'Save', cls: 'primary', fn: dlg => {
+    const res = $('#rt-r', dlg).value;
+    if (res === 'Passed' && $$('input[name=rt]:checked', dlg).length < 3) return fail(dlg, 'Tick the first three steps to record a pass.');
+    const t = { d: $('#rt-d', dlg).value || iso(TODAY), where: $('#rt-w', dlg).value, result: res, notes: $('#rt-n', dlg).value.trim(), by: me() };
+    (S.restoreTests || (S.restoreTests = [])).unshift(t);
+    log0(`Restore test from ${t.where.toLowerCase()}: ${res.toLowerCase()}.${t.notes ? ' ' + t.notes : ''}`);
+    commit('Restore test recorded');
+  } }], { wide: true });
+}
+
+/* ---------- protect browser storage from being cleared to free disk space ---------- */
+async function askPersist() {
+  try {
+    if (!navigator.storage || !navigator.storage.persist) return;
+    persisted = await navigator.storage.persisted();
+    if (!persisted) persisted = await navigator.storage.persist();
+  } catch (e) { persisted = null; }
+}
+
+function backupCard() {
+  if (FRAMED) return '';
+  const s = S.settings, log = (S.backupLog || []).slice(0, 6), tests = (S.restoreTests || []).slice(0, 4);
+  return `<section class="card"><header><div><h2>Backups</h2><p>Encrypted copies on a USB drive and in a cloud-synced folder</p></div></header><div class="body" style="display:grid;gap:14px">
+    ${FS ? `<div class="scroll"><table class="t"><thead><tr><th>Location</th><th>Folder</th><th>Status</th><th></th></tr></thead><tbody>
+      ${DESTS.map(d => `<tr><td><b>${d.n}</b><span class="sub" style="font-family:var(--f-body)">${d.hint}</span></td><td class="mono">${esc(destName(d.key)) || '—'}</td><td><span class="pill plain neutral" id="ds-${d.key}">Checking…</span></td>
+        <td class="right"><div class="row" style="justify-content:flex-end"><button class="btn sm" data-act="destset" data-k="${d.key}" ${d.key === 'cloud' && !vault ? 'disabled' : ''}>${destName(d.key) ? 'Change' : 'Choose folder'}</button>${destName(d.key) ? `<button class="btn sm quiet" data-act="destdel" data-k="${d.key}">Remove</button>` : ''}</div></td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="note">Make a folder called "KYC Backups" on the USB drive, and another inside your synced OneDrive or SharePoint folder, then choose them here. Each backup writes the encrypted records, any new scans, a copy of this app and restore instructions. It runs whenever you press <b>Back up and lock</b>, and before the app locks itself when the folders are already allowed.</p>
+      ${vault ? '' : '<p class="callout warn">Set a password before choosing a cloud folder. Only encrypted backups go to the cloud.</p>'}`
+    : '<p class="callout warn">This browser can\'t save backups into folders. Use Microsoft Edge or Google Chrome. Until then, backups are saved as downloads.</p>'}
+    <div class="row"><button class="btn primary" data-act="backupnow">Back up now</button>${FS ? '<button class="btn" data-act="restorefolder">Restore from a backup folder</button>' : ''}<button class="btn" data-act="restoretest">Record a restore test</button></div>
+    ${persisted === true ? '<p class="small muted">Storage is protected: the browser won\'t clear these records to free disk space.</p>' : persisted === false ? '<p class="small">Storage is not protected from being cleared when the disk is nearly full. Keep free disk space and back up daily. <button class="btn sm" data-act="persist">Ask the browser again</button></p>' : ''}
+    ${log.length ? `<h3>Recent backups</h3><ul class="timeline">${log.map(b => `<li><time>${b.d}</time><span>${b.results.map(esc).join(' · ')}</span></li>`).join('')}</ul>` : ''}
+    <h3>Restore tests</h3>${tests.length ? `<ul class="timeline">${tests.map(t => `<li><time>${t.d}</time><span><b>${esc(t.result)}</b> · ${esc(t.where)}${t.notes ? ' · ' + esc(t.notes) : ''} <span class="muted">· ${esc(t.by)}</span></span></li>`).join('')}</ul>` : `<p class="muted small">None recorded. Test a restore every ${s.restoreMonths} months.</p>`}
+    <details><summary class="small">Backups as downloads</summary><div class="row" style="margin-top:10px"><button class="btn" data-act="backup">Save backup as downloads</button><button class="btn" data-act="backupall">Save all scans as downloads</button><button class="btn" data-act="restore">Restore from backup files</button></div></details>
+  </div></section>`;
+}
+
 /* ---------- backup reminder ---------- */
 function backupDue() {
   if (FRAMED) return null;
@@ -2625,7 +2845,7 @@ function backupDue() {
 function backupBanner() {
   const d = backupDue();
   if (d === null) return '';
-  return `<div class="banner"><span><strong>Backup due.</strong> ${d < 0 ? 'No backup has been saved from this app yet.' : `The last backup was ${plural(d, 'day')} ago.`} Save one to the encrypted USB drive and keep it in the safe.</span><button class="btn sm primary" data-act="backup">Save backup now</button></div>`;
+  return `<div class="banner"><span><strong>Backup due.</strong> ${d < 0 ? 'No backup has been saved from this app yet.' : `The last backup was ${plural(d, 'day')} ago.`} Back up to the USB drive and the cloud folder.</span><button class="btn sm primary" data-act="backupnow">Back up now</button></div>`;
 }
 
 /* =========================================================
@@ -2782,10 +3002,15 @@ function showLock(mode = 'login') {
     }
   });
 }
-function lockNow() {
-  if (!vault || !DK) return;
+let locking = false;
+async function lockNow(manual) {
+  if (!vault || !DK || locking) return;
+  locking = true;
+  // back up on the way out; an automatic lock only uses folders already allowed this session
+  if (FS && S) { try { await runBackup(!!manual, true); } catch (e) { /* lock regardless */ } }
   save();
-  writeChain.then(() => { DK = null; S = null; showLock(); });
+  await writeChain;
+  DK = null; S = null; locking = false; showLock();
 }
 let lastActive = Date.now();
 ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { lastActive = Date.now(); }, { passive: true, capture: true }));
@@ -2943,6 +3168,7 @@ async function exportBackup(allScans) {
   todo.forEach(k => { done[k] = day; });
   const msg = `Backup saved: records${n ? ` and ${plural(n, 'scan')} in ${plural(parts, 'file')}` : ', no new scans'}`;
   if (vault) log0(msg + '.');
+  (S.backupLog || (S.backupLog = [])).unshift({ d: day, at: exported, results: [msg.replace('Backup saved: ', 'Downloads: ')], ok: true });
   save(); toast(msg); render();
 }
 const csvCell = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
@@ -3038,14 +3264,15 @@ async function importFiles(list) {
   if (recs.length > 1) { toast('Choose one records file at a time, together with its scan files.'); return; }
   if (recs.length) importBackup(recs[0], scans); else importScans(scans);
 }
-function importBackup(data, scans = []) {
+function importBackup(data, scans = [], loadScans = null) {
   if (!data || data.app !== 'kyc-refresh-desk' || !(data.state || data.enc)) { toast('That file is not a KYC Refresh Desk backup.'); return; }
   if (data.enc) {
-    modal('Restore encrypted backup', `<p>Restore the password-protected backup from ${fmt((data.exported || '').slice(0, 10))} with ${plural(Object.keys(data.files || {}).length + scans.reduce((a, sc) => a + Object.keys(sc.files || {}).length, 0), 'scan')}?</p>${data.scans === 'separate' && !scans.length ? '<p class="callout info">No scan files were chosen. To restore scans too, choose this records file together with all the scan files.</p>' : ''}<p class="callout warn">This replaces every record in this browser, and the password. Afterwards, sign in with the username and password that were in use when the backup was saved, or with that backup's recovery key.</p>`,
+    modal('Restore encrypted backup', `<p>Restore the password-protected backup from ${fmt((data.exported || '').slice(0, 10))} with ${loadScans ? 'the scans in its folder' : plural(Object.keys(data.files || {}).length + scans.reduce((a, sc) => a + Object.keys(sc.files || {}).length, 0), 'scan')}?</p>${data.scans === 'separate' && !scans.length && !loadScans ? '<p class="callout info">No scan files were chosen. To restore scans too, choose this records file together with all the scan files.</p>' : ''}<p class="callout warn">This replaces every record in this browser, and the password. Afterwards, sign in with the username and password that were in use when the backup was saved, or with that backup's recovery key.</p>`,
       [{ label: 'Replace and restore', cls: 'danger solid', fn: async () => {
         try {
           await ATT.clear();
           for (const sc of [data, ...scans]) for (const [id, x] of Object.entries(sc.files || {})) await ATT.put(id, x.enc ? x : { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) });
+          if (loadScans) await loadScans(true);
         } catch (e) { toast('Scans could not be restored in this browser.'); }
         vault = data.vault; writeVault(); dropPlain(); await writeChain;
         DK = null; S = null; later(() => showLock());
@@ -3053,10 +3280,10 @@ function importBackup(data, scans = []) {
     return;
   }
   const n = data.state.clients.length, f = Object.keys(data.files || {}).length + scans.reduce((a, sc) => a + Object.keys(sc.files || {}).length, 0);
-  modal('Restore backup', `<p>Restore ${plural(n, 'client')} and ${plural(f, 'scan')} from ${fmt((data.exported || '').slice(0, 10))}?</p><p class="callout warn">This replaces every record currently in this browser.</p>`,
+  modal('Restore backup', `<p>Restore ${plural(n, 'client')} and ${loadScans ? 'the scans in its folder' : plural(f, 'scan')} from ${fmt((data.exported || '').slice(0, 10))}?</p><p class="callout warn">This replaces every record currently in this browser.</p>`,
     [{ label: 'Replace and restore', cls: 'danger solid', fn: async () => {
       S = migrate(data.state); S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
-      try { await ATT.clear(); for (const [id, x] of Object.entries(data.files || {})) await putFile(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) }); await putScans(scans); } catch (e) { toast('Records restored, but scans could not be saved in this browser.'); }
+      try { await ATT.clear(); for (const [id, x] of Object.entries(data.files || {})) await putFile(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) }); await putScans(scans); if (loadScans) await loadScans(false); } catch (e) { toast('Records restored, but scans could not be saved in this browser.'); }
       commit('Backup restored'); later(() => go('overview'));
     } }]);
 }
@@ -3139,7 +3366,13 @@ const ACT = {
   repyear: el => { repYear = Math.min(TODAY.getFullYear(), repYear + +el.dataset.w); render(); },
   printann: () => printHTML(annualSheet(repYear)),
   setup: () => modalSetup(),
-  lock: () => lockNow(),
+  lock: () => lockNow(true),
+  backupnow: () => runBackup(true),
+  destset: el => chooseDest(el.dataset.k),
+  destdel: el => removeDest(el.dataset.k),
+  restorefolder: () => restoreFromFolder(),
+  restoretest: () => modalRestoreTest(),
+  persist: async () => { await askPersist(); render(); toast(persisted ? 'Storage is now protected' : 'The browser declined. Keep free disk space and back up daily.'); },
   chpw: () => modalChangePassword(),
   newrk: () => modalNewRecovery(),
   workpack: () => modalWorkPack(),
@@ -3240,6 +3473,7 @@ window.addEventListener('hashchange', route);
 
 function start() {
   shell(); save(); route();
+  if (!FRAMED) askPersist().then(() => { if (view === 'settings') render(); });
   if (!vault && !FRAMED) {
     let asked = null;
     try { asked = sessionStorage.getItem('kyc-setup-asked'); sessionStorage.setItem('kyc-setup-asked', '1'); } catch (e) { /* ignore */ }
