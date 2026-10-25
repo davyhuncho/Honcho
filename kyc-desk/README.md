@@ -33,6 +33,23 @@ A single-file app for running periodic KYC reviews (refreshes and remediation) a
 3. Work through the files cabinet by cabinet. For each client, record what is on paper and print the cover sheet for the front of the file.
 4. Scan documents as you handle them. The *Paper files* page tracks the backlog.
 
+## Running fully offline
+
+`index.html` makes no internet connections. It also carries an offline lock (a Content Security Policy), so the browser refuses any attempt by the page to send data anywhere, even if the computer is online.
+
+**On a Mac or PC**
+
+1. Copy `index.html` to the computer, ideally from a USB stick. Put it in a folder that is not synced to iCloud, OneDrive or Dropbox, such as a new folder in your home folder.
+2. Open it in Google Chrome or Microsoft Edge. Bookmark it and always open it the same way: the records belong to that browser and that file location. If you move or rename the file, the app starts empty, and you restore from a backup.
+3. Turn on disk encryption (FileVault on a Mac, BitLocker on Windows) and use a strong login password with a short auto-lock.
+4. Save backups to an encrypted USB drive. On a Mac, avoid Desktop and Documents if *iCloud Drive → Desktop & Documents Folders* is turned on, because those folders upload to iCloud.
+
+**Phones and more than one device**
+
+- Each device keeps its own separate records. Nothing syncs, because nothing is sent over a network. Treat one computer as the system of record.
+- To move records between devices without the cloud, save a backup and transfer it by USB or AirDrop, then *Restore from backup* on the other device. A restore replaces everything on the receiving device.
+- Phone browsers do not reliably run apps opened from local files. Running this on a phone needs it packaged as an installed app.
+
 ## Keeping data safe
 
 - Records and scans are stored in the browser on the computer where the app is opened. Use one computer and one browser for it.
