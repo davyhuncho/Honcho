@@ -116,6 +116,11 @@ If no backup has been saved for 7 days (adjustable), the Overview and sidebar re
 ## Keeping data safe
 
 - Records and scans are stored in the browser on the computer where the app is opened. Use one computer and one browser for it.
-- Use *Save backup file* in Settings regularly, and store the backup where your firm keeps compliance records. Clearing browser data deletes everything that hasn't been backed up.
+- Use *Save backup* in Settings regularly, and store the backup where your firm keeps compliance records. Clearing browser data deletes everything that hasn't been backed up.
+- Each backup is one **records** file plus **scan** files holding only the scans added since the last backup (in files of about 150 MB). Keep every file. To restore, choose the latest records file together with all the scan files. *Save a full copy of all scans* writes every scan again, for example when starting a new USB drive.
+
+## Capacity
+
+Tested with 2,000 clients carrying several years of audit history (13 MB of records). Records and scans are stored in the browser's IndexedDB database, which has no practical size limit; records saved by earlier versions move there automatically on first open. Long lists show 200 rows at a time, and searching filters all clients. Large photos are reduced to 2,200 pixels on the long side when attached, which keeps them legible while saving space. PDFs are kept as they are.
 - The document lists, review cycles and risk weights are starting defaults. Check them against your firm's AML/CFT policy and the current Turks and Caicos AML/PTF Regulations and Code before relying on them.
 - The app ships with 24 fictional sample clients for trying the workflow. Remove them before you enter real data.

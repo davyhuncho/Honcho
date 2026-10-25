@@ -470,8 +470,10 @@ const addMonths = (d, n) => {
   return r;
 };
 const diffDays = (a, b) => Math.round((b - a) / DAY);
-const fmt = s => (s ? parse(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
-const fmtD = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+// one shared formatter and a cache: toLocaleDateString is slow when called thousands of times
+const DATE_FMT = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), dateCache = new Map();
+const fmt = s => { if (!s) return '—'; let v = dateCache.get(s); if (!v) { v = DATE_FMT.format(parse(s)); dateCache.set(s, v); } return v; };
+const fmtD = d => fmt(iso(d));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const plural = (n, w, pl) => `${n} ${n === 1 ? w : pl || w + 's'}`;
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -581,20 +583,31 @@ const DEFAULT_SETTINGS = {
    State
    ========================================================= */
 let storageOK = true;
-function load() {
-  try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; }
-  catch (e) { storageOK = false; return null; }
+// Records live in IndexedDB, which has no practical size limit. localStorage (about 5 MB)
+// is only a fallback for a browser that blocks IndexedDB.
+let idbOK = true;
+const KV = {
+  get: k => ATT.tx('readonly', st => st.get(k), 'state'),
+  put: (k, v) => ATT.tx('readwrite', st => st.put(v, k), 'state'),
+  del: k => ATT.tx('readwrite', st => st.delete(k), 'state'),
+};
+function lsPut(k, v) { try { localStorage.setItem(k === 'vault' ? VKEY : KEY, v); storageOK = true; } catch (e) { storageOK = false; } }
+function store(k, v) {
+  if (!idbOK) { lsPut(k, v); return Promise.resolve(); }
+  return KV.put(k, v).then(() => { storageOK = true; }, () => { idbOK = false; lsPut(k, v); });
 }
 function save() {
+  _tasks = null;
+  if (!S) return;
+  // serialise now so writes land in order; encrypt and store asynchronously
   if (vault) {
-    // encrypted: serialise now so writes land in order, encrypt and store asynchronously
-    if (!DK || !S) return;
+    if (!DK) return;
     const snap = te.encode(JSON.stringify(S));
-    writeChain = writeChain.then(async () => { vault.data = await seal(DK, snap); writeVault(); }).catch(() => { storageOK = false; });
+    writeChain = writeChain.then(async () => { vault.data = await seal(DK, snap); await store('vault', JSON.stringify(vault)); }).catch(() => { storageOK = false; });
     return;
   }
-  try { localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; }
-  catch (e) { storageOK = false; }
+  const snap = JSON.stringify(S);
+  writeChain = writeChain.then(() => store('plain', snap)).catch(() => { storageOK = false; });
 }
 function emptyState(settings) {
   return { v: 1, sample: false, seq: 100, settings: settings || clone(DEFAULT_SETTINGS), clients: [] };
@@ -814,7 +827,9 @@ function seed(settings) {
    Worklist
    ========================================================= */
 const SEV = [['Urgent', 'crit'], ['High', 'warn'], ['Due', 'info'], ['Watch', 'neutral']];
+let _tasks = null;
 function tasks() {
+  if (_tasks) return _tasks;
   const s = S.settings, out = [];
   for (const c of active()) {
     const days = daysToReview(c), r = c.refresh;
@@ -863,7 +878,7 @@ function tasks() {
       if (o >= s.fileOutDays) add(3, 'file', `Paper file out with ${c.file.out.to} for ${o} days`, 'checkin', 'Mark returned');
     }
   }
-  return out.sort((a, b) => a.sev - b.sev || a.c.name.localeCompare(b.c.name));
+  return (_tasks = out.sort((a, b) => a.sev - b.sev || a.c.name.localeCompare(b.c.name)));
 }
 
 /* =========================================================
@@ -913,7 +928,8 @@ const VIEWS = {
   settings: { n: 'Settings', r: () => viewSettings() },
 };
 let view = 'overview', current = null;
-const F = { q: '', risk: '', type: '', bucket: '' };
+const F = { q: '', risk: '', type: '', bucket: '', limit: 200 };
+let filesLimit = 200;
 
 function route() {
   if (!S) return;
@@ -994,7 +1010,7 @@ function viewOverview() {
   let sc = 0, sn = 0; A.forEach(c => { const p = scanProgress(c); sc += p.s; sn += p.n; });
   const dig = sn ? Math.round(sc / sn * 100) : 0;
   const tile = (k, l, sub, cls, act) => `<button class="tile ${cls}" data-act="tile" data-f="${act}"><span class="l">${l}</span><span class="k">${k}</span><span class="s">${sub}</span></button>`;
-  const list = showAllTasks ? T : T.slice(0, 10);
+  const list = showAllTasks ? T.slice(0, 300) : T.slice(0, 10);
   const completed = A.filter(c => diffDays(parse(c.last), TODAY) <= 90).length;
 
   return `
@@ -1126,8 +1142,8 @@ function filteredClients() {
 }
 function renderClientRows() {
   const tb = $('#client-rows'); if (!tb) return;
-  const rows = filteredClients();
-  tb.innerHTML = rows.length ? rows.map(c => {
+  const all = filteredClients(), rows = all.slice(0, F.limit);
+  tb.innerHTML = (rows.length ? rows.map(c => {
     const dp = docProgress(c), sp = scanProgress(c);
     return `<tr class="click" data-act="open" data-id="${c.id}">
       <td><a class="name" href="#client-${c.id}">${esc(c.name)}</a><span class="sub">${c.id}${c.pep ? (isPep(c) ? ' · PEP' : ' · Former PEP') : ''}</span> ${statusChip(c)}</td>
@@ -1138,7 +1154,7 @@ function renderClientRows() {
       <td>${meter(dp.ok, dp.n)}</td>
       <td><span class="mono">${esc(c.file.ref)}</span><span class="sub">${c.file.out ? 'Out: ' + esc(c.file.out.to) : esc(c.file.loc)}</span></td>
       <td>${meter(sp.s, sp.n, 'warn')}</td></tr>`;
-  }).join('') : `<tr><td colspan="9" class="empty">No clients match these filters.</td></tr>`;
+  }).join('') : `<tr><td colspan="9" class="empty">No clients match these filters.</td></tr>`) + (all.length > rows.length ? `<tr><td colspan="9" class="empty">Showing ${rows.length} of ${all.length}. Search or filter to narrow the list, or <button class="btn sm" data-act="showmore">show all ${all.length}</button></td></tr>` : '');
 }
 
 /* =========================================================
@@ -1162,7 +1178,7 @@ function viewPipeline() {
   return `
   ${sampleBanner()}
   <div class="page-head"><div><h1>Refresh pipeline</h1><p class="lede">Each periodic review moves left to right. Open a card to take the next step; a stage only completes when its checks are done.</p></div></div>
-  <div class="board">${cols.map(col => { const items = inCol(col.k); return `<section class="col"><header><h3>${col.n}</h3><span class="n">${items.length}</span></header><p>${col.d}</p>${items.map(card).join('') || '<p class="muted small" style="padding:8px 4px">None</p>'}</section>`; }).join('')}</div>`;
+  <div class="board">${cols.map(col => { const items = inCol(col.k); return `<section class="col"><header><h3>${col.n}</h3><span class="n">${items.length}</span></header><p>${col.d}</p>${items.slice(0, 40).map(card).join('') || '<p class="muted small" style="padding:8px 4px">None</p>'}${items.length > 40 ? `<p class="muted small" style="padding:4px">And ${items.length - 40} more. Filter the Clients page to see them all.</p>` : ''}</section>`; }).join('')}</div>`;
 }
 
 /* =========================================================
@@ -1189,7 +1205,7 @@ function viewOutreach() {
   <section class="card">
     <header><div><h2>Waiting on clients</h2><p>${plural(waiting.length, 'client')}</p></div></header>
     <div class="scroll">${waiting.length ? `<table class="t"><thead><tr><th>Client</th><th>Requested</th><th>Waiting</th><th>Reminders</th><th>Outstanding</th><th>Contact</th><th>Next step</th><th></th></tr></thead><tbody>
-    ${waiting.map(c => { const r = c.refresh; const w = diffDays(parse(r.requested), TODAY); const out = outstanding(c);
+    ${waiting.slice(0, 300).map(c => { const r = c.refresh; const w = diffDays(parse(r.requested), TODAY); const out = outstanding(c);
       return `<tr><td><a class="name" href="#client-${c.id}">${esc(c.name)}</a><span class="sub">${c.id}</span></td><td class="num">${fmt(r.requested)}</td><td class="num mono">${w}d</td><td class="num mono">${r.chases}</td><td>${out.length}</td>
       <td class="small"><span class="mono">${esc(c.email)}</span><br><span class="mono">${esc(c.phone)}</span></td><td>${nextStep(c)}</td>
       <td class="right"><div class="row" style="justify-content:flex-end"><button class="btn sm" data-act="letter" data-id="${c.id}" data-kind="${r.chases ? 'final' : 'reminder'}">Draft letter</button>${r.escalated ? '' : w >= s.chase[2] ? `<button class="btn sm primary" data-act="escalate" data-id="${c.id}">Escalate</button>` : `<button class="btn sm primary" data-act="chase" data-id="${c.id}">Log reminder</button>`}</div></td></tr>`; }).join('')}
@@ -1222,11 +1238,12 @@ function viewFilesBase() {
   <section class="card">
     <header><div><h2>File register</h2><p>Sorted by cabinet</p></div></header>
     <div class="scroll"><table class="t"><thead><tr><th>File ref</th><th>Client</th><th>Location</th><th>Status</th><th>Scanned</th><th></th></tr></thead><tbody>
-    ${[...A].sort((a, b) => a.file.loc.localeCompare(b.file.loc) || a.file.ref.localeCompare(b.file.ref)).map(c => { const p = scanProgress(c); const o = c.file.out;
+    ${[...A].sort((a, b) => a.file.loc.localeCompare(b.file.loc) || a.file.ref.localeCompare(b.file.ref)).slice(0, filesLimit).map(c => { const p = scanProgress(c); const o = c.file.out;
       return `<tr><td class="mono">${esc(c.file.ref)}</td><td><a class="name" href="#client-${c.id}">${esc(c.name)}</a><span class="sub">${c.id}</span></td><td>${esc(c.file.loc)}</td>
       <td>${o ? `<span class="pill warn plain">Out: ${esc(o.to)}</span><span class="sub">since ${fmt(o.since)} · ${esc(o.purpose || '')}</span>` : '<span class="pill ok plain">In cabinet</span>'}</td>
       <td>${meter(p.s, p.n, 'warn')}</td>
       <td class="right"><div class="row" style="justify-content:flex-end"><button class="btn sm" data-act="checklist" data-id="${c.id}">File checklist</button>${o ? `<button class="btn sm" data-act="checkin" data-id="${c.id}">Mark returned</button>` : `<button class="btn sm" data-act="checkout" data-id="${c.id}">Check out</button>`}</div></td></tr>`; }).join('')}
+    ${A.length > filesLimit ? `<tr><td colspan="6" class="empty">Showing ${filesLimit} of ${A.length} files. <button class="btn sm" data-act="showfiles">Show all</button></td></tr>` : ''}
     </tbody></table></div>
   </section>`;
 }
@@ -1436,9 +1453,9 @@ function viewSettings() {
     <label class="field" for="s-dl">Response deadline given in letters, days${num('s-dl', 'deadline', s.deadline, 7, 90)}</label>
   </div></section>
   <section class="card"><header><div><h2>Your data</h2><p>Where records are kept and how to back them up</p></div></header><div class="body" style="display:grid;gap:14px">
-    <p class="callout info">Records and attached scans are stored in this browser on this computer only${vault ? ', encrypted with your password' : ''}. Nothing is sent anywhere. Clearing browser data deletes them, so save a backup regularly and keep it with your other compliance records.${FRAMED ? ' Backups, CSV exports and printing are switched off in this online preview. Open the local copy of the app (kyc-desk/index.html) to use them.' : ''}</p>
+    <p class="callout info">Records and attached scans are stored in this browser on this computer only${vault ? ', encrypted with your password' : ''}. Nothing is sent anywhere. Clearing browser data deletes them, so save a backup regularly and keep it with your other compliance records. Each backup saves your records in one file, and only the scans added since the last backup in separate files. Keep every file. To restore, choose the latest records file together with all the scan files.${FRAMED ? ' Backups, CSV exports and printing are switched off in this online preview. Open the local copy of the app (kyc-desk/index.html) to use them.' : ''}</p>
     <div class="row">
-      ${FRAMED ? '' : '<button class="btn primary" data-act="backup">Save backup file</button>'}
+      ${FRAMED ? '' : '<button class="btn primary" data-act="backup">Save backup</button><button class="btn" data-act="backupall">Save a full copy of all scans</button>'}
       <button class="btn" data-act="restore">Restore from backup</button>
       ${FRAMED ? '' : '<button class="btn" data-act="exportcsv">Export register (CSV)</button>'}
       <button class="btn" data-act="importcsv">Import clients from CSV</button>
@@ -2619,20 +2636,21 @@ const ATT = {
   open() {
     return new Promise((res, rej) => {
       if (this.db) return res(this.db);
-      let r; try { r = indexedDB.open('kyc-refresh-desk-files', 1); } catch (e) { return rej(e); }
-      r.onupgradeneeded = () => r.result.createObjectStore('files');
+      let r; try { r = indexedDB.open('kyc-refresh-desk-files', 2); } catch (e) { return rej(e); }
+      r.onupgradeneeded = () => { const db = r.result; ['files', 'state'].forEach(n => { if (!db.objectStoreNames.contains(n)) db.createObjectStore(n); }); };
       r.onsuccess = () => { this.db = r.result; res(this.db); };
       r.onerror = () => rej(r.error);
     });
   },
-  async tx(mode, fn) {
+  async tx(mode, fn, name = 'files') {
     const db = await this.open();
-    return new Promise((res, rej) => { const t = db.transaction('files', mode); const out = fn(t.objectStore('files')); t.oncomplete = () => res(out && out.result); t.onerror = () => rej(t.error); });
+    return new Promise((res, rej) => { const t = db.transaction(name, mode); const out = fn(t.objectStore(name)); t.oncomplete = () => res(out && out.result); t.onerror = () => rej(t.error); });
   },
   put(id, rec) { return this.tx('readwrite', s => s.put(rec, id)); },
   get(id) { return this.tx('readonly', s => s.get(id)); },
   del(id) { return this.tx('readwrite', s => s.delete(id)); },
   clear() { return this.tx('readwrite', s => s.clear()); },
+  keys() { return this.tx('readonly', s => s.getAllKeys()); },
   async all() {
     const keys = await this.tx('readonly', s => s.getAllKeys());
     const out = [];
@@ -2653,8 +2671,8 @@ const te = new TextEncoder(), td = new TextDecoder();
 const rnd = n => crypto.getRandomValues(new Uint8Array(n));
 function b64(buf) { const a = new Uint8Array(buf); let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); }
 function unb64(s) { const b = atob(s), a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
-function readVault() { try { const r = localStorage.getItem(VKEY); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
-function writeVault() { try { localStorage.setItem(VKEY, JSON.stringify(vault)); storageOK = true; } catch (e) { storageOK = false; } }
+function writeVault() { writeChain = writeChain.then(() => store('vault', JSON.stringify(vault))).catch(() => { storageOK = false; }); return writeChain; }
+function dropPlain() { writeChain = writeChain.then(() => (idbOK ? KV.del('plain') : null)).catch(() => {}); try { localStorage.removeItem(KEY); } catch (e) { /* blocked */ } }
 async function kek(secret, salt, iter) {
   const base = await crypto.subtle.importKey('raw', te.encode(secret), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
@@ -2699,7 +2717,7 @@ async function enableVault(name, user, pw) {
   S.settings.user = name;
   log0(`Password protection turned on. Records and scans are now encrypted on this computer.`);
   save(); await writeChain;
-  try { localStorage.removeItem(KEY); } catch (e) { /* already gone */ }
+  dropPlain(); await writeChain;
   return rk;
 }
 function log0(t) { (S.syslog || (S.syslog = [])).unshift({ d: iso(TODAY), t, by: me() }); }
@@ -2837,13 +2855,30 @@ function modalNewRecovery() {
 }
 
 let pendingAttach = null;
+// Phone photos and flatbed scans can be several MB each. Shrinking photos to 2200 px on the
+// long side keeps them legible (about 200 dpi on an A4 page) at a fraction of the size.
+async function shrinkImage(file) {
+  if (!/^image\/(jpeg|png|webp|bmp)$/.test(file.type) || file.size < 700 * 1024) return file;
+  try {
+    const url = URL.createObjectURL(file), img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+    const k = Math.min(1, 2200 / Math.max(img.naturalWidth, img.naturalHeight));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(img.naturalWidth * k); cv.height = Math.round(img.naturalHeight * k);
+    const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.drawImage(img, 0, 0, cv.width, cv.height);
+    URL.revokeObjectURL(url);
+    const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.82));
+    return blob && blob.size < file.size ? new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : file;
+  } catch (e) { return file; }
+}
 $('#filepick').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = '';
   if (!f || !pendingAttach) return;
   const { c, k } = pendingAttach; pendingAttach = null;
   const id = `${c.id}-${k}-${Date.now()}`;
   try {
-    await putFile(id, { name: f.name, type: f.type, size: f.size, added: iso(TODAY), blob: f });
+    const g = await shrinkImage(f);
+    await putFile(id, { name: g.name, type: g.type, size: g.size, added: iso(TODAY), blob: g });
     const d = doc(c, k);
     if (d.att) ATT.del(d.att).catch(() => {});
     d.att = id; d.scan = true;
@@ -2880,22 +2915,35 @@ function dataToBlob(u) {
   for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
   return new Blob([arr], { type });
 }
-async function exportBackup() {
-  if (vault) {
-    // encrypted backup: the vault and scans as stored, unreadable without the password or recovery key
-    S.lastBackup = iso(TODAY); save(); await writeChain;
-    const files = {};
-    try { for (const [id, rec] of await ATT.all()) files[id] = rec; } catch (e) { /* no scans */ }
-    download(`kyc-refresh-desk-backup-${iso(TODAY)}.json`, JSON.stringify({ app: 'kyc-refresh-desk', v: 2, enc: true, exported: new Date().toISOString(), vault, files }), 'application/json');
-    log0(`Encrypted backup saved with ${plural(Object.keys(files).length, 'scan')}.`); save();
-    toast(`Encrypted backup saved with ${plural(Object.keys(files).length, 'scan')}`); render();
-    return;
+// A backup is one records file plus scan files. Each backup saves only the scans added since
+// the last one, in files of about 150 MB, so it stays quick with thousands of clients.
+async function exportBackup(allScans) {
+  const exported = new Date().toISOString(), day = iso(TODAY);
+  S.lastBackup = day; save(); await writeChain;
+  download(`kyc-refresh-desk-records-${day}.json`, JSON.stringify(vault
+    ? { app: 'kyc-refresh-desk', v: 3, enc: true, exported, vault, files: {}, scans: 'separate' }
+    : { app: 'kyc-refresh-desk', v: 3, exported, state: S, files: {}, scans: 'separate' }), 'application/json');
+  const done = S.scansBackedUp || (S.scansBackedUp = {});
+  let keys = []; try { keys = await ATT.keys(); } catch (e) { /* no scans */ }
+  const todo = keys.filter(k => allScans || !done[k]);
+  let part = {}, size = 0, parts = 0, n = 0;
+  const flush = () => {
+    if (!size) return;
+    parts++;
+    download(`kyc-refresh-desk-scans-${day}-${parts}.json`, JSON.stringify({ app: 'kyc-refresh-desk', kind: 'scans', v: 1, enc: !!vault, exported, files: part }), 'application/json');
+    part = {}; size = 0;
+  };
+  for (const k of todo) {
+    const r = await ATT.get(k); if (!r) continue;
+    const item = r.enc ? r : { name: r.name, type: r.type, size: r.size, added: r.added, data: await blobToData(r.blob) };
+    part[k] = item; size += r.enc ? r.b.ct.length : item.data.length; n++;
+    if (size > 150e6) flush();
   }
-  const files = {};
-  try { for (const [id, rec] of await ATT.all()) files[id] = { name: rec.name, type: rec.type, size: rec.size, added: rec.added, data: await blobToData(rec.blob) }; } catch (e) { /* no scans */ }
-  S.lastBackup = iso(TODAY); save();
-  download(`kyc-refresh-desk-backup-${iso(TODAY)}.json`, JSON.stringify({ app: 'kyc-refresh-desk', v: 1, exported: new Date().toISOString(), state: S, files }), 'application/json');
-  toast(`Backup saved with ${plural(Object.keys(files).length, 'scan')}`); render();
+  flush();
+  todo.forEach(k => { done[k] = day; });
+  const msg = `Backup saved: records${n ? ` and ${plural(n, 'scan')} in ${plural(parts, 'file')}` : ', no new scans'}`;
+  if (vault) log0(msg + '.');
+  save(); toast(msg); render();
 }
 const csvCell = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
 function exportCSV() {
@@ -2958,34 +3006,64 @@ function importCSV(text) {
     later(() => go('clients'));
   } }]);
 }
-function importBackup(text) {
-  let data; try { data = JSON.parse(text); } catch (e) { data = null; }
+async function putScans(scans) {
+  let added = 0, skipped = 0;
+  const done = S.scansBackedUp || (S.scansBackedUp = {});
+  for (const sc of scans) for (const [id, x] of Object.entries(sc.files || {})) {
+    try {
+      if (x.enc) { if (!vault) { skipped++; continue; } await ATT.put(id, x); }
+      else await putFile(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) });
+      done[id] = done[id] || iso(TODAY); added++;
+    } catch (e) { skipped++; }
+  }
+  return { added, skipped };
+}
+function importScans(scans) {
+  const n = scans.reduce((a, sc) => a + Object.keys(sc.files || {}).length, 0);
+  modal('Restore scans', `<p>Add ${plural(n, 'scan')} from ${plural(scans.length, 'file')}? Your records stay as they are.</p>`, [{ label: 'Restore scans', cls: 'primary', fn: async () => {
+    const r = await putScans(scans);
+    commit(`${plural(r.added, 'scan')} restored`);
+    if (r.skipped) later(() => toast(`${plural(r.skipped, 'scan')} could not be restored. Encrypted scans need the matching password-protected records restored first.`));
+  } }]);
+}
+async function importFiles(list) {
+  if (importMode === 'csv') { importCSV(await list[0].text()); return; }
+  const items = [];
+  for (const f of list) {
+    let d = null; try { d = JSON.parse(await f.text()); } catch (e) { /* not JSON */ }
+    if (!d || d.app !== 'kyc-refresh-desk') { toast(`${f.name} is not a KYC Refresh Desk backup.`); return; }
+    items.push(d);
+  }
+  const recs = items.filter(d => d.kind !== 'scans'), scans = items.filter(d => d.kind === 'scans');
+  if (recs.length > 1) { toast('Choose one records file at a time, together with its scan files.'); return; }
+  if (recs.length) importBackup(recs[0], scans); else importScans(scans);
+}
+function importBackup(data, scans = []) {
   if (!data || data.app !== 'kyc-refresh-desk' || !(data.state || data.enc)) { toast('That file is not a KYC Refresh Desk backup.'); return; }
   if (data.enc) {
-    modal('Restore encrypted backup', `<p>Restore the password-protected backup from ${fmt((data.exported || '').slice(0, 10))} with ${plural(Object.keys(data.files || {}).length, 'scan')}?</p><p class="callout warn">This replaces every record in this browser, and the password. Afterwards, sign in with the username and password that were in use when the backup was saved, or with that backup's recovery key.</p>`,
+    modal('Restore encrypted backup', `<p>Restore the password-protected backup from ${fmt((data.exported || '').slice(0, 10))} with ${plural(Object.keys(data.files || {}).length + scans.reduce((a, sc) => a + Object.keys(sc.files || {}).length, 0), 'scan')}?</p>${data.scans === 'separate' && !scans.length ? '<p class="callout info">No scan files were chosen. To restore scans too, choose this records file together with all the scan files.</p>' : ''}<p class="callout warn">This replaces every record in this browser, and the password. Afterwards, sign in with the username and password that were in use when the backup was saved, or with that backup's recovery key.</p>`,
       [{ label: 'Replace and restore', cls: 'danger solid', fn: async () => {
-        try { await ATT.clear(); for (const [id, x] of Object.entries(data.files || {})) await ATT.put(id, x); } catch (e) { toast('Scans could not be restored in this browser.'); }
-        vault = data.vault; writeVault();
-        try { localStorage.removeItem(KEY); } catch (e) { /* none */ }
+        try {
+          await ATT.clear();
+          for (const sc of [data, ...scans]) for (const [id, x] of Object.entries(sc.files || {})) await ATT.put(id, x.enc ? x : { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) });
+        } catch (e) { toast('Scans could not be restored in this browser.'); }
+        vault = data.vault; writeVault(); dropPlain(); await writeChain;
         DK = null; S = null; later(() => showLock());
       } }]);
     return;
   }
-  const n = data.state.clients.length, f = Object.keys(data.files || {}).length;
+  const n = data.state.clients.length, f = Object.keys(data.files || {}).length + scans.reduce((a, sc) => a + Object.keys(sc.files || {}).length, 0);
   modal('Restore backup', `<p>Restore ${plural(n, 'client')} and ${plural(f, 'scan')} from ${fmt((data.exported || '').slice(0, 10))}?</p><p class="callout warn">This replaces every record currently in this browser.</p>`,
     [{ label: 'Replace and restore', cls: 'danger solid', fn: async () => {
       S = migrate(data.state); S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
-      try { await ATT.clear(); for (const [id, x] of Object.entries(data.files || {})) await putFile(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) }); } catch (e) { toast('Records restored, but scans could not be saved in this browser.'); }
+      try { await ATT.clear(); for (const [id, x] of Object.entries(data.files || {})) await putFile(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) }); await putScans(scans); } catch (e) { toast('Records restored, but scans could not be saved in this browser.'); }
       commit('Backup restored'); later(() => go('overview'));
     } }]);
 }
 let importMode = 'csv';
 $('#importpick').addEventListener('change', e => {
-  const f = e.target.files[0]; e.target.value = '';
-  if (!f) return;
-  const r = new FileReader();
-  r.onload = () => (importMode === 'json' ? importBackup(r.result) : importCSV(r.result));
-  r.readAsText(f);
+  const list = [...e.target.files]; e.target.value = '';
+  if (list.length) importFiles(list);
 });
 
 /* =========================================================
@@ -3009,13 +3087,15 @@ const ACT = {
   attach: el => { pendingAttach = { c: get(el.dataset.id), k: el.dataset.k }; $('#filepick').click(); },
   viewatt: el => viewAttachment(get(el.dataset.id), el.dataset.k),
   alltasks: () => { showAllTasks = !showAllTasks; render(); },
-  bucket: el => { F.bucket = el.dataset.b; render(); },
+  bucket: el => { F.bucket = el.dataset.b; F.limit = 200; render(); },
+  showmore: () => { F.limit = Infinity; renderClientRows(); },
+  showfiles: () => { filesLimit = Infinity; render(); },
   tile: el => {
     const f = el.dataset.f;
     if (f === 'files') return go('files');
     if (f === 'chase') return go('outreach');
     if (f === 'inprog') return go('pipeline');
-    Object.assign(F, { q: '', risk: '', type: '', bucket: f });
+    Object.assign(F, { q: '', risk: '', type: '', bucket: f, limit: 200 });
     go('clients');
   },
   decide: el => modalDecision(get(el.dataset.id), el.dataset.type, el.dataset.risk),
@@ -3068,14 +3148,15 @@ const ACT = {
   repweek: el => { const n = +el.dataset.w, cur = iso(mondayOf(TODAY)); repWeek = n === 0 ? cur : iso(addDays(parse(repWeek), 7 * n)); if (repWeek > cur) repWeek = cur; render(); },
   repgo: el => { repWeek = el.dataset.w; render(); },
   repsave: () => { S.reports[repWeek] = Object.assign(S.reports[repWeek] || {}, { snap: snapshot(), saved: iso(TODAY), by: me() }); commit('End-of-week position recorded'); },
-  restore: () => { importMode = 'json'; $('#importpick').accept = '.json,application/json'; $('#importpick').click(); },
+  restore: () => { importMode = 'json'; $('#importpick').multiple = true; $('#importpick').accept = '.json,application/json'; $('#importpick').click(); },
+  backupall: () => exportBackup(true),
   exportcsv: () => exportCSV(),
   importcsv: () => {
     modal('Import clients from CSV', `<p>Bring in your existing client register from a spreadsheet. Save it as CSV with column names in the first row. Only <b>name</b> is required; these are also read:</p>
       <textarea class="letter" style="min-height:110px" readonly id="csv-tpl">${esc(CSV_TEMPLATE)}</textarea>
       <p class="note">Type can be individual, company, trust or partnership. Risk can be high, medium or low. Dates as YYYY-MM-DD or DD/MM/YYYY.</p>`,
       [{ label: 'Copy template', fn: d => { copyText($('#csv-tpl', d)); return false; } },
-       { label: 'Choose CSV file', cls: 'primary', fn: () => { importMode = 'csv'; $('#importpick').accept = '.csv,text/csv'; $('#importpick').click(); } }]);
+       { label: 'Choose CSV file', cls: 'primary', fn: () => { importMode = 'csv'; $('#importpick').multiple = false; $('#importpick').accept = '.csv,text/csv'; $('#importpick').click(); } }]);
   },
   loadsample: () => modal('Load sample clients', '<p>Replace every record in this browser with the fictional sample clients? Your settings are kept.</p>', [{ label: 'Load sample clients', cls: 'danger solid', fn: async () => {
     const sys = S.syslog; S = migrate(seed(S.settings)); S.syslog = sys; try { await ATT.clear(); } catch (e) { /* none */ } commit('Sample clients loaded'); later(() => go('overview'));
@@ -3099,9 +3180,9 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !$('#modal').hidden && $('#modal [data-close]')) closeModal();
   if (e.key === 'Enter' && e.target.matches('.kcard')) e.target.click();
 });
-let notesT;
+let notesT, qT;
 document.addEventListener('input', e => {
-  if (e.target.id === 'q') { F.q = e.target.value; renderClientRows(); }
+  if (e.target.id === 'q') { F.q = e.target.value; F.limit = 200; clearTimeout(qT); qT = setTimeout(renderClientRows, 150); }
   if (e.target.id === 'ann-notes') {
     (S.annual[repYear] || (S.annual[repYear] = {})).notes = e.target.value;
     clearTimeout(notesT); notesT = setTimeout(() => { save(); const sh = $('#ann-sheet'); if (sh) sh.innerHTML = annualSheet(repYear); }, 400);
@@ -3113,7 +3194,7 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const el = e.target, ds = el.dataset;
-  if (ds.filter) { F[ds.filter] = el.value; renderClientRows(); return; }
+  if (ds.filter) { F[ds.filter] = el.value; F.limit = 200; renderClientRows(); return; }
   if (el.id === 'ann-sar') { S.settings.annualSar = el.checked; save(); $('#ann-sheet').innerHTML = annualSheet(repYear); return; }
   if (el.id === 'rep-names') { S.settings.reportNames = el.checked; save(); $('#rep-sheet').innerHTML = reportSheet(repWeek); return; }
   if (ds.set) {
@@ -3165,10 +3246,18 @@ function start() {
     if (!asked) later(modalSetup);
   }
 }
-function boot() {
-  vault = readVault();
+async function boot() {
+  let v = null, plain = null, lv = null, lp = null;
+  try { v = await KV.get('vault'); plain = await KV.get('plain'); } catch (e) { idbOK = false; }
+  try { lv = localStorage.getItem(VKEY); lp = localStorage.getItem(KEY); } catch (e) { /* blocked */ }
+  if (!v && !plain && (lv || lp)) {
+    // records saved by an earlier version are in localStorage: move them to IndexedDB once
+    if (lv) v = lv; else plain = lp;
+    if (idbOK) { try { await KV.put(lv ? 'vault' : 'plain', lv || lp); localStorage.removeItem(VKEY); localStorage.removeItem(KEY); } catch (e) { idbOK = false; } }
+  }
+  vault = v ? JSON.parse(v) : null;
   if (vault) { showLock(); return; }
-  S = migrate(load() || seed());
+  S = migrate(plain ? JSON.parse(plain) : seed());
   S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
   start();
 }
