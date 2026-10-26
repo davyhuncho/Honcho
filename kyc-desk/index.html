@@ -141,6 +141,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .mark { width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(140deg, #64d2ff, #007aff 55%, #5e5ce6); color: #fff; display: grid; place-items: center; font: 700 .7rem var(--f-display); letter-spacing: .03em; flex: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 6px 14px -4px rgba(0, 122, 255, .55); }
 .app-name { font: 700 1rem/1.15 var(--f-display); letter-spacing: -.015em; }
 .firm { font-size: .78rem; color: var(--muted); line-height: 1.3; }
+/* the firm's logo sits on a white tile so it reads in light and dark mode */
+.logo-chip { background: #fff; border-radius: 14px; padding: 10px 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(15, 23, 42, .08), 0 0 0 1px rgba(15, 23, 42, .05); }
+.logo-chip img { display: block; max-width: 100%; max-height: 54px; object-fit: contain; }
+.side .logo-chip { margin: -8px 8px 0; }
+.lockcard .logo-chip { justify-self: center; max-width: 280px; padding: 12px 16px; }
+.lockcard .logo-chip img { max-height: 72px; }
+.logo-set { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.logo-set .logo-chip img { max-height: 44px; max-width: 220px; }
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav a { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 12px; color: var(--ink); text-decoration: none; font-weight: 500; transition: background .15s; }
 .nav a:hover { background: var(--fill); }
@@ -403,7 +411,7 @@ textarea.letter { width: 100%; min-height: 360px; font: 13px/1.6 var(--f-mono); 
   .side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 20; height: auto; flex-direction: row; align-items: center; gap: 12px; padding: 8px; margin: 8px max(10px, env(safe-area-inset-right, 0px)) 0 max(10px, env(safe-area-inset-left, 0px)); border-radius: 20px; overflow-x: auto; overflow-y: hidden; }
   body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
   .brand { padding: 0; }
-  .brand .firm, .brand .app-name, .side-foot { display: none; }
+  .brand .firm, .brand .app-name, .side-foot, .side .logo-chip { display: none; }
   .mark { width: 34px; height: 34px; border-radius: 10px; }
   .nav { flex-direction: row; }
   .nav a { white-space: nowrap; padding: 7px 12px; }
@@ -956,6 +964,7 @@ function shell() {
   $('#app').innerHTML = `
     <aside class="side">
       <div class="brand"><div class="mark" aria-hidden="true">KYC</div><div><div class="app-name">KYC Refresh Desk</div><div class="firm" id="firm-name"></div></div></div>
+      <div class="logo-chip" id="side-logo" hidden></div>
       <nav class="nav" id="nav" aria-label="Sections"></nav>
       <div class="side-foot" id="side-foot"></div>
     </aside>
@@ -980,6 +989,10 @@ function renderNav() {
     return `<a href="#${k}" ${sel === k ? 'aria-current="page"' : ''}><span>${v.n}</span>${badge}</a>`;
   }).join('');
   $('#firm-name').textContent = S.settings.firm || 'Add your firm name in Settings';
+  const lg = S.settings.logo || '', sl = $('#side-logo');
+  if ((sl.firstChild ? sl.firstChild.getAttribute('src') : '') !== lg) sl.innerHTML = lg ? `<img src="${lg}" alt="${esc(S.settings.firm || 'Firm logo')}">` : '';
+  sl.hidden = !lg;
+  cacheLogo(lg);
   $('#side-foot').innerHTML = `${themeSeg()}<span>Signed in as <strong>${esc(me())}</strong></span><span>${fmtD(TODAY)}</span>${storageOK ? '' : '<span class="pill crit plain">Not saving: browser storage blocked</span>'}${backupDue() !== null ? '<span class="pill warn plain" style="margin-top:8px;justify-self:start">Backup due</span>' : ''}${vault ? `<button class="btn sm" data-act="lock" style="margin-top:8px">${FS ? 'Back up and lock' : 'Lock'}</button>` : `<span class="pill warn plain" style="margin-top:8px;justify-self:start">Not password-protected</span><button class="btn sm" data-act="setup" style="margin-top:6px">Set a password</button>${FRAMED ? '' : '<button class="btn sm" data-act="backupnow" style="margin-top:6px">Back up now</button>'}`}`;
 }
 function render() {
@@ -1427,6 +1440,9 @@ function viewSettings() {
   ${FRAMED ? '' : `<section class="card"><header><div><h2>Appearance</h2><p>Auto follows your computer's light or dark setting. The choice is remembered on this computer.</p></div>${themeSeg()}</header></section>`}
   <section class="card"><header><h2>Firm and people</h2></header><div class="body grid2">
     <label class="field span2" for="s-firm">Firm name (used on letters)<input id="s-firm" data-set="firm" value="${esc(s.firm)}" placeholder="Your firm's name"></label>
+    <div class="field span2"><span>Firm logo: shown in the sidebar, on the sign-in screen, letters, printed reports and the Excel overview</span>
+      <div class="logo-set">${s.logo ? `<div class="logo-chip"><img src="${s.logo}" alt="Current firm logo"></div>` : '<span class="muted small" style="font-weight:400">No logo added.</span>'}<button class="btn sm" data-act="logo">${s.logo ? 'Replace logo' : 'Add logo'}</button>${s.logo ? '<button class="btn sm" data-act="logooff">Remove</button>' : ''}</div>
+      <span class="small" style="font-weight:400">Use the firm's own PNG or JPEG, ideally with a transparent or white background. It is kept with the records on this computer.</span></div>
     <label class="field" for="s-user">Your name (letters and audit trail)<input id="s-user" data-set="user" value="${esc(s.user)}"></label>
     <label class="field" for="s-title">Your title<input id="s-title" data-set="title" value="${esc(s.title)}"></label>
     <label class="field" for="s-mlro">MLRO name (leave blank if it's you)<input id="s-mlro" data-set="mlro" value="${esc(s.mlro)}" placeholder="${esc(me())}"></label>
@@ -1781,7 +1797,7 @@ function decisionSheet(c, dec) {
   const p = dec.pep, isPepType = dec.type === 'pep' || dec.type === 'pepupd';
   const row = (k, v) => (v ? `<tr><th style="width:30%">${k}</th><td>${v}</td></tr>` : '');
   return `<div class="sheet">
-    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(S.settings.firm || 'Client due diligence file')}</div><h3>Risk status decision</h3><div>${esc(c.name)}</div></div><div style="text-align:right;font-family:var(--f-mono)"><b style="font-size:15px">${esc(c.file.ref)}</b><br>${c.id}</div></div>
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div>${firmHead(S.settings.firm || 'Client due diligence file')}<h3>Risk status decision</h3><div>${esc(c.name)}</div></div><div style="text-align:right;font-family:var(--f-mono)"><b style="font-size:15px">${esc(c.file.ref)}</b><br>${c.id}</div></div>
     <table><tbody>
       ${row('Decision', esc(DECISIONS[dec.type].done))}
       ${row('Change', dec.from ? `${esc(dec.from)} → ${esc(dec.to)}` : '')}
@@ -1876,6 +1892,29 @@ function modalClient(c) {
   if (isNew) $('#cf-kind', dlgC).addEventListener('change', e => { ['#cf-o-w', '#cf-l-w', '#cf-st-w'].forEach(q => { $(q, dlgC).hidden = e.target.value === 'new'; }); });
 }
 
+/* ---------- firm logo ---------- */
+const LOGO_KEY = 'kyc-refresh-desk.logo';
+const logoImg = (h = 48, css = 'margin-bottom:8px') => (S && S.settings.logo ? `<img src="${S.settings.logo}" alt="${esc(S.settings.firm || 'Firm logo')}" style="display:block;max-height:${h}px;max-width:260px;${css}">` : '');
+const firmHead = t => `${logoImg()}<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(t)}</div>`;
+// a copy outside the encrypted records, so the sign-in screen can show it; a logo is not confidential
+function cacheLogo(v) { try { if ((localStorage.getItem(LOGO_KEY) || '') !== v) v ? localStorage.setItem(LOGO_KEY, v) : localStorage.removeItem(LOGO_KEY); } catch (e) { /* storage blocked: sign-in shows the plain mark */ } }
+function lockLogo() { try { return localStorage.getItem(LOGO_KEY) || ''; } catch (e) { return ''; } }
+// redraw the chosen image at a sensible size: PNG keeps transparency, JPEG if that comes out too large
+async function logoFromFile(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+    const w = img.naturalWidth || 600, h = img.naturalHeight || 200, k = 800 / Math.max(w, h);
+    const cv = document.createElement('canvas'), z = /svg/.test(file.type) ? k : Math.min(1, k);
+    cv.width = Math.max(1, Math.round(w * z)); cv.height = Math.max(1, Math.round(h * z));
+    const g = cv.getContext('2d'); g.drawImage(img, 0, 0, cv.width, cv.height);
+    let data = cv.toDataURL('image/png');
+    if (data.length > 700 * 1024) { g.globalCompositeOperation = 'destination-over'; g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); data = cv.toDataURL('image/jpeg', 0.9); }
+    return { logo: data, logoW: cv.width, logoH: cv.height };
+  } catch (e) { return null; } finally { URL.revokeObjectURL(url); }
+}
+
 /* ---------- letters ---------- */
 function letterText(c, kind) {
   const s = S.settings, firm = s.firm || '[Firm name]';
@@ -1926,10 +1965,10 @@ function modalLetter(c, kind = 'request') {
   const body = `<div class="grid2"><label class="field" for="lt-k">Letter<select id="lt-k">${[['request', 'Document request'], ['reminder', 'Reminder'], ['final', 'Final notice']].map(([k, n]) => `<option value="${k}" ${k === kind ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     <div class="field"><span>Send to</span><span class="mono small" style="font-weight:400;color:var(--ink)">${esc(c.email || 'No email recorded')}</span></div></div>
     <textarea class="letter" id="lt-t" aria-label="Letter text">${esc(letterText(c, kind))}</textarea>
-    <p class="note">Edit the text as needed. ${FRAMED ? 'Copy it into your letterhead template or email.' : 'Print onto letterhead, or copy it into an email.'} Keep a signed copy on the paper file.</p>`;
+    <p class="note">Edit the text as needed. ${FRAMED ? 'Copy it into your letterhead template or email.' : S.settings.logo ? 'Print it (the firm logo goes at the top) or copy it into an email.' : 'Print onto letterhead, or copy it into an email.'} Keep a signed copy on the paper file.</p>`;
   const dlg = modal(`Letter to ${c.name}`, body, [
     { label: 'Copy text', fn: d => { copyText($('#lt-t', d)); return false; } },
-    { label: 'Print', cls: 'primary', hidden: FRAMED, fn: d => { printHTML(`<pre>${esc($('#lt-t', d).value)}</pre>`); return false; } },
+    { label: 'Print', cls: 'primary', hidden: FRAMED, fn: d => { printHTML(`${logoImg(70, 'margin-bottom:22px')}<pre>${esc($('#lt-t', d).value)}</pre>`); return false; } },
   ], { wide: true, cancel: 'Close' });
   $('#lt-k', dlg).addEventListener('change', e => { $('#lt-t', dlg).value = letterText(c, e.target.value); });
 }
@@ -1954,7 +1993,7 @@ function sheetHTML(c) {
   }).join('');
   const prows = c.parties.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.role)}</td><td>${p.idExp ? fmt(p.idExp) : ''}</td><td style="text-align:center">${p.idOk ? '✓' : '<span class="box"></span>'}</td><td style="text-align:center">${p.poaOk ? '✓' : '<span class="box"></span>'}</td></tr>`).join('');
   return `<div class="sheet">
-    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'Client due diligence file')}</div><h3>${esc(c.name)}</h3></div><div style="text-align:right;font-family:var(--f-mono)"><b style="font-size:15px">${esc(c.file.ref)}</b><br>${c.id}</div></div>
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div>${firmHead(s.firm || 'Client due diligence file')}<h3>${esc(c.name)}</h3></div><div style="text-align:right;font-family:var(--f-mono)"><b style="font-size:15px">${esc(c.file.ref)}</b><br>${c.id}</div></div>
     <div class="meta"><span><b>Type:</b> ${TYPES[c.type]}</span><span><b>Risk:</b> ${cap(c.risk)}${c.pep ? ` (${esc(pepLabel(c))})` : ''}</span><span><b>Location:</b> ${esc(c.file.loc)}</span><span><b>Last review:</b> ${fmt(c.last)}</span><span><b>Next review:</b> ${fmtD(nextReview(c))}</span><span><b>Printed:</b> ${fmtD(TODAY)}</span></div>
     <table><thead><tr><th>Document</th><th>Status</th><th>Received</th><th>Expires</th><th>On file</th><th>Scanned</th></tr></thead><tbody>${rows}</tbody></table>
     ${prows ? `<table><thead><tr><th>Connected party</th><th>Role</th><th>ID expires</th><th>ID verified</th><th>Address verified</th></tr></thead><tbody>${prows}</tbody></table>` : ''}
@@ -2017,7 +2056,7 @@ function workPackSheet(list) {
     </div>`;
   }).join('');
   return `<div class="sheet">
-    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>Work pack: ${esc(asst())}</h3><div>Week of ${fmtD(wk)} · prepared by ${esc(me())} on ${fmtD(TODAY)}</div></div></div>
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div>${firmHead(s.firm || 'KYC Refresh Desk')}<h3>Work pack: ${esc(asst())}</h3><div>Week of ${fmtD(wk)} · prepared by ${esc(me())} on ${fmtD(TODAY)}</div></div></div>
     <p>Work on paper only. Keep each file in your In progress tray while you have it, and put it in the Ready for review tray when its task is done. Write every call, letter and visit on the file's contact sheet.</p>
     <table><thead><tr><th>#</th><th>File ref</th><th>Client</th><th>Cabinet location</th><th>Items outstanding</th><th>Reply due</th></tr></thead><tbody>${rows}</tbody></table>
     ${blocks}
@@ -2053,7 +2092,7 @@ function procedureSheet() {
   const s = S.settings, a = esc(s.assistant || 'Compliance assistant'), co = esc(me());
   const row = (t, x, y) => `<tr><td>${t}</td><td style="text-align:center">${x ? '✓' : ''}</td><td style="text-align:center">${y ? '✓' : ''}</td></tr>`;
   return `<div class="sheet">
-    <div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>KYC file procedure</h3><div>Periodic reviews and client document collection · issued ${fmtD(TODAY)}</div></div>
+    <div>${firmHead(s.firm || 'KYC Refresh Desk')}<h3>KYC file procedure</h3><div>Periodic reviews and client document collection · issued ${fmtD(TODAY)}</div></div>
     <p>Every client has one paper file and one digital record. The paper file is kept in the locked cabinet. The digital record is kept in the KYC Refresh Desk app on the MLRO's computer, and nowhere else. Only the MLRO uses the app.</p>
     <h4>Who does what</h4>
     <table><thead><tr><th>Task</th><th style="width:22%">${a}</th><th style="width:22%">MLRO (${co})</th></tr></thead><tbody>
@@ -2153,7 +2192,7 @@ function reportSheet(ws) {
   const stat = (n, l) => `<div><b>${n}</b>${l}</div>`;
   const delta = (k, dir) => { if (!prev || prev[k] == null) return '—'; const d = snap[k] - prev[k]; if (!d) return 'No change'; const good = dir === -1 ? d > 0 : dir === 1 ? d < 0 : null; return `${d > 0 ? '+' : ''}${d}${good === null ? '' : good ? ' (better)' : ' (worse)'}`; };
   return `<div class="sheet">
-    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>KYC weekly report</h3><div>${fmt(w[0])} to ${fmt(w[1])}</div></div><div style="text-align:right">Prepared by ${esc(me())}<br>${esc(s.title)}<br>${fmtD(TODAY)}</div></div>
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div>${firmHead(s.firm || 'KYC Refresh Desk')}<h3>KYC weekly report</h3><div>${fmt(w[0])} to ${fmt(w[1])}</div></div><div style="text-align:right">Prepared by ${esc(me())}<br>${esc(s.title)}<br>${fmtD(TODAY)}</div></div>
     <h4>Work done this week</h4>
     <div class="stats">${stat(a.reviews.length, 'Reviews completed')}${stat(a.n.started, 'Reviews started')}${stat(a.requests + a.reminders, `Requests and reminders sent`)}${stat(a.n.received + a.n.verified, 'Documents received or verified')}${stat(a.n.scanned, 'Documents scanned')}${stat(a.n.screened, 'Screenings run')}${stat(a.decisions.length, 'Risk decisions')}${stat(a.n.escalated, 'Escalations to MLRO')}${stat(a.decisions.filter(x => x.type === 'accept').length, 'New clients accepted')}${stat(S.clients.reduce((n, c) => n + c.matters.filter(m => inWeek(m.opened, w)).length, 0), 'Matters opened')}${stat(new Set(S.training.records.filter(r => inWeek(r.d, w)).map(r => r.staffId)).size, 'Staff trained')}${stat(S.destroyed.filter(x => inWeek(x.destroyed, w)).length, 'Files destroyed')}</div>
     <h4>Position at the end of the week</h4>
@@ -2430,7 +2469,7 @@ const activeStaff = () => S.training.staff.filter(p => p.active !== false);
 const trainingDue = () => activeStaff().filter(p => staffStatus(p).st[1] === 'crit').length;
 function trainingSheet() {
   const s = S.settings;
-  return `<div class="sheet"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>AML/CFT training register</h3><div>Printed ${fmtD(TODAY)} · refresher every ${s.trainingMonths} months</div></div>
+  return `<div class="sheet"><div>${firmHead(s.firm || 'KYC Refresh Desk')}<h3>AML/CFT training register</h3><div>Printed ${fmtD(TODAY)} · refresher every ${s.trainingMonths} months</div></div>
     <table><thead><tr><th>Name</th><th>Role</th><th>Last training</th><th>Course</th><th>Next due</th><th>Status</th></tr></thead><tbody>
     ${activeStaff().map(p => { const x = staffStatus(p); return `<tr><td>${esc(p.name)}</td><td>${esc(p.role)}</td><td>${x.last ? fmt(x.last.d) : '—'}</td><td>${x.last ? esc(x.last.course) : '—'}</td><td>${x.next ? fmtD(x.next) : 'Now'}</td><td>${x.st[0]}</td></tr>`; }).join('')}</tbody></table>
     <h4>Sessions</h4><table><thead><tr><th>Date</th><th>Course</th><th>Provider</th><th>Hours</th><th>Attended</th></tr></thead><tbody>
@@ -2561,7 +2600,7 @@ function historySheet(c, o) {
 }
 function inspectionSheet(list, o) {
   const s = S.settings;
-  const index = `<div class="sheet"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>Client due diligence files: sample for inspection</h3><div>${esc(o.for || 'Prepared for inspection')} · prepared by ${esc(me())}, ${esc(s.title)}, on ${fmtD(TODAY)}</div></div>
+  const index = `<div class="sheet"><div>${firmHead(s.firm || 'KYC Refresh Desk')}<h3>Client due diligence files: sample for inspection</h3><div>${esc(o.for || 'Prepared for inspection')} · prepared by ${esc(me())}, ${esc(s.title)}, on ${fmtD(TODAY)}</div></div>
     <table><thead><tr><th>#</th><th>Client</th><th>ID</th><th>File ref</th><th>Type</th><th>Risk</th><th>Last review</th><th>Next review</th></tr></thead><tbody>
     ${list.map((c, i) => `<tr><td>${i + 1}</td><td>${esc(c.name)}${c.pep ? ' (PEP)' : ''}</td><td>${c.id}</td><td>${esc(c.file.ref)}</td><td>${TYPES[c.type]}</td><td>${cap(c.risk)}</td><td>${fmt(c.last)}</td><td>${isClosed(c) || c.status === 'onboarding' ? cap(c.status) : fmtD(nextReview(c))}</td></tr>`).join('')}</tbody></table>
     <p>Each file follows: the cover sheet with document checklist, then the due diligence history${o.notes ? ' and the signed decision notes' : ''}. Original documents are held on the paper files.</p></div>`;
@@ -2601,7 +2640,7 @@ function annualSheet(y) {
   const notes = (S.annual[y] || {}).notes;
   const tr = (l, v) => `<tr><td>${l}</td><td style="width:22%">${v}</td></tr>`;
   return `<div class="sheet">
-    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(s.firm || 'KYC Refresh Desk')}</div><h3>MLRO annual report ${y}</h3><div>1 January to 31 December ${y}${cur ? ` (to ${fmtD(TODAY)})` : ''}</div></div><div style="text-align:right">Prepared by ${esc(me())}<br>${esc(s.title)}<br>${fmtD(TODAY)}</div></div>
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div>${firmHead(s.firm || 'KYC Refresh Desk')}<h3>MLRO annual report ${y}</h3><div>1 January to 31 December ${y}${cur ? ` (to ${fmtD(TODAY)})` : ''}</div></div><div style="text-align:right">Prepared by ${esc(me())}<br>${esc(s.title)}<br>${fmtD(TODAY)}</div></div>
     <p>In ${y}, ${plural(reviews.length, 'periodic review')} ${reviews.length === 1 ? 'was' : 'were'} completed, ${plural(dec('accept'), 'new client')} ${dec('accept') === 1 ? 'was' : 'were'} taken on and ${dec('decline')} declined, and ${plural(dec('exit'), 'relationship')} ended.${snap ? ` At ${fmtD(TODAY)}, ${snap.overdue} of ${snap.active} active clients were overdue for review.` : ''}</p>
     ${snap ? `<h4>Client base at ${fmtD(TODAY)}</h4><table><thead><tr><th>Measure</th><th>Number</th></tr></thead><tbody>
       ${tr('Active clients', snap.active)}${RISKS.map(r => tr(`&nbsp;&nbsp;${cap(r)} risk`, B.filter(c => c.risk === r).length)).join('')}
@@ -2863,7 +2902,7 @@ async function zipFiles(files) {
   const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1), date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
   let offset = 0;
   for (const f of files) {
-    const name = te.encode(f.name), raw = te.encode(f.text), crc = crc32(raw), packed = await deflate(raw);
+    const name = te.encode(f.name), raw = f.bytes || te.encode(f.text), crc = crc32(raw), packed = await deflate(raw);
     const data = packed || raw, method = packed ? 8 : 0;
     const h = new DataView(new ArrayBuffer(30));
     [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, method, 2], [10, time, 2], [12, date, 2], [14, crc, 4], [18, data.length, 4], [22, raw.length, 4], [26, name.length, 2]]
@@ -2959,7 +2998,7 @@ function overviewXml(ov, sheets, sst) {
   row([['A', XS.section, 'About this file'], ['B', XS.section, ''], ['C', XS.section, '']], 24);
   ov.notes.forEach(([label, text]) => row([['A', XS.label, label], ['B', XS.note, text]], 32));
   const merges = ov.notes.map((_, i) => `<mergeCell ref="B${r - ov.notes.length + 1 + i}:C${r - ov.notes.length + 1 + i}"/>`).join('');
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><tabColor rgb="${TAB.overview}"/><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:C${r}"/><sheetViews><sheetView showGridLines="0" tabSelected="1" workbookViewId="0"><selection activeCell="A1" sqref="A1"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols><col min="1" max="1" width="38" customWidth="1"/><col min="2" max="2" width="14" customWidth="1"/><col min="3" max="3" width="96" customWidth="1"/></cols><sheetData>${rows.join('')}</sheetData><mergeCells count="${ov.notes.length}">${merges}</mergeCells><hyperlinks>${links.join('')}</hyperlinks>${xPage.replace('orientation="landscape" fitToWidth="1" fitToHeight="0"', 'orientation="portrait" fitToWidth="1" fitToHeight="0"')}</worksheet>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><tabColor rgb="${TAB.overview}"/><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:C${r}"/><sheetViews><sheetView showGridLines="0" tabSelected="1" workbookViewId="0"><selection activeCell="A1" sqref="A1"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols><col min="1" max="1" width="38" customWidth="1"/><col min="2" max="2" width="14" customWidth="1"/><col min="3" max="3" width="96" customWidth="1"/></cols><sheetData>${rows.join('')}</sheetData><mergeCells count="${ov.notes.length}">${merges}</mergeCells><hyperlinks>${links.join('')}</hyperlinks>${xPage.replace('orientation="landscape" fitToWidth="1" fitToHeight="0"', 'orientation="portrait" fitToWidth="1" fitToHeight="0"')}${ov.logo ? '<drawing r:id="rId1"/>' : ''}</worksheet>`;
 }
 function stylesXml() {
   const font = (sz, o = {}) => `<font>${o.b ? '<b/>' : ''}${o.i ? '<i/>' : ''}${o.u ? '<u/>' : ''}<sz val="${sz}"/>${o.c ? `<color rgb="${o.c}"/>` : ''}<name val="Calibri"/><family val="2"/></font>`;
@@ -2980,10 +3019,26 @@ function stylesXml() {
   const dxfs = [dxf('FFFADBD8', 'FF9C0006'), dxf('FFFFF0C2', 'FF7A5300'), dxf('FFDDF1E4', 'FF1E6B3A'), dxf('FFEDEEF0', 'FF5F6368'), dxf('FFEDE4F7', 'FF5B2C83'), dxf('FFDCEBFA', 'FF1F4E79')];
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="4"><numFmt numFmtId="164" formatCode="d mmm yyyy"/><numFmt numFmtId="165" formatCode="#,##0"/><numFmt numFmtId="166" formatCode="#,##0.00"/><numFmt numFmtId="167" formatCode="0&quot;%&quot;"/></numFmts><fonts count="${fonts.length}">${fonts.join('')}</fonts><fills count="${fills.length}">${fills.join('')}</fills><borders count="${borders.length}">${borders.join('')}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.map(xf).join('')}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="${dxfs.length}">${dxfs.join('')}</dxfs><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/></styleSheet>`;
 }
+// the firm's logo, top right of the Overview sheet (column C is about 677 pixels wide; 9525 EMU to a pixel)
+function logoParts(lg) {
+  const m = /^data:image\/(png|jpeg);base64,(.*)$/.exec(lg.src || ''); if (!m) return null;
+  const ext = m[1] === 'png' ? 'png' : 'jpeg', bin = atob(m[2]), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  let h = 60, w = Math.round(h * (lg.w || 3) / (lg.h || 1));
+  if (w > 300) { h = Math.round(h * 300 / w); w = 300; }
+  const E = 9525, D = 'http://schemas.openxmlformats.org/drawingml/2006';
+  return { ext, files: [
+    { name: `xl/media/logo.${ext}`, bytes },
+    { name: 'xl/drawings/drawing1.xml', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="${D}/spreadsheetDrawing" xmlns:a="${D}/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><xdr:oneCellAnchor><xdr:from><xdr:col>2</xdr:col><xdr:colOff>${(670 - w) * E}</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>${6 * E}</xdr:rowOff></xdr:from><xdr:ext cx="${w * E}" cy="${h * E}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="2" name="Firm logo" descr="Firm logo"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${w * E}" cy="${h * E}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor></xdr:wsDr>` },
+    { name: 'xl/drawings/_rels/drawing1.xml.rels', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/logo.${ext}"/></Relationships>` },
+    { name: 'xl/worksheets/_rels/sheet1.xml.rels', text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>` },
+  ] };
+}
 async function workbookBlob({ overview, sheets }) {
   const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships', PR = 'http://schemas.openxmlformats.org/package/2006/relationships';
   const head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', CT = 'application/vnd.openxmlformats-officedocument.spreadsheetml';
-  const sst = sstIndex(), n = sheets.length + 1;
+  const sst = sstIndex(), n = sheets.length + 1, logo = overview.logo && logoParts(overview.logo);
+  if (!logo) overview.logo = null;
   // build the sheets first so the shared strings are complete
   const parts = [{ name: 'xl/worksheets/sheet1.xml', text: overviewXml(overview, sheets, sst) }];
   sheets.forEach((sh, i) => {
@@ -2993,13 +3048,14 @@ async function workbookBlob({ overview, sheets }) {
   });
   const names = ['Overview', ...sheets.map(sh => sh.name)];
   const files = [
-    { name: '[Content_Types].xml', text: `${head}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="${CT}.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="${CT}.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="${CT}.sharedStrings+xml"/>${names.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="${CT}.worksheet+xml"/>`).join('')}${sheets.map((_, i) => `<Override PartName="/xl/tables/table${i + 1}.xml" ContentType="${CT}.table+xml"/>`).join('')}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>` },
+    { name: '[Content_Types].xml', text: `${head}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${logo ? `<Default Extension="${logo.ext}" ContentType="image/${logo.ext}"/><Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>` : ''}<Override PartName="/xl/workbook.xml" ContentType="${CT}.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="${CT}.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="${CT}.sharedStrings+xml"/>${names.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="${CT}.worksheet+xml"/>`).join('')}${sheets.map((_, i) => `<Override PartName="/xl/tables/table${i + 1}.xml" ContentType="${CT}.table+xml"/>`).join('')}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>` },
     { name: '_rels/.rels', text: `${head}<Relationships xmlns="${PR}"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>` },
     { name: 'docProps/core.xml', text: `${head}<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>KYC register</dc:title><dc:creator>${xmlEsc(overview.by)}</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString().slice(0, 19)}Z</dcterms:created></cp:coreProperties>` },
     { name: 'xl/workbook.xml', text: `${head}<workbook xmlns="${NS}" xmlns:r="${R}"><bookViews><workbookView activeTab="0"/></bookViews><sheets>${names.map((nm, i) => `<sheet name="${xmlEsc(nm)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets><definedNames>${sheets.map((sh, i) => `<definedName name="_xlnm.Print_Titles" localSheetId="${i + 1}">'${xmlEsc(sh.name)}'!$3:$3</definedName>`).join('')}</definedNames></workbook>` },
     { name: 'xl/_rels/workbook.xml.rels', text: `${head}<Relationships xmlns="${PR}">${names.map((_, i) => `<Relationship Id="rId${i + 1}" Type="${R}/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${n + 1}" Type="${R}/styles" Target="styles.xml"/><Relationship Id="rId${n + 2}" Type="${R}/sharedStrings" Target="sharedStrings.xml"/></Relationships>` },
     { name: 'xl/styles.xml', text: stylesXml() },
     ...parts,
+    ...(logo ? logo.files : []),
     { name: 'xl/sharedStrings.xml', text: `${head}<sst xmlns="${NS}" count="${sst.list.length}" uniqueCount="${sst.list.length}">${sst.list.map(v => `<si><t xml:space="preserve">${xmlEsc(v)}</t></si>`).join('')}</sst>` },
   ];
   return zipFiles(files);
@@ -3073,6 +3129,7 @@ function exportSheets(withSar) {
   A.forEach(c => { const dp = docProgress(c); need += dp.n; ok += dp.ok; Object.values(c.docs).forEach(d => { if (d && d.paper) { onPaper++; if (d.scan) scanned++; } }); });
   const overview = {
     by: me(),
+    logo: s.logo ? { src: s.logo, w: s.logoW, h: s.logoH } : null,
     sub: `${s.firm ? s.firm + ' · ' : ''}Exported ${new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} by ${me()}, ${s.title}`,
     figures: [
       ['Clients on the book', A.length, `${A.filter(c => c.status === 'active').length} active, ${A.filter(c => c.status === 'restricted').length} restricted`],
@@ -3265,7 +3322,7 @@ function showLock(mode = 'login') {
   const login = mode === 'login';
   $('#app').classList.add('locked');
   $('#app').innerHTML = `<div class="lockwrap"><form class="lockcard" id="lockform" novalidate>
-    <div class="mark" aria-hidden="true">KYC</div>
+    ${lockLogo() ? `<div class="logo-chip"><img src="${lockLogo()}" alt="Firm logo"></div>` : '<div class="mark" aria-hidden="true">KYC</div>'}
     <h1>KYC Refresh Desk</h1>
     <p class="muted">${login ? 'Records are locked. Sign in to continue.' : 'Enter the recovery key from the printed sheet and choose a new password.'}</p>
     ${login ? `<label class="field" for="lk-u">Username<input id="lk-u" autocomplete="username" autocapitalize="off" spellcheck="false"></label>
@@ -3345,7 +3402,7 @@ function modalSetup() {
   } }], { cancel: 'Not now' });
 }
 function rkSheet(rk) {
-  return `<div class="sheet"><div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(S.settings.firm || 'KYC Refresh Desk')}</div>
+  return `<div class="sheet">${firmHead(S.settings.firm || 'KYC Refresh Desk')}
     <h3>Recovery key</h3>
     <p>This key unlocks the KYC Refresh Desk records if the password is forgotten. Keep it in the office safe, away from the computer. Anyone who has this key and access to the computer can read the records.</p>
     <div class="rk" style="color:#111;border-color:#333;background:#fff">${esc(rk)}</div>
@@ -3675,6 +3732,17 @@ const ACT = {
   lock: () => lockNow(true),
   backupnow: () => runBackup(true),
   excel: () => modalExcel(),
+  logo: () => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp,image/gif,image/svg+xml';
+    inp.addEventListener('change', async () => {
+      const f = inp.files[0]; if (!f) return;
+      const r = await logoFromFile(f);
+      if (!r) return toast('That image could not be read. Try a PNG or JPEG.');
+      Object.assign(S.settings, r); commit('Logo added.');
+    });
+    inp.click();
+  },
+  logooff: () => { S.settings.logo = ''; S.settings.logoW = S.settings.logoH = 0; commit('Logo removed.'); },
   theme: el => { try { localStorage.setItem(THEME_KEY, el.dataset.t); } catch (e) { /* blocked: applies this session only */ } applyTheme(el.dataset.t); render(); },
   destset: el => chooseDest(el.dataset.k),
   destdel: el => removeDest(el.dataset.k),

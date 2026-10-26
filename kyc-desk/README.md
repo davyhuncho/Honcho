@@ -109,6 +109,10 @@ The app also asks the browser to protect its storage from being cleared when the
 
 It can be read without the app or its password, so if the app ever fails, the records are still there. Run it weekly (the Overview reminds you after 7 days). If a USB backup folder is set, a copy is also saved there, keeping the newest 12. The workbook itself is **not encrypted**: keep it on the encrypted USB drive, or protect it in Excel with *File → Info → Protect Workbook → Encrypt with Password*. With 2,000 clients the workbook is about 4 MB.
 
+## Firm logo
+
+In **Settings → Firm and people**, choose **Add logo** and pick the firm's own logo file (PNG or JPEG, ideally with a transparent or white background). It appears in the sidebar, on the sign-in screen, at the top of printed letters, cover sheets, decision notes, work packs and reports, and on the Excel overview. The app never fetches it from the internet: it is stored with the records and included in backups. A copy is also kept unencrypted on the computer so the sign-in screen can show it; a logo is not confidential.
+
 ## Moving from paper
 
 1. Put your existing client register into a spreadsheet and save it as CSV. Columns: `name, type, risk, pep, country, last_review, contact, email, phone, address, file_ref, file_location`. Only `name` is required.
