@@ -22,6 +22,7 @@
   --glass-edge: rgba(255, 255, 255, .62);
   --glass-hi: rgba(255, 255, 255, .95);
   --glass-glow: rgba(255, 255, 255, .45);
+  --seg-on: #ffffff;
   --sheen: linear-gradient(140deg, rgba(255, 255, 255, .62) 0%, rgba(255, 255, 255, .16) 30%, rgba(255, 255, 255, .03) 58%, rgba(255, 255, 255, .20) 100%);
   --scrim: rgba(18, 26, 40, .22);
   --ink: #0b1220;
@@ -55,7 +56,7 @@
   :root:not([data-theme="light"]) {
     --bg: #06090f;
     --orb-1: rgba(10, 132, 255, .46); --orb-2: rgba(40, 200, 180, .28); --orb-3: rgba(140, 90, 255, .38); --orb-4: rgba(255, 130, 70, .20); --orb-5: rgba(255, 90, 150, .16);
-    --glass: rgba(26, 30, 44, .40); --glass-strong: rgba(48, 52, 68, .62); --glass-soft: rgba(255, 255, 255, .04); --glass-glow: rgba(255, 255, 255, .10);
+    --glass: rgba(26, 30, 44, .40); --glass-strong: rgba(48, 52, 68, .62); --glass-soft: rgba(255, 255, 255, .04); --glass-glow: rgba(255, 255, 255, .10); --seg-on: rgba(255, 255, 255, .22);
     --glass-edge: rgba(255, 255, 255, .14); --glass-hi: rgba(255, 255, 255, .22);
     --sheen: linear-gradient(140deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, .04) 32%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, .07) 100%);
     --scrim: rgba(0, 0, 0, .45);
@@ -73,7 +74,7 @@
 :root[data-theme="dark"] {
   --bg: #06090f;
   --orb-1: rgba(10, 132, 255, .46); --orb-2: rgba(40, 200, 180, .28); --orb-3: rgba(140, 90, 255, .38); --orb-4: rgba(255, 130, 70, .20); --orb-5: rgba(255, 90, 150, .16);
-  --glass: rgba(26, 30, 44, .40); --glass-strong: rgba(48, 52, 68, .62); --glass-soft: rgba(255, 255, 255, .04); --glass-glow: rgba(255, 255, 255, .10);
+  --glass: rgba(26, 30, 44, .40); --glass-strong: rgba(48, 52, 68, .62); --glass-soft: rgba(255, 255, 255, .04); --glass-glow: rgba(255, 255, 255, .10); --seg-on: rgba(255, 255, 255, .22);
   --glass-edge: rgba(255, 255, 255, .14); --glass-hi: rgba(255, 255, 255, .22);
   --sheen: linear-gradient(140deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, .04) 32%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, .07) 100%);
   --scrim: rgba(0, 0, 0, .45);
@@ -149,6 +150,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .nav a[aria-current="page"] .count { background: rgba(255, 255, 255, .25); color: #fff; }
 .side-foot { margin-top: auto; padding: 12px 10px 2px; border-top: 1px solid var(--line); display: grid; gap: 2px; font-size: .8rem; color: var(--muted); }
 .side-foot strong { color: var(--ink); font-weight: 600; }
+.side-foot .theme-seg { justify-self: start; margin-bottom: 10px; }
 
 .main { min-width: 0; padding-block: 30px 72px; padding-left: max(28px, env(safe-area-inset-left, 0px)); padding-right: max(28px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 22px; max-width: 1380px; width: 100%; }
 .page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 20px; }
@@ -267,7 +269,7 @@ table.t { width: 100%; border-collapse: collapse; font-size: .86rem; }
 .toolbar .search { flex: 1 1 220px; min-width: 0; }
 .seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 12px; background: var(--fill); }
 .seg button { border: 0; background: transparent; padding: 5px 12px; font-size: .8rem; font-weight: 600; color: var(--ink); cursor: pointer; border-radius: 9px; transition: background .15s, box-shadow .15s; }
-.seg button[aria-pressed="true"] { background: var(--glass-strong); box-shadow: 0 1px 3px rgba(15, 23, 42, .12), 0 0 0 .5px rgba(15, 23, 42, .04); }
+.seg button[aria-pressed="true"] { background: var(--seg-on); box-shadow: 0 1px 3px rgba(15, 23, 42, .12), 0 0 0 .5px rgba(15, 23, 42, .04); }
 
 /* ---------- pipeline ---------- */
 .board { display: grid; grid-template-columns: repeat(5, minmax(220px, 1fr)); gap: 14px; overflow-x: auto; padding: 2px 2px 8px; }
@@ -481,6 +483,12 @@ const plural = (n, w, pl) => `${n} ${n === 1 ? w : pl || w + 's'}`;
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const FRAMED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+// appearance: Auto follows the computer's light or dark setting; the choice is remembered on this computer
+const THEME_KEY = 'kyc-refresh-desk.theme';
+function getTheme() { try { return localStorage.getItem(THEME_KEY) || 'system'; } catch (e) { return 'system'; } }
+function applyTheme(t) { const r = document.documentElement; if (t === 'light' || t === 'dark') r.setAttribute('data-theme', t); else r.removeAttribute('data-theme'); }
+if (!FRAMED) applyTheme(getTheme());
+const themeSeg = () => (FRAMED ? '' : `<div class="seg theme-seg" role="group" aria-label="Appearance">${[['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, n]) => `<button data-act="theme" data-t="${k}" aria-pressed="${getTheme() === k}">${n}</button>`).join('')}</div>`);
 const clone = o => JSON.parse(JSON.stringify(o));
 
 /* =========================================================
@@ -972,7 +980,7 @@ function renderNav() {
     return `<a href="#${k}" ${sel === k ? 'aria-current="page"' : ''}><span>${v.n}</span>${badge}</a>`;
   }).join('');
   $('#firm-name').textContent = S.settings.firm || 'Add your firm name in Settings';
-  $('#side-foot').innerHTML = `<span>Signed in as <strong>${esc(me())}</strong></span><span>${fmtD(TODAY)}</span>${storageOK ? '' : '<span class="pill crit plain">Not saving: browser storage blocked</span>'}${backupDue() !== null ? '<span class="pill warn plain" style="margin-top:8px;justify-self:start">Backup due</span>' : ''}${vault ? `<button class="btn sm" data-act="lock" style="margin-top:8px">${FS ? 'Back up and lock' : 'Lock'}</button>` : `<span class="pill warn plain" style="margin-top:8px;justify-self:start">Not password-protected</span><button class="btn sm" data-act="setup" style="margin-top:6px">Set a password</button>${FRAMED ? '' : '<button class="btn sm" data-act="backupnow" style="margin-top:6px">Back up now</button>'}`}`;
+  $('#side-foot').innerHTML = `${themeSeg()}<span>Signed in as <strong>${esc(me())}</strong></span><span>${fmtD(TODAY)}</span>${storageOK ? '' : '<span class="pill crit plain">Not saving: browser storage blocked</span>'}${backupDue() !== null ? '<span class="pill warn plain" style="margin-top:8px;justify-self:start">Backup due</span>' : ''}${vault ? `<button class="btn sm" data-act="lock" style="margin-top:8px">${FS ? 'Back up and lock' : 'Lock'}</button>` : `<span class="pill warn plain" style="margin-top:8px;justify-self:start">Not password-protected</span><button class="btn sm" data-act="setup" style="margin-top:6px">Set a password</button>${FRAMED ? '' : '<button class="btn sm" data-act="backupnow" style="margin-top:6px">Back up now</button>'}`}`;
 }
 function render() {
   if (!S) return;
@@ -1416,6 +1424,7 @@ function viewSettings() {
   const num = (id, path, v, min, max) => `<input id="${id}" type="number" min="${min}" max="${max}" data-set="${path}" value="${v}">`;
   return `
   <div class="page-head"><div><h1>Settings</h1><p class="lede">Set these to match your firm's AML/CFT policy and risk methodology. Changes save as you go.</p></div></div>
+  ${FRAMED ? '' : `<section class="card"><header><div><h2>Appearance</h2><p>Auto follows your computer's light or dark setting. The choice is remembered on this computer.</p></div>${themeSeg()}</header></section>`}
   <section class="card"><header><h2>Firm and people</h2></header><div class="body grid2">
     <label class="field span2" for="s-firm">Firm name (used on letters)<input id="s-firm" data-set="firm" value="${esc(s.firm)}" placeholder="Your firm's name"></label>
     <label class="field" for="s-user">Your name (letters and audit trail)<input id="s-user" data-set="user" value="${esc(s.user)}"></label>
@@ -3532,6 +3541,7 @@ const ACT = {
   lock: () => lockNow(true),
   backupnow: () => runBackup(true),
   excel: () => modalExcel(),
+  theme: el => { try { localStorage.setItem(THEME_KEY, el.dataset.t); } catch (e) { /* blocked: applies this session only */ } applyTheme(el.dataset.t); render(); },
   destset: el => chooseDest(el.dataset.k),
   destdel: el => removeDest(el.dataset.k),
   restorefolder: () => restoreFromFolder(),
