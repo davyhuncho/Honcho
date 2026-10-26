@@ -2882,87 +2882,221 @@ async function zipFiles(files) {
 const xmlEsc = v => String(v).slice(0, 32000).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
 const colName = i => { let s = ''; for (let n = i + 1; n; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };
 const xlDate = d => (Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) - Date.UTC(1899, 11, 30)) / 864e5;
-// a column is [header, width, kind]: kind 'd' = date, 'n' = number, 'w' = wrapped text, otherwise text
-function sheetXml(cols, rows) {
-  const out = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">', `<dimension ref="A1:${colName(cols.length - 1)}${rows.length + 1}"/>`, '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'];
-  cols.forEach((c, i) => out.push(`<col min="${i + 1}" max="${i + 1}" width="${c[1]}" customWidth="1"/>`));
-  out.push('</cols><sheetData><row r="1">');
-  cols.forEach((c, i) => out.push(`<c r="${colName(i)}1" t="inlineStr" s="1"><is><t>${xmlEsc(c[0])}</t></is></c>`));
-  out.push('</row>');
-  rows.forEach((r, ri) => {
-    const rn = ri + 2;
-    out.push(`<row r="${rn}">`);
-    r.forEach((v, i) => {
-      if (v === '' || v == null) return;
-      const ref = colName(i) + rn, k = cols[i][2];
-      if (k === 'd' && /^\d{4}-\d{2}-\d{2}/.test(v)) out.push(`<c r="${ref}" s="2"><v>${xlDate(v)}</v></c>`);
-      else if (k === 'n' && isFinite(+v)) out.push(`<c r="${ref}"><v>${+v}</v></c>`);
-      else out.push(`<c r="${ref}" t="inlineStr"${k === 'w' ? ' s="3"' : ''}><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`);
+/* Layout: an Overview sheet, then one sheet per kind of record. Each has a title and a one-line description,
+   then a named Excel table (header on row 3), so filters, sorting and pivot tables work straight away.
+   Colour marks risk and status through conditional formatting, so it follows the data when sorted. */
+const XS = { head: 1, date: 2, wrap: 3, int: 4, money: 5, pct: 6, cover: 7, sub: 8, title: 9, label: 10, fig: 11, section: 12, link: 13, text: 14, mid: 15, figPct: 16, headSar: 17, note: 18, num: 19, colhead: 20, figBad: 21 };
+const XK = { d: XS.date, w: XS.wrap, n: XS.int, m: XS.money, p: XS.pct, c: XS.mid };
+const TONE = { bad: 0, warn: 1, good: 2, mute: 3, pep: 4, info: 5 };
+const TAB = { overview: 'FF1F3864', client: 'FF2E5C9A', activity: 'FF2E8B7A', firm: 'FF7F7F7F', sar: 'FFB03A2E' };
+const tableName = n => 'tbl' + n.replace(/[^A-Za-z0-9]+(.)?/g, (m, c) => (c ? c.toUpperCase() : '')).replace(/^./, c => c.toUpperCase());
+// shared strings: one copy of each text in the workbook
+function sstIndex() { const map = new Map(), list = []; return { list, id: v => { let i = map.get(v); if (i === undefined) { i = list.length; map.set(v, i); list.push(v); } return i; } }; }
+const xc = (ref, s, v, sst) => (v === '' || v == null ? `<c r="${ref}" s="${s}"/>` : typeof v === 'number' ? `<c r="${ref}" s="${s}"><v>${v}</v></c>` : `<c r="${ref}" s="${s}" t="s"><v>${sst.id(String(v))}</v></c>`);
+const xRow = (r, cells, ht) => `<row r="${r}"${ht ? ` ht="${ht}" customHeight="1"` : ''}>${cells.join('')}</row>`;
+const xPage = '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.6" header="0.3" footer="0.3"/><pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/><headerFooter><oddFooter>&amp;L&amp;8&amp;A · Confidential&amp;R&amp;8Page &amp;P of &amp;N</oddFooter></headerFooter>';
+// a rule is [test, value, tone]: '=' equals, '^' starts with, '<' / '<=' number below, 'bar' a data bar
+function cfXml(sh, top, end) {
+  let pri = 0; const out = [];
+  sh.cols.forEach((c, i) => {
+    if (!c[3]) return;
+    const col = colName(i), a = `${col}${top + 1}`, rules = c[3].map(([t, v, tone]) => {
+      if (t === 'bar') return `<cfRule type="dataBar" priority="${++pri}"><dataBar><cfvo type="num" val="0"/><cfvo type="max"/><color rgb="FF8EB4E3"/></dataBar></cfRule>`;
+      const f = t === '=' ? `${a}="${v}"` : t === '^' ? `LEFT(${a},${v.length})="${v}"` : `AND(ISNUMBER(${a}),${a}${t}${v})`;
+      return `<cfRule type="expression" dxfId="${TONE[tone]}" priority="${++pri}" stopIfTrue="1"><formula>${xmlEsc(f)}</formula></cfRule>`;
     });
-    out.push('</row>');
+    out.push(`<conditionalFormatting sqref="${a}:${col}${end}">${rules.join('')}</conditionalFormatting>`);
   });
-  out.push(`</sheetData><autoFilter ref="A1:${colName(cols.length - 1)}${rows.length + 1}"/></worksheet>`);
   return out.join('');
 }
-async function workbookBlob(sheets) {
-  const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-  const head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-  const styles = `${head}<styleSheet xmlns="${NS}"><numFmts count="1"><numFmt numFmtId="164" formatCode="d mmm yyyy"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+function sheetXml(sh, sst) {
+  const { cols, rows } = sh, top = 3, end = top + Math.max(rows.length, 1), last = colName(cols.length - 1), L = cols.map((_, i) => colName(i));
+  const fz = sh.freeze || 0;
+  const pane = fz ? `<pane xSplit="${fz}" ySplit="${top}" topLeftCell="${L[fz] || 'A'}${top + 1}" activePane="bottomRight" state="frozen"/><selection pane="topRight"/><selection pane="bottomLeft"/><selection pane="bottomRight" activeCell="${L[fz] || 'A'}${top + 1}" sqref="${L[fz] || 'A'}${top + 1}"/>`
+    : `<pane ySplit="${top}" topLeftCell="A${top + 1}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A${top + 1}" sqref="A${top + 1}"/>`;
+  const out = [`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><tabColor rgb="${TAB[sh.group]}"/><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:${last}${end}"/><sheetViews><sheetView showGridLines="0" workbookViewId="0">${pane}</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>`];
+  cols.forEach((c, i) => out.push(`<col min="${i + 1}" max="${i + 1}" width="${c[1]}" customWidth="1"/>`));
+  out.push('</cols><sheetData>');
+  out.push(xRow(1, [xc('A1', XS.title, sh.name, sst)], 30));
+  out.push(xRow(2, [xc('A2', XS.sub, sh.desc + (rows.length ? '' : ' None recorded yet.'), sst)], 20));
+  out.push(xRow(3, cols.map((c, i) => xc(L[i] + '3', sh.group === 'sar' ? XS.headSar : XS.head, c[0], sst)), 32));
+  const kinds = cols.map(c => c[2]), styles = kinds.map(k => XK[k] || XS.text);
+  rows.forEach((r, ri) => {
+    const rn = top + 1 + ri, cells = [];
+    for (let i = 0; i < cols.length; i++) {
+      let v = r[i]; const k = kinds[i];
+      if (v == null || v === '') v = '';
+      else if (k === 'd') v = /^\d{4}-\d{2}-\d{2}/.test(v) ? xlDate(v) : String(v);
+      else if ((k === 'n' || k === 'm' || k === 'p') && v !== '' && isFinite(+v)) v = +v;
+      else v = String(v);
+      cells.push(xc(L[i] + rn, styles[i], v, sst));
+    }
+    out.push(xRow(rn, cells));
+  });
+  if (!rows.length) out.push(xRow(top + 1, cols.map((c, i) => xc(L[i] + (top + 1), styles[i], '', sst))));
+  out.push(`</sheetData>${cfXml(sh, top, end)}${xPage}<tableParts count="1"><tablePart r:id="rId1"/></tableParts></worksheet>`);
+  return out.join('');
+}
+function tableXml(sh, id) {
+  const ref = `A3:${colName(sh.cols.length - 1)}${3 + Math.max(sh.rows.length, 1)}`, n = tableName(sh.name);
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><table xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" id="${id}" name="${n}" displayName="${n}" ref="${ref}" totalsRowShown="0"><autoFilter ref="${ref}"/><tableColumns count="${sh.cols.length}">${sh.cols.map((c, i) => `<tableColumn id="${i + 1}" name="${xmlEsc(c[0])}"/>`).join('')}</tableColumns><tableStyleInfo name="TableStyleMedium2" showFirstColumn="0" showLastColumn="0" showRowStripes="1" showColumnStripes="0"/></table>`;
+}
+// the Overview sheet: key figures, a linked list of the sheets, and notes on using the file
+function overviewXml(ov, sheets, sst) {
+  const rows = []; let r = 0;
+  const row = (cells, ht) => { r++; rows.push(xRow(r, cells.map(([col, s, v]) => xc(col + r, s, v, sst)), ht)); };
+  const links = [];
+  row([['A', XS.cover, 'KYC register']], 36);
+  row([['A', XS.sub, ov.sub]], 18);
+  row([], 12);
+  row([['A', XS.section, 'Key figures'], ['B', XS.section, ''], ['C', XS.section, '']], 24);
+  ov.figures.forEach(([label, v, detail, s]) => row([['A', XS.label, label], ['B', s || XS.fig, v], ['C', XS.note, detail || '']], 26));
+  row([], 12);
+  row([['A', XS.section, 'Sheets in this workbook'], ['B', XS.section, ''], ['C', XS.section, '']], 24);
+  row([['A', XS.colhead, 'Sheet'], ['B', XS.colhead, 'Rows'], ['C', XS.colhead, 'What it holds']], 20);
+  sheets.forEach(sh => { row([['A', XS.link, sh.name], ['B', XS.num, sh.rows.length], ['C', XS.note, sh.desc]], 20); links.push(`<hyperlink ref="A${r}" location="'${xmlEsc(sh.name)}'!A1" display="${xmlEsc(sh.name)}"/>`); });
+  row([], 12);
+  row([['A', XS.section, 'About this file'], ['B', XS.section, ''], ['C', XS.section, '']], 24);
+  ov.notes.forEach(([label, text]) => row([['A', XS.label, label], ['B', XS.note, text]], 32));
+  const merges = ov.notes.map((_, i) => `<mergeCell ref="B${r - ov.notes.length + 1 + i}:C${r - ov.notes.length + 1 + i}"/>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><tabColor rgb="${TAB.overview}"/><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:C${r}"/><sheetViews><sheetView showGridLines="0" tabSelected="1" workbookViewId="0"><selection activeCell="A1" sqref="A1"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols><col min="1" max="1" width="38" customWidth="1"/><col min="2" max="2" width="14" customWidth="1"/><col min="3" max="3" width="96" customWidth="1"/></cols><sheetData>${rows.join('')}</sheetData><mergeCells count="${ov.notes.length}">${merges}</mergeCells><hyperlinks>${links.join('')}</hyperlinks>${xPage.replace('orientation="landscape" fitToWidth="1" fitToHeight="0"', 'orientation="portrait" fitToWidth="1" fitToHeight="0"')}</worksheet>`;
+}
+function stylesXml() {
+  const font = (sz, o = {}) => `<font>${o.b ? '<b/>' : ''}${o.i ? '<i/>' : ''}${o.u ? '<u/>' : ''}<sz val="${sz}"/>${o.c ? `<color rgb="${o.c}"/>` : ''}<name val="Calibri"/><family val="2"/></font>`;
+  const fonts = [font(11), font(11, { b: 1, c: 'FFFFFFFF' }), font(24, { b: 1, c: 'FF1F3864' }), font(10, { i: 1, c: 'FF595959' }), font(16, { b: 1, c: 'FF1F3864' }), font(10, { c: 'FF404040' }), font(18, { b: 1, c: 'FF1F3864' }), font(12, { b: 1, c: 'FF1F3864' }), font(11, { u: 1, c: 'FF0563C1' }), font(9, { b: 1, c: 'FF595959' }), font(18, { b: 1, c: 'FFC00000' }), font(10, { c: 'FF595959' })];
+  const fill = rgb => `<fill><patternFill patternType="solid"><fgColor rgb="${rgb}"/><bgColor indexed="64"/></patternFill></fill>`;
+  const fills = ['<fill><patternFill patternType="none"/></fill>', '<fill><patternFill patternType="gray125"/></fill>', fill('FF1F3864'), fill('FF8B1A1A')];
+  const border = (rgb, st = 'thin') => `<border><left/><right/><top/><bottom style="${st}"><color rgb="${rgb}"/></bottom><diagonal/></border>`;
+  const borders = ['<border><left/><right/><top/><bottom/><diagonal/></border>', border('FF1F3864', 'medium'), border('FFD9DEE7'), border('FFE4E8EE')];
+  // [numFmt, font, fill, border, alignment]
+  const top = 'vertical="top"', xf = ([n, f, fi, b, al]) => `<xf numFmtId="${n}" fontId="${f}" fillId="${fi}" borderId="${b}" xfId="0"${n ? ' applyNumberFormat="1"' : ''}${f ? ' applyFont="1"' : ''}${fi ? ' applyFill="1"' : ''}${b ? ' applyBorder="1"' : ''}${al ? ` applyAlignment="1"><alignment ${al}/></xf>` : '/>'}`;
+  const xfs = [
+    [0, 0, 0, 0], [0, 1, 2, 0, 'vertical="center" wrapText="1"'], [164, 0, 0, 3, `horizontal="left" ${top}`], [0, 0, 0, 3, `${top} wrapText="1"`], [165, 0, 0, 3, `horizontal="center" ${top}`], [166, 0, 0, 3, top], [167, 0, 0, 3, `horizontal="center" ${top}`],
+    [0, 2, 0, 0, 'vertical="center"'], [0, 3, 0, 0, 'vertical="center"'], [0, 4, 0, 0, 'vertical="center"'], [0, 5, 0, 2, 'vertical="center" wrapText="1"'], [165, 6, 0, 2, 'horizontal="left" vertical="center"'], [0, 7, 0, 1, 'vertical="bottom"'],
+    [0, 8, 0, 2, 'vertical="center"'], [0, 0, 0, 3, top], [0, 0, 0, 3, `horizontal="center" ${top}`], [9, 6, 0, 2, 'horizontal="left" vertical="center"'], [0, 1, 3, 0, 'vertical="center" wrapText="1"'],
+    [0, 11, 0, 2, 'vertical="center" wrapText="1"'], [165, 0, 0, 2, 'horizontal="left" vertical="center"'], [0, 9, 0, 2, 'vertical="center"'], [165, 10, 0, 2, 'horizontal="left" vertical="center"'],
+  ];
+  const dxf = (bg, fg) => `<dxf><font><color rgb="${fg}"/></font><fill><patternFill><bgColor rgb="${bg}"/></patternFill></fill></dxf>`;
+  const dxfs = [dxf('FFFADBD8', 'FF9C0006'), dxf('FFFFF0C2', 'FF7A5300'), dxf('FFDDF1E4', 'FF1E6B3A'), dxf('FFEDEEF0', 'FF5F6368'), dxf('FFEDE4F7', 'FF5B2C83'), dxf('FFDCEBFA', 'FF1F4E79')];
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="4"><numFmt numFmtId="164" formatCode="d mmm yyyy"/><numFmt numFmtId="165" formatCode="#,##0"/><numFmt numFmtId="166" formatCode="#,##0.00"/><numFmt numFmtId="167" formatCode="0&quot;%&quot;"/></numFmts><fonts count="${fonts.length}">${fonts.join('')}</fonts><fills count="${fills.length}">${fills.join('')}</fills><borders count="${borders.length}">${borders.join('')}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.map(xf).join('')}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="${dxfs.length}">${dxfs.join('')}</dxfs><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/></styleSheet>`;
+}
+async function workbookBlob({ overview, sheets }) {
+  const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships', PR = 'http://schemas.openxmlformats.org/package/2006/relationships';
+  const head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', CT = 'application/vnd.openxmlformats-officedocument.spreadsheetml';
+  const sst = sstIndex(), n = sheets.length + 1;
+  // build the sheets first so the shared strings are complete
+  const parts = [{ name: 'xl/worksheets/sheet1.xml', text: overviewXml(overview, sheets, sst) }];
+  sheets.forEach((sh, i) => {
+    parts.push({ name: `xl/worksheets/sheet${i + 2}.xml`, text: sheetXml(sh, sst) });
+    parts.push({ name: `xl/worksheets/_rels/sheet${i + 2}.xml.rels`, text: `${head}<Relationships xmlns="${PR}"><Relationship Id="rId1" Type="${R}/table" Target="../tables/table${i + 1}.xml"/></Relationships>` });
+    parts.push({ name: `xl/tables/table${i + 1}.xml`, text: tableXml(sh, i + 1) });
+  });
+  const names = ['Overview', ...sheets.map(sh => sh.name)];
   const files = [
-    { name: '[Content_Types].xml', text: `${head}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>` },
-    { name: '_rels/.rels', text: `${head}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
-    { name: 'xl/workbook.xml', text: `${head}<workbook xmlns="${NS}" xmlns:r="${R}"><sheets>${sheets.map((sh, i) => `<sheet name="${xmlEsc(sh.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets><definedNames>${sheets.map((sh, i) => `<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">'${xmlEsc(sh.name)}'!$A$1:$${colName(sh.cols.length - 1)}$${sh.rows.length + 1}</definedName>`).join('')}</definedNames></workbook>` },
-    { name: 'xl/_rels/workbook.xml.rels', text: `${head}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="${R}/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length + 1}" Type="${R}/styles" Target="styles.xml"/></Relationships>` },
-    { name: 'xl/styles.xml', text: styles },
-    ...sheets.map((sh, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, text: sheetXml(sh.cols, sh.rows) })),
+    { name: '[Content_Types].xml', text: `${head}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="${CT}.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="${CT}.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="${CT}.sharedStrings+xml"/>${names.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="${CT}.worksheet+xml"/>`).join('')}${sheets.map((_, i) => `<Override PartName="/xl/tables/table${i + 1}.xml" ContentType="${CT}.table+xml"/>`).join('')}<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>` },
+    { name: '_rels/.rels', text: `${head}<Relationships xmlns="${PR}"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>` },
+    { name: 'docProps/core.xml', text: `${head}<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>KYC register</dc:title><dc:creator>${xmlEsc(overview.by)}</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString().slice(0, 19)}Z</dcterms:created></cp:coreProperties>` },
+    { name: 'xl/workbook.xml', text: `${head}<workbook xmlns="${NS}" xmlns:r="${R}"><bookViews><workbookView activeTab="0"/></bookViews><sheets>${names.map((nm, i) => `<sheet name="${xmlEsc(nm)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets><definedNames>${sheets.map((sh, i) => `<definedName name="_xlnm.Print_Titles" localSheetId="${i + 1}">'${xmlEsc(sh.name)}'!$3:$3</definedName>`).join('')}</definedNames></workbook>` },
+    { name: 'xl/_rels/workbook.xml.rels', text: `${head}<Relationships xmlns="${PR}">${names.map((_, i) => `<Relationship Id="rId${i + 1}" Type="${R}/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${n + 1}" Type="${R}/styles" Target="styles.xml"/><Relationship Id="rId${n + 2}" Type="${R}/sharedStrings" Target="sharedStrings.xml"/></Relationships>` },
+    { name: 'xl/styles.xml', text: stylesXml() },
+    ...parts,
+    { name: 'xl/sharedStrings.xml', text: `${head}<sst xmlns="${NS}" count="${sst.list.length}" uniqueCount="${sst.list.length}">${sst.list.map(v => `<si><t xml:space="preserve">${xmlEsc(v)}</t></si>`).join('')}</sst>` },
   ];
   return zipFiles(files);
 }
 const yn = v => (v ? 'Yes' : 'No');
+// colour rules shared by several sheets
+const CF_RISK = [['=', 'High', 'bad'], ['=', 'Medium', 'warn'], ['=', 'Low', 'good']];
+const CF_NO = [['=', 'No', 'warn']];
 function exportSheets(withSar) {
-  const s = S.settings, all = S.clients, by = id => (get(id) || {}).name || '';
-  const each = (fn) => all.flatMap(c => fn(c).map(r => r));
+  const s = S.settings, all = S.clients, A = onBook();
+  const each = fn => all.flatMap(fn);
+  const CF_DAYS = [['<', 0, 'bad'], ['<=', s.lead, 'warn']];
   const sheets = [];
-  sheets.push({ name: 'Read me', cols: [['Item', 26], ['Detail', 100, 'w']], rows: [
-    ['Firm', s.firm || ''], ['Exported', new Date().toLocaleString('en-GB')], ['Exported by', `${me()}, ${s.title}`],
-    ['Clients', String(all.length)], ['What this contains', 'Every record in KYC Refresh Desk except the scanned documents. One sheet per kind of record; each row carries the client ID so sheets can be matched.'],
-    ['Scans', 'Not included. Scanned documents are in the app and in its backup folders.'],
-    ['Suspicious activity', withSar ? 'Included on its own sheet. Confidential to the MLRO.' : 'Not included.'],
-    ['Protect this file', 'This workbook is not encrypted. Keep it on the encrypted USB drive, or in Excel choose File > Info > Protect Workbook > Encrypt with Password.'],
-  ] });
-  sheets.push({ name: 'Clients', cols: [['Client ID', 11], ['Name', 34], ['Type', 12], ['Status', 13], ['Risk rating', 11], ['Suggested rating', 15], ['Risk score', 10, 'n'], ['PEP', 30], ['Country', 22], ['Service', 26], ['Contact', 24], ['Email', 30], ['Phone', 18], ['Address', 34, 'w'], ['Responsible partner', 18], ['Onboarded', 13, 'd'], ['Last review', 13, 'd'], ['Next review', 13, 'd'], ['Days to next review', 12, 'n'], ['Refresh stage', 20], ['Refresh started', 13, 'd'], ['Documents verified', 11, 'n'], ['Documents required', 11, 'n'], ['Paper file ref', 16], ['File location', 22], ['File checked out to', 22], ['Checked out since', 13, 'd'], ['Last screening', 13, 'd'], ['Screening result', 32], ['Relationship ended', 13, 'd'], ['Retention hold', 24], ['Note', 40, 'w']],
-    rows: all.map(c => { const live = !isClosed(c) && c.status !== 'onboarding', dp = docProgress(c); return [c.id, c.name, TYPES[c.type], cap(c.status), cap(c.risk), cap(suggested(c)), raScore(c), c.pep ? pepLabel(c) : 'No', c.country, service(c), c.contact, c.email, c.phone, c.address, c.rm, c.onboarded, c.last, live ? iso(nextReview(c)) : '', live ? daysToReview(c) : '', c.refresh ? stageName(c.refresh.stage) + (c.refresh.kind === 'onboarding' ? ' (onboarding)' : '') : '', c.refresh ? c.refresh.started : '', dp.ok, dp.n, c.file.ref, c.file.loc, c.file.out ? c.file.out.to : '', c.file.out ? c.file.out.since : '', c.screening ? c.screening.date : '', c.screening ? c.screening.result : '', isClosed(c) ? endDate(c) : '', c.hold ? c.hold.reason : '', c.note]; }) });
-  sheets.push({ name: 'Documents', cols: [['Client ID', 11], ['Client', 30], ['Document', 50, 'w'], ['Required', 22], ['Renewed each review', 12], ['Status', 18], ['Received', 13, 'd'], ['Expires', 13, 'd'], ['On paper file', 11], ['Scanned', 10], ['Note', 30, 'w']],
-    rows: each(c => DOC_LIB[c.type].map(t => { const d = c.docs[t.k] || { s: 'missing' }; return [c.id, c.name, t.n, t.when === 'optional' ? 'Optional' : t.when === 'high' ? (c.risk === 'high' ? 'Yes (high risk)' : 'Only if high risk') : 'Yes', yn(t.refresh), DOC_STATUS[docState(d)].n, d.rec, d.exp, yn(d.paper), yn(d.scan), d.note]; })) });
-  sheets.push({ name: 'Connected parties', cols: [['Client ID', 11], ['Client', 30], ['Name', 28], ['Role', 20], ['Ownership %', 11, 'n'], ['ID expires', 13, 'd'], ['ID verified', 11], ['Address verified', 13], ['Requested', 11]],
-    rows: each(c => c.parties.map(p => [c.id, c.name, p.name, p.role, p.pct, p.idExp, yn(p.idOk), yn(p.poaOk), yn(p.req)])) });
-  sheets.push({ name: 'Risk assessment', cols: [['Client ID', 11], ['Client', 30], ...RISK_FACTORS.map(f => [f.n, 26]), ['Score', 8, 'n'], ['Suggested', 11], ['Current rating', 13]],
-    rows: all.map(c => [c.id, c.name, ...RISK_FACTORS.map(f => f.o[f.k === 'pep' ? (isPep(c) ? 1 : 0) : (c.ra[f.k] || 0)][0]), raScore(c), cap(suggested(c)), cap(c.risk)]) });
-  sheets.push({ name: 'Risk decisions', cols: [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Decision', 26], ['From', 16], ['To', 16], ['Reason', 50, 'w'], ['Approved by', 20], ['Recorded by', 20], ['Effect on the file', 50, 'w']],
-    rows: each(c => c.decisions.map(x => [x.d, c.id, c.name, DECISIONS[x.type].done, x.from, x.to, x.reason, x.by, x.recordedBy, (x.effects || []).join('; ')])).sort((a, b) => b[0].localeCompare(a[0])) });
-  sheets.push({ name: 'PEPs', cols: [['Client ID', 11], ['Client', 30], ['Status', 34], ['Connection', 16], ['Name of the PEP', 24], ['Public function', 30], ['Country', 20], ['Type', 22], ['PEP since', 13, 'd'], ['Left office', 13, 'd'], ['Approved by', 20], ['Approved on', 13, 'd'], ['How identified', 22]],
-    rows: all.filter(c => c.pep).map(c => { const p = c.pep; return [c.id, c.name, pepLabel(c), p.relation, p.pepName, p.position, p.country, p.category, p.since, p.ceased, p.approvedBy, p.approvedOn, p.source]; }) });
-  sheets.push({ name: 'Reviews', cols: [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Type', 16], ['Risk rating', 11], ['Approved by', 20], ['Notes', 50, 'w']],
-    rows: each(c => c.reviews.map(r => [r.d, c.id, c.name, r.kind === 'onboarding' ? 'Onboarding' : 'Periodic review', cap(r.risk), r.by, r.note])).sort((a, b) => b[0].localeCompare(a[0])) });
-  sheets.push({ name: 'Screening', cols: [['Client ID', 11], ['Client', 30], ['Date', 13, 'd'], ['Result', 34], ['Lists and sources checked', 50, 'w'], ['By', 20]],
-    rows: all.filter(c => c.screening).map(c => [c.id, c.name, c.screening.date, c.screening.result, c.screening.lists, c.screening.by]) });
-  sheets.push({ name: 'Outreach', cols: [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Type', 18], ['Method', 18], ['Note', 50, 'w'], ['By', 20]],
-    rows: each(c => c.outreach.map(o => [o.d, c.id, c.name, o.kind, o.m, o.note, o.by])).sort((a, b) => b[0].localeCompare(a[0])) });
-  sheets.push({ name: 'Matters', cols: [['Client ID', 11], ['Client', 30], ['Matter ref', 18], ['Type', 26], ['Description', 34, 'w'], ['Value', 14, 'n'], ['Currency', 9], ['Opened', 13, 'd'], ['Status', 9], ['Closed', 13, 'd'], ['Source of funds', 44, 'w'], ['Evidence', 14], ['Fits profile', 13], ['Notes', 30, 'w']],
-    rows: each(c => c.matters.map(m => [c.id, c.name, m.ref, m.type, m.desc, m.value, m.cur, m.opened, cap(m.status), m.closed, m.sof, SOF[m.sofStatus][0], FIT[m.fit][0], m.note])) });
-  sheets.push({ name: 'Audit trail', cols: [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Entry', 90, 'w'], ['By', 20]],
-    rows: each(c => c.history.map(h => [h.d, c.id, c.name, h.t, h.by])).sort((a, b) => b[0].localeCompare(a[0])) });
-  sheets.push({ name: 'Training', cols: [['Name', 24], ['Role', 26], ['Current staff', 12], ['Last training', 13, 'd'], ['Course', 40], ['Next due', 13, 'd'], ['Status', 16]],
-    rows: S.training.staff.map(p => { const x = staffStatus(p); return [p.name, p.role, yn(p.active !== false), x.last ? x.last.d : '', x.last ? x.last.course : '', x.next ? iso(x.next) : '', p.active === false ? 'Left the firm' : x.st[0]]; }) });
-  sheets.push({ name: 'Training sessions', cols: [['Date', 13, 'd'], ['Name', 24], ['Course', 44], ['Delivered by', 20], ['Hours', 8, 'n']],
-    rows: S.training.records.map(r => [r.d, (S.training.staff.find(p => p.id === r.staffId) || {}).name || 'Former staff', r.course, r.provider, r.hours]).sort((a, b) => b[0].localeCompare(a[0])) });
-  sheets.push({ name: 'Destruction log', cols: [['Destroyed', 13, 'd'], ['Client ID', 11], ['Client', 30], ['File ref', 16], ['Relationship ended', 13, 'd'], ['Method', 30], ['Certificate', 20], ['Witness', 20], ['What', 18], ['By', 20]],
-    rows: S.destroyed.map(x => [x.destroyed, x.id, x.name, x.fileRef, x.ended, x.method, x.cert, x.witness, x.digital ? 'Paper and digital' : 'Paper only', x.by]) });
-  sheets.push({ name: 'Backups and tests', cols: [['Date', 13, 'd'], ['Type', 16], ['Detail', 80, 'w']],
-    rows: [...(S.backupLog || []).map(b => [b.d, 'Backup', b.results.join(' · ')]), ...(S.restoreTests || []).map(t => [t.d, 'Restore test', `${t.result} · ${t.where}${t.notes ? ' · ' + t.notes : ''} · ${t.by}`])].sort((a, b) => b[0].localeCompare(a[0])) });
-  if (withSar) sheets.push({ name: 'Suspicious activity', cols: [['Ref', 14], ['Received', 13, 'd'], ['Subject', 28], ['Client ID', 11], ['Reported by', 22], ['How raised', 16], ['Grounds', 60, 'w'], ['Status', 22], ['Decision', 22], ['Decision date', 13, 'd'], ['Reasoning', 60, 'w'], ['Submitted to FIA', 13, 'd'], ['FIA reference', 16], ['Closed', 13, 'd'], ['Notes', 60, 'w']],
-    rows: S.sars.map(x => [x.id, x.received, sarSubject(x), x.clientId, x.reporter, x.how, x.grounds, sarStatus(x)[0], x.decision ? (x.decision.outcome === 'report' ? 'Report to the FIA' : 'Do not report') : '', x.decision ? x.decision.d : '', x.decision ? x.decision.reasoning : '', x.fia ? x.fia.d : '', x.fia ? x.fia.ref : '', x.closed, x.notes.map(n => `${n.d}: ${n.t}`).join('\n')]) });
-  return sheets;
+  const add = (name, group, desc, cols, rows) => {
+    // freeze the columns up to the client's name so it stays in view
+    const k = cols.slice(0, 3).findIndex(c => c[0] === 'Client' || c[0] === 'Name');
+    sheets.push({ name, group, desc, cols, rows, freeze: k + 1 });
+  };
+  add('Clients', 'client', 'One row per client: risk, PEP status, review dates, refresh stage, documents and the paper file.',
+    [['Client ID', 11], ['Name', 34], ['Type', 12], ['Status', 13, '', [['=', 'Restricted', 'bad'], ['=', 'Exited', 'mute'], ['=', 'Declined', 'mute'], ['=', 'Onboarding', 'info']]], ['Risk rating', 11, 'c', CF_RISK], ['Suggested rating', 12, 'c', CF_RISK], ['Risk score', 10, 'n', [['bar']]], ['PEP', 30, '', [['^', 'Former PEP,', 'pep'], ['=', 'Former PEP', 'mute'], ['^', 'PEP', 'pep']]], ['Country', 24], ['Service', 26], ['Contact', 24], ['Email', 30], ['Phone', 17], ['Address', 56], ['Responsible partner', 18], ['Onboarded', 13, 'd'], ['Last review', 13, 'd'], ['Next review', 13, 'd'], ['Days to next review', 12, 'n', CF_DAYS], ['Refresh stage', 22], ['Refresh started', 13, 'd'], ['Documents verified', 11, 'n'], ['Documents required', 11, 'n'], ['Paper file ref', 15], ['File location', 22], ['File checked out to', 20], ['Checked out since', 13, 'd'], ['Last screening', 13, 'd'], ['Screening result', 32], ['Relationship ended', 13, 'd'], ['Retention hold', 24], ['Note', 44, 'w']],
+    all.map(c => { const live = !isClosed(c) && c.status !== 'onboarding', dp = docProgress(c); return [c.id, c.name, TYPES[c.type], cap(c.status), cap(c.risk), cap(suggested(c)), raScore(c), c.pep ? pepLabel(c) : 'No', c.country, service(c), c.contact, c.email, c.phone, (c.address || '').replace(/\s*\n\s*/g, ', '), c.rm, c.onboarded, c.last, live ? iso(nextReview(c)) : '', live ? daysToReview(c) : '', c.refresh ? stageName(c.refresh.stage) + (c.refresh.kind === 'onboarding' ? ' (onboarding)' : '') : '', c.refresh ? c.refresh.started : '', dp.ok, dp.n, c.file.ref, c.file.loc, c.file.out ? c.file.out.to : '', c.file.out ? c.file.out.since : '', c.screening ? c.screening.date : '', c.screening ? c.screening.result : '', isClosed(c) ? endDate(c) : '', c.hold ? c.hold.reason : '', c.note]; }));
+  add('Documents', 'client', 'Every document on each client\'s checklist, with its status, dates and whether it is on the paper file and scanned.',
+    [['Client ID', 11], ['Client', 30], ['Document', 46, 'w'], ['Required', 18], ['Renewed each review', 11, 'c'], ['Status', 14, '', [['=', 'Verified', 'good'], ['=', 'Expired', 'bad'], ['=', 'Outstanding', 'warn'], ['=', 'To verify', 'warn'], ['=', 'Requested', 'info']]], ['Received', 13, 'd'], ['Expires', 13, 'd'], ['On paper file', 10, 'c', CF_NO], ['Scanned', 10, 'c', [['=', 'No', 'mute']]], ['Note', 34, 'w']],
+    each(c => DOC_LIB[c.type].map(t => { const d = c.docs[t.k] || { s: 'missing' }; return [c.id, c.name, t.n, t.when === 'optional' ? 'Optional' : t.when === 'high' ? (c.risk === 'high' ? 'Yes (high risk)' : 'Only if high risk') : 'Yes', yn(t.refresh), DOC_STATUS[docState(d)].n, d.rec, d.exp, yn(d.paper), yn(d.scan), d.note]; })));
+  add('Connected parties', 'client', 'Directors, owners, trustees and others connected to each client, with their verification.',
+    [['Client ID', 11], ['Client', 30], ['Name', 28], ['Role', 20], ['Ownership %', 11, 'p', [['bar']]], ['ID expires', 13, 'd'], ['ID verified', 10, 'c', CF_NO], ['Address verified', 10, 'c', CF_NO], ['Requested', 10, 'c']],
+    each(c => c.parties.map(p => [c.id, c.name, p.name, p.role, p.pct, p.idExp, yn(p.idOk), yn(p.poaOk), yn(p.req)])));
+  add('Risk assessment', 'client', 'The answer to each risk factor, the score, the rating it suggests and the rating in force.',
+    [['Client ID', 11], ['Client', 30], ...RISK_FACTORS.map(f => [f.n, 24, 'w']), ['Score', 8, 'n', [['bar']]], ['Suggested', 11, 'c', CF_RISK], ['Current rating', 11, 'c', CF_RISK]],
+    all.map(c => [c.id, c.name, ...RISK_FACTORS.map(f => f.o[f.k === 'pep' ? (isPep(c) ? 1 : 0) : (c.ra[f.k] || 0)][0]), raScore(c), cap(suggested(c)), cap(c.risk)]));
+  add('PEPs', 'client', 'Clients who are or were politically exposed, with the public function and senior management approval.',
+    [['Client ID', 11], ['Client', 30], ['Status', 34, '', [['^', 'Former PEP,', 'pep'], ['=', 'Former PEP', 'mute'], ['^', 'PEP', 'pep']]], ['Connection', 16], ['Name of the PEP', 24], ['Public function', 30], ['Country', 20], ['Type', 22], ['PEP since', 13, 'd'], ['Left office', 13, 'd'], ['Approved by', 20], ['Approved on', 13, 'd'], ['How identified', 22]],
+    all.filter(c => c.pep).map(c => { const p = c.pep; return [c.id, c.name, pepLabel(c), p.relation, p.pepName, p.position, p.country, p.category, p.since, p.ceased, p.approvedBy, p.approvedOn, p.source]; }));
+  add('Screening', 'client', 'The latest sanctions, PEP and adverse media screening for each client.',
+    [['Client ID', 11], ['Client', 30], ['Date', 13, 'd'], ['Result', 34, '', [['^', 'Clear', 'good'], ['^', 'Potential', 'warn'], ['^', 'PEP', 'pep'], ['^', 'True', 'bad']]], ['Lists and sources checked', 50, 'w'], ['By', 20]],
+    all.filter(c => c.screening).map(c => [c.id, c.name, c.screening.date, c.screening.result, c.screening.lists, c.screening.by]));
+  add('Risk decisions', 'activity', 'PEP changes, rating changes, restrictions and exits, newest first, with the reason and approver.',
+    [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Decision', 26], ['From', 16, '', CF_RISK], ['To', 16, '', CF_RISK], ['Reason', 50, 'w'], ['Approved by', 20], ['Recorded by', 20], ['Effect on the file', 50, 'w']],
+    each(c => c.decisions.map(x => [x.d, c.id, c.name, DECISIONS[x.type].done, x.from, x.to, x.reason, x.by, x.recordedBy, (x.effects || []).join('; ')])).sort((a, b) => b[0].localeCompare(a[0])));
+  add('Reviews', 'activity', 'Completed onboardings and periodic reviews, newest first, with the rating approved.',
+    [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Type', 16], ['Risk rating', 11, 'c', CF_RISK], ['Approved by', 20], ['Notes', 50, 'w']],
+    each(c => c.reviews.map(r => [r.d, c.id, c.name, r.kind === 'onboarding' ? 'Onboarding' : 'Periodic review', cap(r.risk), r.by, r.note])).sort((a, b) => b[0].localeCompare(a[0])));
+  add('Outreach', 'activity', 'Requests, reminders, final notices and other contact with clients, newest first.',
+    [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Type', 18], ['Method', 18], ['Note', 50, 'w'], ['By', 20]],
+    each(c => c.outreach.map(o => [o.d, c.id, c.name, o.kind, o.m, o.note, o.by])).sort((a, b) => b[0].localeCompare(a[0])));
+  add('Matters', 'activity', 'Transactions for each client: value, source of funds, evidence and whether it fits the client\'s profile.',
+    [['Client ID', 11], ['Client', 30], ['Matter ref', 16], ['Type', 24], ['Description', 34, 'w'], ['Value', 14, 'm'], ['Currency', 9, 'c'], ['Opened', 13, 'd'], ['Status', 9, '', [['=', 'Closed', 'mute']]], ['Closed', 13, 'd'], ['Source of funds', 44, 'w'], ['Evidence', 13, '', [['=', 'Verified', 'good'], ['=', 'Outstanding', 'warn'], ['=', 'Requested', 'info'], ['=', 'Not required', 'mute']]], ['Fits profile', 13, '', [['=', 'Fits profile', 'good'], ['=', 'Unclear', 'warn'], ['=', "Doesn't fit", 'bad']]], ['Notes', 30, 'w']],
+    each(c => c.matters.map(m => [c.id, c.name, m.ref, m.type, m.desc, m.value, m.cur, m.opened, cap(m.status), m.closed, m.sof, SOF[m.sofStatus][0], FIT[m.fit][0], m.note])));
+  add('Audit trail', 'activity', 'Every entry from every client\'s audit trail, newest first.',
+    [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Entry', 90, 'w'], ['By', 20]],
+    each(c => c.history.map(h => [h.d, c.id, c.name, h.t, h.by])).sort((a, b) => b[0].localeCompare(a[0])));
+  add('Training', 'firm', `Staff AML/CFT training: last session and when the refresher is due (every ${plural(s.trainingMonths, 'month')}).`,
+    [['Name', 24], ['Role', 26], ['Current staff', 10, 'c'], ['Last training', 13, 'd'], ['Course', 40], ['Next due', 13, 'd'], ['Status', 14, '', [['=', 'Overdue', 'bad'], ['=', 'Never trained', 'bad'], ['=', 'Due soon', 'warn'], ['=', 'Up to date', 'good'], ['=', 'Left the firm', 'mute']]]],
+    S.training.staff.map(p => { const x = staffStatus(p); return [p.name, p.role, yn(p.active !== false), x.last ? x.last.d : '', x.last ? x.last.course : '', x.next ? iso(x.next) : '', p.active === false ? 'Left the firm' : x.st[0]]; }));
+  add('Training sessions', 'firm', 'Each training session attended, newest first.',
+    [['Date', 13, 'd'], ['Name', 24], ['Course', 44], ['Delivered by', 20], ['Hours', 8, 'n']],
+    S.training.records.map(r => [r.d, (S.training.staff.find(p => p.id === r.staffId) || {}).name || 'Former staff', r.course, r.provider, r.hours]).sort((a, b) => b[0].localeCompare(a[0])));
+  add('Destruction log', 'firm', 'Files destroyed at the end of the retention period. Kept permanently.',
+    [['Destroyed', 13, 'd'], ['Client ID', 11], ['Client', 30], ['File ref', 15], ['Relationship ended', 13, 'd'], ['Method', 30], ['Certificate', 20], ['Witness', 20], ['What', 18], ['By', 20]],
+    S.destroyed.map(x => [x.destroyed, x.id, x.name, x.fileRef, x.ended, x.method, x.cert, x.witness, x.digital ? 'Paper and digital' : 'Paper only', x.by]));
+  add('Backups and tests', 'firm', 'Backups saved and restore tests recorded, newest first.',
+    [['Date', 13, 'd'], ['Type', 14, '', [['=', 'Restore test', 'info']]], ['Detail', 90, 'w']],
+    [...(S.backupLog || []).map(b => [b.d, 'Backup', b.results.join(' · ')]), ...(S.restoreTests || []).map(t => [t.d, 'Restore test', `${t.result} · ${t.where}${t.notes ? ' · ' + t.notes : ''} · ${t.by}`])].sort((a, b) => b[0].localeCompare(a[0])));
+  if (withSar) add('Suspicious activity', 'sar', 'Internal suspicious activity reports and the MLRO\'s decisions. Confidential to the MLRO.',
+    [['Ref', 13], ['Received', 13, 'd'], ['Subject', 28], ['Client ID', 11], ['Reported by', 20], ['How raised', 16], ['Grounds', 60, 'w'], ['Status', 22, '', [['=', 'Awaiting decision', 'bad'], ['=', 'Report not yet submitted', 'bad'], ['=', 'Reported to FIA', 'info'], ['=', 'Not reported', 'good'], ['=', 'Closed', 'mute']]], ['Decision', 20], ['Decision date', 13, 'd'], ['Reasoning', 60, 'w'], ['Submitted to FIA', 13, 'd'], ['FIA reference', 16], ['Closed', 13, 'd'], ['Notes', 60, 'w']],
+    S.sars.map(x => [x.id, x.received, sarSubject(x), x.clientId, x.reporter, x.how, x.grounds, sarStatus(x)[0], x.decision ? (x.decision.outcome === 'report' ? 'Report to the FIA' : 'Do not report') : '', x.decision ? x.decision.d : '', x.decision ? x.decision.reasoning : '', x.fia ? x.fia.d : '', x.fia ? x.fia.ref : '', x.closed, x.notes.map(n => `${n.d}: ${n.t}`).join('\n')]));
+  // the figures at the top of the Overview sheet
+  const ds = A.map(daysToReview), overdue = ds.filter(d => d < 0).length, risk = k => A.filter(c => c.risk === k).length;
+  const share = k => (A.length ? `${Math.round(risk(k) / A.length * 100)}% of clients on the book` : '');
+  let need = 0, ok = 0, onPaper = 0, scanned = 0;
+  A.forEach(c => { const dp = docProgress(c); need += dp.n; ok += dp.ok; Object.values(c.docs).forEach(d => { if (d && d.paper) { onPaper++; if (d.scan) scanned++; } }); });
+  const overview = {
+    by: me(),
+    sub: `${s.firm ? s.firm + ' · ' : ''}Exported ${new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} by ${me()}, ${s.title}`,
+    figures: [
+      ['Clients on the book', A.length, `${A.filter(c => c.status === 'active').length} active, ${A.filter(c => c.status === 'restricted').length} restricted`],
+      ['High risk', risk('high'), share('high')],
+      ['Medium risk', risk('medium'), share('medium')],
+      ['Low risk', risk('low'), share('low')],
+      ['PEPs', A.filter(isPep).length, 'Current PEPs, and former PEPs still under enhanced measures'],
+      ['Reviews overdue', overdue, overdue ? 'Past the next review date' : 'None', overdue ? XS.figBad : XS.fig],
+      [`Reviews due in ${s.lead} days`, ds.filter(d => d >= 0 && d <= s.lead).length, 'Due soon, not yet overdue'],
+      ['Reviews in progress', A.filter(c => c.refresh).length, `${A.filter(c => c.refresh && c.refresh.stage === 'awaiting').length} waiting on the client`],
+      ['Onboarding in progress', all.filter(c => c.status === 'onboarding').length, 'New clients not yet accepted'],
+      ['Documents verified', need ? ok / need : 0, `${ok.toLocaleString('en-GB')} of ${need.toLocaleString('en-GB')} required documents for clients on the book`, XS.figPct],
+      ['Paper documents scanned', onPaper ? scanned / onPaper : 0, `${scanned.toLocaleString('en-GB')} of ${onPaper.toLocaleString('en-GB')} documents on paper files`, XS.figPct],
+      ['Former clients still retained', all.filter(isClosed).length, 'Exited or declined, inside the retention period'],
+    ],
+    notes: [
+      ['Pivot tables', 'Each sheet is a named table (for example tblClients). Click anywhere in a table, then Insert > PivotTable. New rows are picked up automatically when you refresh.'],
+      ['Matching sheets', 'Every row carries the client ID, so sheets can be joined with XLOOKUP or in Power Query.'],
+      ['Scans', 'Not included. Scanned documents stay in the app and in its backup folders.'],
+      ['Suspicious activity', withSar ? 'Included on its own sheet. Confidential to the MLRO.' : 'Not included.'],
+      ['Protect this file', 'This workbook is not encrypted. Keep it on the encrypted USB drive, or in Excel choose File > Info > Protect Workbook > Encrypt with Password.'],
+    ],
+  };
+  return { overview, sheets };
 }
 async function writeBlob(dir, name, blob) { const fh = await dir.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(blob); await w.close(); }
 function excelDue() {
@@ -2977,7 +3111,7 @@ function excelBanner() {
 }
 function modalExcel() {
   const usb = FS && destName('usb');
-  const body = `<p>Saves every record to one Excel workbook: clients, documents, connected parties, risk assessments, decisions, PEPs, reviews, screening, outreach, matters, the audit trail, training and retention. Scans are not included. Each sheet carries the client ID, so the sheets can be matched up.</p>
+  const body = `<p>Saves every record to one Excel workbook: clients, documents, connected parties, risk assessments, decisions, PEPs, reviews, screening, outreach, matters, the audit trail, training and retention. Scans are not included. It opens on an overview of key figures; every other sheet is a named Excel table, ready for filters, sorting and pivot tables, and carries the client ID so sheets can be matched up.</p>
     <p class="callout warn">The workbook is not encrypted. Keep it on the encrypted USB drive, or protect it in Excel: File &gt; Info &gt; Protect Workbook &gt; Encrypt with Password.</p>
     <label class="check" for="xl-sar"><input type="checkbox" id="xl-sar"> Include the suspicious activity register (confidential to the MLRO)</label>
     ${usb ? `<label class="check" for="xl-usb"><input type="checkbox" id="xl-usb" checked> Also save it to the USB backup folder, "${esc(destName('usb'))}"</label>` : ''}`;
