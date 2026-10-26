@@ -578,7 +578,7 @@ const DEFAULT_SETTINGS = {
   screen: { high: 6, medium: 12, low: 12 },
   lead: 90, deadline: 30, chase: [14, 30, 60], expiryWarn: 60, fileOutDays: 14, pepTail: 12,
   assistant: '', lockMins: 10, reportNames: true,
-  backupDays: 1, retentionYears: 5, trainingMonths: 12, annualSar: true, restoreMonths: 3,
+  backupDays: 1, retentionYears: 5, trainingMonths: 12, annualSar: true, restoreMonths: 3, excelDays: 7,
 };
 
 /* =========================================================
@@ -1020,6 +1020,7 @@ function viewOverview() {
   ${sampleBanner()}
   ${backupBanner()}
   ${restoreBanner()}
+  ${excelBanner()}
   <div class="page-head">
     <div><div class="eyebrow">${fmtD(TODAY)}</div><h1>Periodic review overview</h1>
     <p class="lede">What is overdue, what is coming up, and who you are waiting on. Review dates follow each client's risk rating: high every ${s.cycles.high} months, medium every ${s.cycles.medium}, low every ${s.cycles.low}.</p></div>
@@ -1450,6 +1451,7 @@ function viewSettings() {
     <label class="field" for="s-trn">AML/CFT refresher training every, months${num('s-trn', 'trainingMonths', s.trainingMonths, 1, 60)}</label>
     <label class="field" for="s-bk">Remind me to back up after, days${num('s-bk', 'backupDays', s.backupDays, 1, 60)}</label>
     <label class="field" for="s-rt">Test a restore every, months${num('s-rt', 'restoreMonths', s.restoreMonths, 1, 24)}</label>
+    <label class="field" for="s-xl">Remind me to export to Excel after, days${num('s-xl', 'excelDays', s.excelDays, 1, 60)}</label>
   </div></section>
   <section class="card"><header><div><h2>Chasing clients</h2><p>Days after the first request</p></div></header><div class="body grid3">
     <label class="field" for="s-c1">First reminder${num('s-c1', 'chase.0', s.chase[0], 1, 180)}</label>
@@ -1464,6 +1466,7 @@ function viewSettings() {
       ${FRAMED ? '<button class="btn" data-act="restore">Restore from backup files</button>' : ''}
       ${FRAMED ? '' : '<button class="btn" data-act="exportcsv">Export register (CSV)</button>'}
       <button class="btn" data-act="importcsv">Import clients from CSV</button>
+      ${FRAMED ? '' : '<button class="btn primary" data-act="excel">Export everything to Excel</button>'}
     </div>
     <div class="row">
       <button class="btn" data-act="loadsample">Load sample clients</button>
@@ -2065,7 +2068,7 @@ function procedureSheet() {
     <h4>Weekly routine</h4>
     <ul><li><b>Monday:</b> the MLRO checks the app's worklist, prints the work pack and letters, and checks the files out to ${a}.</li>
       <li><b>During the week:</b> ${a} sends letters, phones clients, logs contact and files documents as they arrive.</li>
-      <li><b>When a file's task is done, and at the latest on Friday:</b> the file goes in the Ready for review tray with its hand-back slip. The MLRO updates the app, verifies, scans, reprints the cover sheet, refiles and saves the backup.</li></ul>
+      <li><b>When a file's task is done, and at the latest on Friday:</b> the file goes in the Ready for review tray with its hand-back slip. The MLRO updates the app, verifies, scans, reprints the cover sheet, refiles, saves the backup and exports the records to Excel.</li></ul>
     <h4>First checks when documents arrive</h4>
     <ul><li>Date-stamp it and tick it on the cover sheet.</li>
       <li>Copies of ID and address documents are certified as true copies, with the certifier's signature, name, position, contact details and date.</li>
@@ -2165,7 +2168,7 @@ function viewWeekly() {
   const ws = repWeek, rep = S.reports[ws] || {}, cur = ws === iso(mondayOf(TODAY)), w = weekOf(ws);
   const saved = Object.keys(S.reports).filter(k => S.reports[k].snap).sort().reverse();
   return `<div class="page-head"><div><h1>Weekly report</h1><p class="lede">What was done in the week and where things stand, ready to print for management. Activity comes from the audit trail, so it is complete for any week.</p></div>
-    <div class="row">${FRAMED ? '' : '<button class="btn primary" data-act="printrep">Print report</button>'}</div></div>
+    <div class="row">${FRAMED ? '' : '<button class="btn" data-act="excel">Export to Excel</button><button class="btn primary" data-act="printrep">Print report</button>'}</div></div>
   <section class="card"><div class="body" style="padding-top:18px;display:grid;gap:14px">
     <div class="row" style="justify-content:space-between">
       <div class="row"><div class="seg" role="group" aria-label="Report"><button data-act="repmode" data-m="week" aria-pressed="true">Weekly</button><button data-act="repmode" data-m="year" aria-pressed="false">Annual</button></div>
@@ -2836,6 +2839,166 @@ function backupCard() {
   </div></section>`;
 }
 
+
+/* ---------- Excel export: every record except the scans, as a fail-safe outside the app ----------
+   The offline lock blocks outside libraries, so the workbook is written here directly: SpreadsheetML
+   parts in a zip, compressed with the browser's built-in deflate (stored as-is where that is missing). */
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+async function deflate(data) {
+  if (typeof CompressionStream !== 'function') return null;
+  try { return new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()); } catch (e) { return null; }
+}
+async function zipFiles(files) {
+  const now = new Date(), parts = [], central = [];
+  const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1), date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  let offset = 0;
+  for (const f of files) {
+    const name = te.encode(f.name), raw = te.encode(f.text), crc = crc32(raw), packed = await deflate(raw);
+    const data = packed || raw, method = packed ? 8 : 0;
+    const h = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, method, 2], [10, time, 2], [12, date, 2], [14, crc, 4], [18, data.length, 4], [22, raw.length, 4], [26, name.length, 2]]
+      .forEach(([o, v, n]) => (n === 4 ? h.setUint32(o, v, true) : h.setUint16(o, v, true)));
+    parts.push(new Uint8Array(h.buffer), name, data);
+    const c = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, method, 2], [12, time, 2], [14, date, 2], [16, crc, 4], [20, data.length, 4], [24, raw.length, 4], [28, name.length, 2], [42, offset, 4]]
+      .forEach(([o, v, n]) => (n === 4 ? c.setUint32(o, v, true) : c.setUint16(o, v, true)));
+    central.push(new Uint8Array(c.buffer), name);
+    offset += 30 + name.length + data.length;
+  }
+  const size = central.reduce((a, b) => a + b.length, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, size, true); e.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+const xmlEsc = v => String(v).slice(0, 32000).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+const colName = i => { let s = ''; for (let n = i + 1; n; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };
+const xlDate = d => (Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10)) - Date.UTC(1899, 11, 30)) / 864e5;
+// a column is [header, width, kind]: kind 'd' = date, 'n' = number, 'w' = wrapped text, otherwise text
+function sheetXml(cols, rows) {
+  const out = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">', `<dimension ref="A1:${colName(cols.length - 1)}${rows.length + 1}"/>`, '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'];
+  cols.forEach((c, i) => out.push(`<col min="${i + 1}" max="${i + 1}" width="${c[1]}" customWidth="1"/>`));
+  out.push('</cols><sheetData><row r="1">');
+  cols.forEach((c, i) => out.push(`<c r="${colName(i)}1" t="inlineStr" s="1"><is><t>${xmlEsc(c[0])}</t></is></c>`));
+  out.push('</row>');
+  rows.forEach((r, ri) => {
+    const rn = ri + 2;
+    out.push(`<row r="${rn}">`);
+    r.forEach((v, i) => {
+      if (v === '' || v == null) return;
+      const ref = colName(i) + rn, k = cols[i][2];
+      if (k === 'd' && /^\d{4}-\d{2}-\d{2}/.test(v)) out.push(`<c r="${ref}" s="2"><v>${xlDate(v)}</v></c>`);
+      else if (k === 'n' && isFinite(+v)) out.push(`<c r="${ref}"><v>${+v}</v></c>`);
+      else out.push(`<c r="${ref}" t="inlineStr"${k === 'w' ? ' s="3"' : ''}><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`);
+    });
+    out.push('</row>');
+  });
+  out.push(`</sheetData><autoFilter ref="A1:${colName(cols.length - 1)}${rows.length + 1}"/></worksheet>`);
+  return out.join('');
+}
+async function workbookBlob(sheets) {
+  const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  const head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  const styles = `${head}<styleSheet xmlns="${NS}"><numFmts count="1"><numFmt numFmtId="164" formatCode="d mmm yyyy"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDEBF7"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const files = [
+    { name: '[Content_Types].xml', text: `${head}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>` },
+    { name: '_rels/.rels', text: `${head}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+    { name: 'xl/workbook.xml', text: `${head}<workbook xmlns="${NS}" xmlns:r="${R}"><sheets>${sheets.map((sh, i) => `<sheet name="${xmlEsc(sh.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets><definedNames>${sheets.map((sh, i) => `<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">'${xmlEsc(sh.name)}'!$A$1:$${colName(sh.cols.length - 1)}$${sh.rows.length + 1}</definedName>`).join('')}</definedNames></workbook>` },
+    { name: 'xl/_rels/workbook.xml.rels', text: `${head}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="${R}/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length + 1}" Type="${R}/styles" Target="styles.xml"/></Relationships>` },
+    { name: 'xl/styles.xml', text: styles },
+    ...sheets.map((sh, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, text: sheetXml(sh.cols, sh.rows) })),
+  ];
+  return zipFiles(files);
+}
+const yn = v => (v ? 'Yes' : 'No');
+function exportSheets(withSar) {
+  const s = S.settings, all = S.clients, by = id => (get(id) || {}).name || '';
+  const each = (fn) => all.flatMap(c => fn(c).map(r => r));
+  const sheets = [];
+  sheets.push({ name: 'Read me', cols: [['Item', 26], ['Detail', 100, 'w']], rows: [
+    ['Firm', s.firm || ''], ['Exported', new Date().toLocaleString('en-GB')], ['Exported by', `${me()}, ${s.title}`],
+    ['Clients', String(all.length)], ['What this contains', 'Every record in KYC Refresh Desk except the scanned documents. One sheet per kind of record; each row carries the client ID so sheets can be matched.'],
+    ['Scans', 'Not included. Scanned documents are in the app and in its backup folders.'],
+    ['Suspicious activity', withSar ? 'Included on its own sheet. Confidential to the MLRO.' : 'Not included.'],
+    ['Protect this file', 'This workbook is not encrypted. Keep it on the encrypted USB drive, or in Excel choose File > Info > Protect Workbook > Encrypt with Password.'],
+  ] });
+  sheets.push({ name: 'Clients', cols: [['Client ID', 11], ['Name', 34], ['Type', 12], ['Status', 13], ['Risk rating', 11], ['Suggested rating', 15], ['Risk score', 10, 'n'], ['PEP', 30], ['Country', 22], ['Service', 26], ['Contact', 24], ['Email', 30], ['Phone', 18], ['Address', 34, 'w'], ['Responsible partner', 18], ['Onboarded', 13, 'd'], ['Last review', 13, 'd'], ['Next review', 13, 'd'], ['Days to next review', 12, 'n'], ['Refresh stage', 20], ['Refresh started', 13, 'd'], ['Documents verified', 11, 'n'], ['Documents required', 11, 'n'], ['Paper file ref', 16], ['File location', 22], ['File checked out to', 22], ['Checked out since', 13, 'd'], ['Last screening', 13, 'd'], ['Screening result', 32], ['Relationship ended', 13, 'd'], ['Retention hold', 24], ['Note', 40, 'w']],
+    rows: all.map(c => { const live = !isClosed(c) && c.status !== 'onboarding', dp = docProgress(c); return [c.id, c.name, TYPES[c.type], cap(c.status), cap(c.risk), cap(suggested(c)), raScore(c), c.pep ? pepLabel(c) : 'No', c.country, service(c), c.contact, c.email, c.phone, c.address, c.rm, c.onboarded, c.last, live ? iso(nextReview(c)) : '', live ? daysToReview(c) : '', c.refresh ? stageName(c.refresh.stage) + (c.refresh.kind === 'onboarding' ? ' (onboarding)' : '') : '', c.refresh ? c.refresh.started : '', dp.ok, dp.n, c.file.ref, c.file.loc, c.file.out ? c.file.out.to : '', c.file.out ? c.file.out.since : '', c.screening ? c.screening.date : '', c.screening ? c.screening.result : '', isClosed(c) ? endDate(c) : '', c.hold ? c.hold.reason : '', c.note]; }) });
+  sheets.push({ name: 'Documents', cols: [['Client ID', 11], ['Client', 30], ['Document', 50, 'w'], ['Required', 22], ['Renewed each review', 12], ['Status', 18], ['Received', 13, 'd'], ['Expires', 13, 'd'], ['On paper file', 11], ['Scanned', 10], ['Note', 30, 'w']],
+    rows: each(c => DOC_LIB[c.type].map(t => { const d = c.docs[t.k] || { s: 'missing' }; return [c.id, c.name, t.n, t.when === 'optional' ? 'Optional' : t.when === 'high' ? (c.risk === 'high' ? 'Yes (high risk)' : 'Only if high risk') : 'Yes', yn(t.refresh), DOC_STATUS[docState(d)].n, d.rec, d.exp, yn(d.paper), yn(d.scan), d.note]; })) });
+  sheets.push({ name: 'Connected parties', cols: [['Client ID', 11], ['Client', 30], ['Name', 28], ['Role', 20], ['Ownership %', 11, 'n'], ['ID expires', 13, 'd'], ['ID verified', 11], ['Address verified', 13], ['Requested', 11]],
+    rows: each(c => c.parties.map(p => [c.id, c.name, p.name, p.role, p.pct, p.idExp, yn(p.idOk), yn(p.poaOk), yn(p.req)])) });
+  sheets.push({ name: 'Risk assessment', cols: [['Client ID', 11], ['Client', 30], ...RISK_FACTORS.map(f => [f.n, 26]), ['Score', 8, 'n'], ['Suggested', 11], ['Current rating', 13]],
+    rows: all.map(c => [c.id, c.name, ...RISK_FACTORS.map(f => f.o[f.k === 'pep' ? (isPep(c) ? 1 : 0) : (c.ra[f.k] || 0)][0]), raScore(c), cap(suggested(c)), cap(c.risk)]) });
+  sheets.push({ name: 'Risk decisions', cols: [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Decision', 26], ['From', 16], ['To', 16], ['Reason', 50, 'w'], ['Approved by', 20], ['Recorded by', 20], ['Effect on the file', 50, 'w']],
+    rows: each(c => c.decisions.map(x => [x.d, c.id, c.name, DECISIONS[x.type].done, x.from, x.to, x.reason, x.by, x.recordedBy, (x.effects || []).join('; ')])).sort((a, b) => b[0].localeCompare(a[0])) });
+  sheets.push({ name: 'PEPs', cols: [['Client ID', 11], ['Client', 30], ['Status', 34], ['Connection', 16], ['Name of the PEP', 24], ['Public function', 30], ['Country', 20], ['Type', 22], ['PEP since', 13, 'd'], ['Left office', 13, 'd'], ['Approved by', 20], ['Approved on', 13, 'd'], ['How identified', 22]],
+    rows: all.filter(c => c.pep).map(c => { const p = c.pep; return [c.id, c.name, pepLabel(c), p.relation, p.pepName, p.position, p.country, p.category, p.since, p.ceased, p.approvedBy, p.approvedOn, p.source]; }) });
+  sheets.push({ name: 'Reviews', cols: [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Type', 16], ['Risk rating', 11], ['Approved by', 20], ['Notes', 50, 'w']],
+    rows: each(c => c.reviews.map(r => [r.d, c.id, c.name, r.kind === 'onboarding' ? 'Onboarding' : 'Periodic review', cap(r.risk), r.by, r.note])).sort((a, b) => b[0].localeCompare(a[0])) });
+  sheets.push({ name: 'Screening', cols: [['Client ID', 11], ['Client', 30], ['Date', 13, 'd'], ['Result', 34], ['Lists and sources checked', 50, 'w'], ['By', 20]],
+    rows: all.filter(c => c.screening).map(c => [c.id, c.name, c.screening.date, c.screening.result, c.screening.lists, c.screening.by]) });
+  sheets.push({ name: 'Outreach', cols: [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Type', 18], ['Method', 18], ['Note', 50, 'w'], ['By', 20]],
+    rows: each(c => c.outreach.map(o => [o.d, c.id, c.name, o.kind, o.m, o.note, o.by])).sort((a, b) => b[0].localeCompare(a[0])) });
+  sheets.push({ name: 'Matters', cols: [['Client ID', 11], ['Client', 30], ['Matter ref', 18], ['Type', 26], ['Description', 34, 'w'], ['Value', 14, 'n'], ['Currency', 9], ['Opened', 13, 'd'], ['Status', 9], ['Closed', 13, 'd'], ['Source of funds', 44, 'w'], ['Evidence', 14], ['Fits profile', 13], ['Notes', 30, 'w']],
+    rows: each(c => c.matters.map(m => [c.id, c.name, m.ref, m.type, m.desc, m.value, m.cur, m.opened, cap(m.status), m.closed, m.sof, SOF[m.sofStatus][0], FIT[m.fit][0], m.note])) });
+  sheets.push({ name: 'Audit trail', cols: [['Date', 13, 'd'], ['Client ID', 11], ['Client', 30], ['Entry', 90, 'w'], ['By', 20]],
+    rows: each(c => c.history.map(h => [h.d, c.id, c.name, h.t, h.by])).sort((a, b) => b[0].localeCompare(a[0])) });
+  sheets.push({ name: 'Training', cols: [['Name', 24], ['Role', 26], ['Current staff', 12], ['Last training', 13, 'd'], ['Course', 40], ['Next due', 13, 'd'], ['Status', 16]],
+    rows: S.training.staff.map(p => { const x = staffStatus(p); return [p.name, p.role, yn(p.active !== false), x.last ? x.last.d : '', x.last ? x.last.course : '', x.next ? iso(x.next) : '', p.active === false ? 'Left the firm' : x.st[0]]; }) });
+  sheets.push({ name: 'Training sessions', cols: [['Date', 13, 'd'], ['Name', 24], ['Course', 44], ['Delivered by', 20], ['Hours', 8, 'n']],
+    rows: S.training.records.map(r => [r.d, (S.training.staff.find(p => p.id === r.staffId) || {}).name || 'Former staff', r.course, r.provider, r.hours]).sort((a, b) => b[0].localeCompare(a[0])) });
+  sheets.push({ name: 'Destruction log', cols: [['Destroyed', 13, 'd'], ['Client ID', 11], ['Client', 30], ['File ref', 16], ['Relationship ended', 13, 'd'], ['Method', 30], ['Certificate', 20], ['Witness', 20], ['What', 18], ['By', 20]],
+    rows: S.destroyed.map(x => [x.destroyed, x.id, x.name, x.fileRef, x.ended, x.method, x.cert, x.witness, x.digital ? 'Paper and digital' : 'Paper only', x.by]) });
+  sheets.push({ name: 'Backups and tests', cols: [['Date', 13, 'd'], ['Type', 16], ['Detail', 80, 'w']],
+    rows: [...(S.backupLog || []).map(b => [b.d, 'Backup', b.results.join(' · ')]), ...(S.restoreTests || []).map(t => [t.d, 'Restore test', `${t.result} · ${t.where}${t.notes ? ' · ' + t.notes : ''} · ${t.by}`])].sort((a, b) => b[0].localeCompare(a[0])) });
+  if (withSar) sheets.push({ name: 'Suspicious activity', cols: [['Ref', 14], ['Received', 13, 'd'], ['Subject', 28], ['Client ID', 11], ['Reported by', 22], ['How raised', 16], ['Grounds', 60, 'w'], ['Status', 22], ['Decision', 22], ['Decision date', 13, 'd'], ['Reasoning', 60, 'w'], ['Submitted to FIA', 13, 'd'], ['FIA reference', 16], ['Closed', 13, 'd'], ['Notes', 60, 'w']],
+    rows: S.sars.map(x => [x.id, x.received, sarSubject(x), x.clientId, x.reporter, x.how, x.grounds, sarStatus(x)[0], x.decision ? (x.decision.outcome === 'report' ? 'Report to the FIA' : 'Do not report') : '', x.decision ? x.decision.d : '', x.decision ? x.decision.reasoning : '', x.fia ? x.fia.d : '', x.fia ? x.fia.ref : '', x.closed, x.notes.map(n => `${n.d}: ${n.t}`).join('\n')]) });
+  return sheets;
+}
+async function writeBlob(dir, name, blob) { const fh = await dir.getFileHandle(name, { create: true }); const w = await fh.createWritable(); await w.write(blob); await w.close(); }
+function excelDue() {
+  if (FRAMED) return null;
+  const last = S.lastExcel, days = last ? diffDays(parse(last), TODAY) : null;
+  return !last ? -1 : days >= S.settings.excelDays ? days : null;
+}
+function excelBanner() {
+  const d = excelDue();
+  if (d === null) return '';
+  return `<div class="banner"><span><strong>Excel export due.</strong> ${d < 0 ? 'No Excel copy of the records has been saved yet.' : `The last was ${plural(d, 'day')} ago.`} It's your fail-safe copy, readable without the app.</span><button class="btn sm" data-act="excel">Export to Excel</button></div>`;
+}
+function modalExcel() {
+  const usb = FS && destName('usb');
+  const body = `<p>Saves every record to one Excel workbook: clients, documents, connected parties, risk assessments, decisions, PEPs, reviews, screening, outreach, matters, the audit trail, training and retention. Scans are not included. Each sheet carries the client ID, so the sheets can be matched up.</p>
+    <p class="callout warn">The workbook is not encrypted. Keep it on the encrypted USB drive, or protect it in Excel: File &gt; Info &gt; Protect Workbook &gt; Encrypt with Password.</p>
+    <label class="check" for="xl-sar"><input type="checkbox" id="xl-sar"> Include the suspicious activity register (confidential to the MLRO)</label>
+    ${usb ? `<label class="check" for="xl-usb"><input type="checkbox" id="xl-usb" checked> Also save it to the USB backup folder, "${esc(destName('usb'))}"</label>` : ''}`;
+  modal('Export to Excel', body, [{ label: 'Export', cls: 'primary', fn: async dlg => {
+    const withSar = $('#xl-sar', dlg).checked, toUsb = !!$('#xl-usb', dlg) && $('#xl-usb', dlg).checked;
+    // ask for the folder first, while the click still counts
+    let usbDir = null;
+    if (toUsb) { const h = await getDest('usb'); if (h && await destAccess(h, true)) { try { usbDir = await (await h.getDirectoryHandle(BK_DIR, { create: true })).getDirectoryHandle('excel', { create: true }); } catch (e) { usbDir = null; } } }
+    const name = `KYC register ${iso(TODAY)}.xlsx`;
+    let blob; try { blob = await workbookBlob(exportSheets(withSar)); } catch (e) { return fail(dlg, 'The workbook could not be created.'); }
+    download(name, blob);
+    let usbMsg = '';
+    if (toUsb) {
+      if (!usbDir) usbMsg = ' Not saved to the USB drive: it is not connected, or access was not allowed.';
+      else {
+        try {
+          await writeBlob(usbDir, name, blob);
+          // keep the newest 12 exports on the drive
+          const names = []; for await (const [n, fh] of usbDir.entries()) if (fh.kind === 'file' && /^KYC register .*\.xlsx$/.test(n)) names.push(n);
+          for (const n of names.sort().reverse().slice(12)) await usbDir.removeEntry(n).catch(() => {});
+          usbMsg = ' Also saved to the USB drive.';
+        } catch (e) { usbMsg = ' Saving to the USB drive failed.'; }
+      }
+    }
+    S.lastExcel = iso(TODAY);
+    log0(`Excel export saved: ${plural(S.clients.length, 'client')}${withSar ? ', including the suspicious activity register' : ''}.${usbMsg}`);
+    commit(`Excel workbook saved.${usbMsg}`);
+  } }]);
+}
+
 /* ---------- backup reminder ---------- */
 function backupDue() {
   if (FRAMED) return null;
@@ -3368,6 +3531,7 @@ const ACT = {
   setup: () => modalSetup(),
   lock: () => lockNow(true),
   backupnow: () => runBackup(true),
+  excel: () => modalExcel(),
   destset: el => chooseDest(el.dataset.k),
   destdel: el => removeDest(el.dataset.k),
   restorefolder: () => restoreFromFolder(),

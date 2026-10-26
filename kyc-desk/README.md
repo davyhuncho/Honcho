@@ -103,6 +103,12 @@ The app stays offline. It writes encrypted backups into two ordinary folders, an
 
 The app also asks the browser to protect its storage from being cleared when the disk is nearly full, and Settings shows whether that is in force. If folder backups aren't available (another browser), backups are saved as downloads instead.
 
+## Excel export: the fail-safe copy
+
+**Export to Excel** (Settings, the Reports page, or the reminder on the Overview) saves every record except the scans into one workbook: clients, documents, connected parties, risk assessments, decisions, PEPs, reviews, screening, outreach, matters, the full audit trail, training and retention. Every sheet has the client ID, frozen headers and filters, and dates are real Excel dates. The suspicious activity register is included only if you tick it.
+
+It can be read without the app or its password, so if the app ever fails, the records are still there. Run it weekly (the Overview reminds you after 7 days). If a USB backup folder is set, a copy is also saved there, keeping the newest 12. The workbook itself is **not encrypted**: keep it on the encrypted USB drive, or protect it in Excel with *File → Info → Protect Workbook → Encrypt with Password*. With 2,000 clients the workbook is about 4 MB.
+
 ## Moving from paper
 
 1. Put your existing client register into a spreadsheet and save it as CSV. Columns: `name, type, risk, pep, country, last_review, contact, email, phone, address, file_ref, file_location`. Only `name` is required.
