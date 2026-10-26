@@ -147,6 +147,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .side .logo-chip { margin: -8px 8px 0; }
 .lockcard .logo-chip { justify-self: center; max-width: 280px; padding: 12px 16px; }
 .lockcard .logo-chip img { max-height: 72px; }
+.mark.logo-mark { background: none; overflow: hidden; }
+.mark.logo-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lockcard .mark.logo-mark { width: 76px; height: 76px; border-radius: 20px; }
 .logo-set { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .logo-set .logo-chip img { max-height: 44px; max-width: 220px; }
 .nav { display: flex; flex-direction: column; gap: 2px; }
@@ -963,7 +966,7 @@ function shell() {
   $('#app').classList.remove('locked');
   $('#app').innerHTML = `
     <aside class="side">
-      <div class="brand"><div class="mark" aria-hidden="true">KYC</div><div><div class="app-name">KYC Refresh Desk</div><div class="firm" id="firm-name"></div></div></div>
+      <div class="brand"><div class="mark" id="side-mark" aria-hidden="true">KYC</div><div><div class="app-name">KYC Refresh Desk</div><div class="firm" id="firm-name"></div></div></div>
       <div class="logo-chip" id="side-logo" hidden></div>
       <nav class="nav" id="nav" aria-label="Sections"></nav>
       <div class="side-foot" id="side-foot"></div>
@@ -989,10 +992,13 @@ function renderNav() {
     return `<a href="#${k}" ${sel === k ? 'aria-current="page"' : ''}><span>${v.n}</span>${badge}</a>`;
   }).join('');
   $('#firm-name').textContent = S.settings.firm || 'Add your firm name in Settings';
-  const lg = S.settings.logo || '', sl = $('#side-logo');
-  if ((sl.firstChild ? sl.firstChild.getAttribute('src') : '') !== lg) sl.innerHTML = lg ? `<img src="${lg}" alt="${esc(S.settings.firm || 'Firm logo')}">` : '';
-  sl.hidden = !lg;
-  cacheLogo(lg);
+  // a square logo becomes the app badge; a wide one sits on its own white tile under the name
+  const lg = S.settings.logo || '', sq = !!lg && squareLogo(S.settings), chip = sq ? '' : lg, sl = $('#side-logo'), mk = $('#side-mark');
+  if ((sl.firstChild ? sl.firstChild.getAttribute('src') : '') !== chip) sl.innerHTML = chip ? `<img src="${chip}" alt="${esc(S.settings.firm || 'Firm logo')}">` : '';
+  sl.hidden = !chip;
+  if ((mk.firstElementChild ? mk.firstElementChild.getAttribute('src') : '') !== (sq ? lg : '')) mk.innerHTML = sq ? `<img src="${lg}" alt="">` : 'KYC';
+  mk.classList.toggle('logo-mark', sq);
+  cacheLogo(lg, sq);
   $('#side-foot').innerHTML = `${themeSeg()}<span>Signed in as <strong>${esc(me())}</strong></span><span>${fmtD(TODAY)}</span>${storageOK ? '' : '<span class="pill crit plain">Not saving: browser storage blocked</span>'}${backupDue() !== null ? '<span class="pill warn plain" style="margin-top:8px;justify-self:start">Backup due</span>' : ''}${vault ? `<button class="btn sm" data-act="lock" style="margin-top:8px">${FS ? 'Back up and lock' : 'Lock'}</button>` : `<span class="pill warn plain" style="margin-top:8px;justify-self:start">Not password-protected</span><button class="btn sm" data-act="setup" style="margin-top:6px">Set a password</button>${FRAMED ? '' : '<button class="btn sm" data-act="backupnow" style="margin-top:6px">Back up now</button>'}`}`;
 }
 function render() {
@@ -1442,7 +1448,7 @@ function viewSettings() {
     <label class="field span2" for="s-firm">Firm name (used on letters)<input id="s-firm" data-set="firm" value="${esc(s.firm)}" placeholder="Your firm's name"></label>
     <div class="field span2"><span>Firm logo: shown in the sidebar, on the sign-in screen, letters, printed reports and the Excel overview</span>
       <div class="logo-set">${s.logo ? `<div class="logo-chip"><img src="${s.logo}" alt="Current firm logo"></div>` : '<span class="muted small" style="font-weight:400">No logo added.</span>'}<button class="btn sm" data-act="logo">${s.logo ? 'Replace logo' : 'Add logo'}</button>${s.logo ? '<button class="btn sm" data-act="logooff">Remove</button>' : ''}</div>
-      <span class="small" style="font-weight:400">Use the firm's own PNG or JPEG, ideally with a transparent or white background. It is kept with the records on this computer.</span></div>
+      <span class="small" style="font-weight:400">Use the firm's own PNG or JPEG. A square logo becomes the app's badge; a wide one shows under the app name. It is kept with the records on this computer.</span></div>
     <label class="field" for="s-user">Your name (letters and audit trail)<input id="s-user" data-set="user" value="${esc(s.user)}"></label>
     <label class="field" for="s-title">Your title<input id="s-title" data-set="title" value="${esc(s.title)}"></label>
     <label class="field" for="s-mlro">MLRO name (leave blank if it's you)<input id="s-mlro" data-set="mlro" value="${esc(s.mlro)}" placeholder="${esc(me())}"></label>
@@ -1897,8 +1903,14 @@ const LOGO_KEY = 'kyc-refresh-desk.logo';
 const logoImg = (h = 48, css = 'margin-bottom:8px') => (S && S.settings.logo ? `<img src="${S.settings.logo}" alt="${esc(S.settings.firm || 'Firm logo')}" style="display:block;max-height:${h}px;max-width:260px;${css}">` : '');
 const firmHead = t => `${logoImg()}<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase">${esc(t)}</div>`;
 // a copy outside the encrypted records, so the sign-in screen can show it; a logo is not confidential
-function cacheLogo(v) { try { if ((localStorage.getItem(LOGO_KEY) || '') !== v) v ? localStorage.setItem(LOGO_KEY, v) : localStorage.removeItem(LOGO_KEY); } catch (e) { /* storage blocked: sign-in shows the plain mark */ } }
-function lockLogo() { try { return localStorage.getItem(LOGO_KEY) || ''; } catch (e) { return ''; } }
+function cacheLogo(v, sq) {
+  try {
+    if ((localStorage.getItem(LOGO_KEY) || '') !== v) v ? localStorage.setItem(LOGO_KEY, v) : localStorage.removeItem(LOGO_KEY);
+    sq ? localStorage.setItem(LOGO_KEY + '.square', '1') : localStorage.removeItem(LOGO_KEY + '.square');
+  } catch (e) { /* storage blocked: sign-in shows the plain mark */ }
+}
+function lockLogo(square) { try { return square ? !!localStorage.getItem(LOGO_KEY + '.square') : localStorage.getItem(LOGO_KEY) || ''; } catch (e) { return square ? false : ''; } }
+const squareLogo = st => st.logoW > 0 && st.logoH > 0 && st.logoW / st.logoH > 0.8 && st.logoW / st.logoH < 1.25;
 // redraw the chosen image at a sensible size: PNG keeps transparency, JPEG if that comes out too large
 async function logoFromFile(file) {
   const url = URL.createObjectURL(file);
@@ -3322,7 +3334,7 @@ function showLock(mode = 'login') {
   const login = mode === 'login';
   $('#app').classList.add('locked');
   $('#app').innerHTML = `<div class="lockwrap"><form class="lockcard" id="lockform" novalidate>
-    ${lockLogo() ? `<div class="logo-chip"><img src="${lockLogo()}" alt="Firm logo"></div>` : '<div class="mark" aria-hidden="true">KYC</div>'}
+    ${!lockLogo() ? '<div class="mark" aria-hidden="true">KYC</div>' : lockLogo(true) ? `<div class="mark logo-mark"><img src="${lockLogo()}" alt="Firm logo"></div>` : `<div class="logo-chip"><img src="${lockLogo()}" alt="Firm logo"></div>`}
     <h1>KYC Refresh Desk</h1>
     <p class="muted">${login ? 'Records are locked. Sign in to continue.' : 'Enter the recovery key from the printed sheet and choose a new password.'}</p>
     ${login ? `<label class="field" for="lk-u">Username<input id="lk-u" autocomplete="username" autocapitalize="off" spellcheck="false"></label>
