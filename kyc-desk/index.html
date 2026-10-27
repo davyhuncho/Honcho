@@ -722,6 +722,31 @@ function migrate(st) {
 /* =========================================================
    Sample data (fictional)
    ========================================================= */
+// A full-size test register: the 24 sample clients plus generated ones, each with years of audit
+// history, so the app can be tried at the firm's real size. Fictional throughout.
+function seedLarge(settings, total) {
+  const st = seed(settings), tpl = st.clients.filter(c => c.status === 'active' || c.status === 'restricted');
+  let r = 11; const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647, pick = a => a[Math.floor(rnd() * a.length)];
+  const F = ['Andre', 'Maria', 'Kevin', 'Shanice', 'Devon', 'Priya', 'Lucas', 'Grace', 'Omar', 'Nadia', 'Trevor', 'Alicia', 'Elena', 'Jamal', 'Sofia', 'Calvin', 'Renee', 'Dwayne', 'Ines', 'Patrice'];
+  const L = ['Williams', 'Forbes', 'Gardiner', 'Hall', 'Lightbourne', 'Ewing', 'Talbot', 'Rigby', 'Coleman', 'Smith', 'Duarte', 'Okonkwo', 'Fenwick', 'Herrera', 'Ashby', 'Musgrove', 'Saunders', 'Arthur', 'Dean', 'Robinson'];
+  const P = ['Coral', 'Leeward', 'Grace Bay', 'Turtle Cove', 'Salt Cay', 'Chalk Sound', 'Blue Hills', 'Long Bay', 'Pine Cay', 'Sapodilla', 'Bight Reef', 'Juba Point'];
+  const Q = { company: ['Holdings Ltd', 'Ventures Ltd', 'Properties Ltd', 'Investments Ltd', 'Development Ltd'], trust: ['Family Trust', 'Charitable Trust', 'Settlement'], partnership: ['Partners LP', 'Associates'] };
+  const T = ['Passport / photo ID: Requested → Verified.', 'Reminder sent by email.', 'Screening recorded: Clear, no matches.', 'Paper file checked out to the assistant.', 'Paper file returned to the cabinet.', 'Proof of address received; to verify.', 'Risk assessment updated.', 'Periodic review signed off.'];
+  const closed = st.clients.filter(isClosed).length; // former clients don't count towards the total
+  for (let i = 0; st.clients.length < total + closed; i++) {
+    const c = clone(tpl[i % tpl.length]), n = 10001 + i;
+    c.id = `CL-${n}`; c.file.ref = c.file.ref.replace(/\d+$/, '') + n; c.file.out = null;
+    c.name = c.type === 'individual' ? `${pick(F)} ${pick(L)}` : `${pick(P)} ${pick(Q[c.type])}`;
+    if (!c.pep) c.risk = rnd() < 0.15 ? 'high' : rnd() < 0.55 ? 'medium' : 'low';
+    c.last = iso(addDays(TODAY, -Math.floor(rnd() * 30.4 * S_CYC(settings, c.risk) * 1.05)));
+    if (rnd() < 0.85) { c.refresh = null; c.outreach = []; }
+    for (let k = 0; k < 55; k++) c.history.push({ d: iso(addDays(TODAY, -Math.floor(rnd() * 1800))), t: pick(T), by: 'Compliance Officer' });
+    c.history.sort((a, b) => b.d.localeCompare(a.d));
+    st.clients.push(c);
+  }
+  return st;
+}
+const S_CYC = (settings, risk) => ((settings && settings.cycles) || DEFAULT_SETTINGS.cycles)[risk];
 function seed(settings) {
   const st = emptyState(settings);
   st.sample = true;
@@ -1532,6 +1557,7 @@ function viewSettings() {
     </div>
     <div class="row">
       <button class="btn" data-act="loadsample">Load sample clients</button>
+      <button class="btn" data-act="loadlarge">Load 2,000 test clients</button>
       <button class="btn danger" data-act="erase">Erase all records</button>
     </div>
     <p class="note">Default document lists, cycles and risk weights are a starting point. Align them with your firm's policies and the current Turks and Caicos AML/PTF Regulations and Code before relying on them.</p>
@@ -3957,6 +3983,9 @@ const ACT = {
   },
   loadsample: () => modal('Load sample clients', '<p>Replace every record in this browser with the fictional sample clients? Your settings are kept.</p>', [{ label: 'Load sample clients', cls: 'danger solid', fn: async () => {
     const sys = S.syslog; S = migrate(seed(S.settings)); S.syslog = sys; try { await ATT.clear(); } catch (e) { /* none */ } commit('Sample clients loaded'); later(() => go('overview'));
+  } }]),
+  loadlarge: () => modal('Load 2,000 test clients', '<p>Replace every record in this browser with 2,000 fictional clients, each with documents and several years of history, to see how the app runs at the firm\'s real size? Your settings are kept.</p><p class="note">When you have finished, use <b>Load sample clients</b> or <b>Erase all records</b> before entering real clients.</p>', [{ label: 'Load 2,000 test clients', cls: 'danger solid', fn: async () => {
+    const sys = S.syslog; S = migrate(seedLarge(S.settings, 2000)); S.syslog = sys; try { await ATT.clear(); } catch (e) { /* none */ } commit('2,000 test clients loaded'); later(() => go('clients'));
   } }]),
   erase: () => modal('Erase all records', '<p>Delete every client, document record, scan and audit entry stored in this browser? Settings are kept.</p><p class="callout crit">This cannot be undone. Save a backup first if you may need these records.</p><label class="field" for="er-c">Type ERASE to confirm<input id="er-c" autocomplete="off"></label>', [{ label: 'Erase everything', cls: 'danger solid', fn: async dlg => {
     if ($('#er-c', dlg).value.trim() !== 'ERASE') return fail(dlg, 'Type ERASE in capitals to confirm.');
