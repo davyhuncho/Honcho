@@ -1588,6 +1588,8 @@ function modal(title, body, buttons, opts = {}) {
 function closeModal() { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; }
 function fail(dlg, msg) { const e = $('#dlg-err', dlg); e.textContent = msg; e.hidden = false; return false; }
 let toastT;
+// a note that stays up while a long job reports progress; each call keeps it showing
+function progressNote(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 8000); }
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2800); }
 const methodSel = (id, v) => `<select id="${id}">${METHODS.map(m => `<option ${m === v ? 'selected' : ''}>${m}</option>`).join('')}</select>`;
 function later(fn) { setTimeout(fn, 0); }
@@ -3068,7 +3070,8 @@ async function runBackup(ask = true, quiet = false) {
           const sd = await root.getDirectoryHandle('scans', { create: true });
           const have = new Set(); for await (const [n] of sd.entries()) have.add(n);
           let n = 0;
-          for (const k of keys) { if (have.has(k + '.json')) continue; const r = await ATT.get(k); if (!r) continue; await writeText(sd, k + '.json', await scanFileText(k, r, exported)); n++; }
+          const todo = keys.filter(k => !have.has(k + '.json'));
+          for (const k of todo) { const r = await ATT.get(k); if (!r) continue; await writeText(sd, k + '.json', await scanFileText(k, r, exported)); n++; if (todo.length > 200 && n % 100 === 0) progressNote(`${x.d.n}: backing up scans, ${n.toLocaleString('en-GB')} of ${todo.length.toLocaleString('en-GB')}…`); }
           await writeText(root, 'KYC Refresh Desk.html', SELF);
           await writeText(root, 'How to restore.txt', RESTORE_TXT);
           await pruneRecords(root);
@@ -3108,7 +3111,9 @@ async function restoreFromFolder() {
       let data; try { data = JSON.parse(await (await (await root.getFileHandle($('#rf-f', dlg).value)).getFile()).text()); } catch (e) { return fail(dlg, 'That backup could not be read.'); }
       // scans are read one file at a time, so thousands of scans never sit in memory together
       const loadScans = sd && (async raw => {
+        let done = 0;
         for await (const [n, fh] of sd.entries()) {
+          if (++done % 100 === 0) progressNote(`Restoring scans: ${done.toLocaleString('en-GB')} so far…`);
           if (fh.kind !== 'file' || !n.endsWith('.json')) continue;
           let d2; try { d2 = JSON.parse(await (await fh.getFile()).text()); } catch (e) { continue; }
           for (const [id, x] of Object.entries(d2.files || {})) {
@@ -3946,7 +3951,8 @@ function importBackup(data, scans = [], loadScans = null) {
   if (!data || data.app !== 'kyc-refresh-desk' || !(data.state || data.enc)) { toast('That file is not a KYC Refresh Desk backup.'); return; }
   if (data.enc) {
     modal('Restore encrypted backup', `<p>Restore the password-protected backup from ${fmt((data.exported || '').slice(0, 10))} with ${loadScans ? 'the scans in its folder' : plural(Object.keys(data.files || {}).length + scans.reduce((a, sc) => a + Object.keys(sc.files || {}).length, 0), 'scan')}?</p>${data.scans === 'separate' && !scans.length && !loadScans ? '<p class="callout info">No scan files were chosen. To restore scans too, choose this records file together with all the scan files.</p>' : ''}<p class="callout warn">This replaces every record in this browser, and the password. Afterwards, sign in with the username and password that were in use when the backup was saved, or with that backup's recovery key.</p>`,
-      [{ label: 'Replace and restore', cls: 'danger solid', fn: () => whileBusy(async () => {
+      [{ label: 'Replace and restore', cls: 'danger solid', fn: dlg => whileBusy(async () => {
+        $$('footer .btn', dlg).forEach(b => { b.disabled = true; }); progressNote('Restoring…');
         try {
           await ATT.clear();
           for (const sc of [data, ...scans]) for (const [id, x] of Object.entries(sc.files || {})) await ATT.put(id, x.enc ? x : { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) });
@@ -3960,7 +3966,8 @@ function importBackup(data, scans = [], loadScans = null) {
   }
   const n = data.state.clients.length, f = Object.keys(data.files || {}).length + scans.reduce((a, sc) => a + Object.keys(sc.files || {}).length, 0);
   modal('Restore backup', `<p>Restore ${plural(n, 'client')} and ${loadScans ? 'the scans in its folder' : plural(f, 'scan')} from ${fmt((data.exported || '').slice(0, 10))}?</p><p class="callout warn">This replaces every record currently in this browser.</p>`,
-    [{ label: 'Replace and restore', cls: 'danger solid', fn: () => whileBusy(async () => {
+    [{ label: 'Replace and restore', cls: 'danger solid', fn: dlg => whileBusy(async () => {
+      $$('footer .btn', dlg).forEach(b => { b.disabled = true; }); progressNote('Restoring…');
       S = migrate(data.state); S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
       try { await ATT.clear(); for (const [id, x] of Object.entries(data.files || {})) await putFile(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) }); await putScans(scans); if (loadScans) await loadScans(false); } catch (e) { toast('Records restored, but scans could not be saved in this browser.'); }
       commit('Backup restored'); later(() => go('overview'));

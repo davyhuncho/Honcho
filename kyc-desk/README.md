@@ -160,6 +160,18 @@ Load-tested with password protection on, using 2,000 fictional clients with abou
 | Excel export | 3–4 s | 14 s | 9 s |
 | Backup file size | 1.4 MB | 1.4 MB | 3.5 MB |
 
+With scans as well (7,260 specimen scans, one on every document marked scanned, 2.5 GB, encrypted):
+
+| Task | Time |
+|---|---|
+| Add 7,260 test scans | 2 minutes |
+| Sign in / open the Clients page / open a scan | 1.7 s / 0.6 s / 0.4 s |
+| First USB backup (copies every scan) | 2 minutes, 2.5 GB |
+| Later backups (only new scans) | 3 s |
+| Full restore of records and every scan from the USB backup | 2 minutes |
+
+Scans load only when opened, so they don't slow the rest of the app. Long backups and restores show their progress, and the app doesn't lock itself while they run.
+
 Each change shows on screen first and is saved straight after; quick successive edits are saved together. Records are compressed before encryption (12 MB becomes about 1 MB), which keeps saving and backups quick. Records and scans are stored in the browser's IndexedDB database, which has no practical size limit; records saved by earlier versions move there automatically on first open and are compressed at the next save. Long lists show 200 rows at a time, and searching filters all clients. Large photos are reduced to 2,200 pixels on the long side when attached, which keeps them legible while saving space. PDFs are kept as they are.
 - The document lists, review cycles and risk weights are starting defaults. Check them against your firm's AML/CFT policy and the current Turks and Caicos AML/PTF Regulations and Code before relying on them.
 - The app ships with 24 fictional sample clients for trying the workflow. **Settings → Load 2,000 test clients** replaces them with a full-size fictional register to try the app at the firm's real size; **Load sample clients** goes back to the 24. Remove test and sample clients before you enter real data.
