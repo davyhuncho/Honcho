@@ -2433,7 +2433,7 @@ function modalTestScans() {
     $$('footer .btn', dlg).forEach(b => { b.disabled = true; });
     const t0 = Date.now(), prog = $('#ts-prog', dlg);
     try {
-      await addTestScans(perClient, (d, total) => { if (prog) prog.textContent = `Adding scans: ${d.toLocaleString('en-GB')} of ${total.toLocaleString('en-GB')}…`; });
+      await whileBusy(() => addTestScans(perClient, (d, total) => { if (prog) prog.textContent = `Adding scans: ${d.toLocaleString('en-GB')} of ${total.toLocaleString('en-GB')}…`; }));
     } catch (e) { commit(); toast('Stopped: the browser refused to store more scans. Free disk space and try again.'); return true; }
     log0(`Test scans added: ${n.toLocaleString('en-GB')} specimen pages.`);
     commit(`${n.toLocaleString('en-GB')} test scans added in ${Math.round((Date.now() - t0) / 1000)} seconds`);
@@ -3689,7 +3689,10 @@ async function lockNow(manual) {
 }
 let lastActive = Date.now();
 ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { lastActive = Date.now(); }, { passive: true, capture: true }));
-setInterval(() => { if (vault && DK && S && Date.now() - lastActive > S.settings.lockMins * 60000) lockNow(); }, 15000);
+// long jobs (adding test scans, backups, restores) hold off the idle lock until they finish
+let busy = 0;
+async function whileBusy(fn) { busy++; try { return await fn(); } finally { busy--; lastActive = Date.now(); } }
+setInterval(() => { if (vault && DK && S && !busy && Date.now() - lastActive > S.settings.lockMins * 60000) lockNow(); }, 15000);
 
 function modalSetup() {
   if (vault) return;
@@ -3943,7 +3946,7 @@ function importBackup(data, scans = [], loadScans = null) {
   if (!data || data.app !== 'kyc-refresh-desk' || !(data.state || data.enc)) { toast('That file is not a KYC Refresh Desk backup.'); return; }
   if (data.enc) {
     modal('Restore encrypted backup', `<p>Restore the password-protected backup from ${fmt((data.exported || '').slice(0, 10))} with ${loadScans ? 'the scans in its folder' : plural(Object.keys(data.files || {}).length + scans.reduce((a, sc) => a + Object.keys(sc.files || {}).length, 0), 'scan')}?</p>${data.scans === 'separate' && !scans.length && !loadScans ? '<p class="callout info">No scan files were chosen. To restore scans too, choose this records file together with all the scan files.</p>' : ''}<p class="callout warn">This replaces every record in this browser, and the password. Afterwards, sign in with the username and password that were in use when the backup was saved, or with that backup's recovery key.</p>`,
-      [{ label: 'Replace and restore', cls: 'danger solid', fn: async () => {
+      [{ label: 'Replace and restore', cls: 'danger solid', fn: () => whileBusy(async () => {
         try {
           await ATT.clear();
           for (const sc of [data, ...scans]) for (const [id, x] of Object.entries(sc.files || {})) await ATT.put(id, x.enc ? x : { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) });
@@ -3952,16 +3955,16 @@ function importBackup(data, scans = [], loadScans = null) {
         await writeChain; // let any pending save finish before the restored records replace it
         vault = data.vault; writeVault(); dropPlain(); await writeChain;
         DK = null; S = null; later(() => showLock());
-      } }]);
+      }) }]);
     return;
   }
   const n = data.state.clients.length, f = Object.keys(data.files || {}).length + scans.reduce((a, sc) => a + Object.keys(sc.files || {}).length, 0);
   modal('Restore backup', `<p>Restore ${plural(n, 'client')} and ${loadScans ? 'the scans in its folder' : plural(f, 'scan')} from ${fmt((data.exported || '').slice(0, 10))}?</p><p class="callout warn">This replaces every record currently in this browser.</p>`,
-    [{ label: 'Replace and restore', cls: 'danger solid', fn: async () => {
+    [{ label: 'Replace and restore', cls: 'danger solid', fn: () => whileBusy(async () => {
       S = migrate(data.state); S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
       try { await ATT.clear(); for (const [id, x] of Object.entries(data.files || {})) await putFile(id, { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) }); await putScans(scans); if (loadScans) await loadScans(false); } catch (e) { toast('Records restored, but scans could not be saved in this browser.'); }
       commit('Backup restored'); later(() => go('overview'));
-    } }]);
+    }) }]);
 }
 let importMode = 'csv';
 $('#importpick').addEventListener('change', e => {
@@ -4025,7 +4028,7 @@ const ACT = {
       c.refresh = null; c.parties.forEach(p => { p.req = false; }); log(c, `Refresh cancelled: ${why}`); commit('Refresh cancelled');
     } }], { cancel: 'Keep it' });
   },
-  backup: () => exportBackup(),
+  backup: () => whileBusy(() => exportBackup()),
   accept: el => modalAccept(get(el.dataset.id)),
   sarnew: el => modalSarNew(el.dataset.id ? get(el.dataset.id) : null),
   sar: el => modalSar(S.sars.find(x => x.id === el.dataset.sar)),
@@ -4043,7 +4046,7 @@ const ACT = {
   printann: () => printHTML(annualSheet(repYear)),
   setup: () => modalSetup(),
   lock: () => lockNow(true),
-  backupnow: () => runBackup(true),
+  backupnow: () => whileBusy(() => runBackup(true)),
   excel: () => modalExcel(),
   logo: () => {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/png,image/jpeg,image/webp,image/gif,image/svg+xml';
@@ -4061,7 +4064,7 @@ const ACT = {
   theme: el => { try { localStorage.setItem(THEME_KEY, el.dataset.t); } catch (e) { /* blocked: applies this session only */ } applyTheme(el.dataset.t); render(); },
   destset: el => chooseDest(el.dataset.k),
   destdel: el => removeDest(el.dataset.k),
-  restorefolder: () => restoreFromFolder(),
+  restorefolder: () => whileBusy(() => restoreFromFolder()),
   restoretest: () => modalRestoreTest(),
   persist: async () => { await askPersist(); render(); toast(persisted ? 'Storage is now protected' : 'The browser declined. Keep free disk space and back up daily.'); },
   chpw: () => modalChangePassword(),
@@ -4073,7 +4076,7 @@ const ACT = {
   repgo: el => { repWeek = el.dataset.w; render(); },
   repsave: () => { S.reports[repWeek] = Object.assign(S.reports[repWeek] || {}, { snap: snapshot(), saved: iso(TODAY), by: me() }); commit('End-of-week position recorded'); },
   restore: () => { importMode = 'json'; $('#importpick').multiple = true; $('#importpick').accept = '.json,application/json'; $('#importpick').click(); },
-  backupall: () => exportBackup(true),
+  backupall: () => whileBusy(() => exportBackup(true)),
   exportcsv: () => exportCSV(),
   importcsv: () => {
     modal('Import clients from CSV', `<p>Bring in your existing client register from a spreadsheet. Save it as CSV with column names in the first row. Only <b>name</b> is required; these are also read:</p>
