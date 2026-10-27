@@ -150,6 +150,31 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .mark.logo-mark { background: none; overflow: hidden; }
 .mark.logo-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .lockcard .mark.logo-mark { width: 76px; height: 76px; border-radius: 20px; }
+.help-find { display: grid; gap: 10px; margin-top: 6px; }
+.setup-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.setup-list li { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.setup-t { font-weight: 600; font-size: .92rem; }
+.tick { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--glass-strong); display: grid; place-items: center; font: 700 .78rem var(--f-body); color: #fff; padding: 0; }
+.tick[data-act] { cursor: pointer; border-color: var(--accent); }
+.tick.on { background: var(--ok); border-color: transparent; }
+.tick:disabled { opacity: 1; }
+.meter { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.meter > i { display: block; height: 100%; border-radius: inherit; background: var(--ok); }
+.routine { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; }
+.routine h3 { font-size: .74rem; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.routine ul { margin: 0; padding-left: 1.1em; display: grid; gap: 5px; font-size: .88rem; }
+.guide { border-top: 1px solid var(--line); }
+.guide > summary { list-style: none; cursor: pointer; padding: 13px 20px; font-weight: 600; display: flex; justify-content: space-between; gap: 12px; }
+.guide > summary::-webkit-details-marker { display: none; }
+.guide > summary::after { content: "+"; color: var(--muted); font-weight: 500; font-size: 1.1rem; line-height: 1; }
+.guide[open] > summary::after { content: "−"; }
+.guide > summary:hover { background: var(--fill); }
+.gbody { padding: 0 20px 16px; display: grid; gap: 10px; font-size: .9rem; }
+.gbody ol { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; }
+.gbody .tip { color: var(--muted); font-size: .84rem; }
+.gloss { display: grid; grid-template-columns: minmax(120px, max-content) 1fr; gap: 8px 18px; margin: 0; font-size: .88rem; }
+.gloss dt { font-weight: 600; }
+.gloss dd { margin: 0; color: var(--muted); }
 .logo-set { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .logo-set .logo-chip img { max-height: 44px; max-width: 220px; }
 .nav { display: flex; flex-direction: column; gap: 2px; }
@@ -949,6 +974,7 @@ const VIEWS = {
   training: { n: 'Training', r: () => viewTraining() },
   report: { n: 'Reports', r: () => viewReport() },
   procedure: { n: 'Procedure', r: () => viewProcedure() },
+  help: { n: 'Help', r: () => viewHelp() },
   settings: { n: 'Settings', r: () => viewSettings() },
 };
 let view = 'overview', current = null;
@@ -987,6 +1013,7 @@ function renderNav() {
     files: [active().filter(c => c.file.out).length, false],
     sar: [S.sars.filter(sarActionNeeded).length, true],
     training: [trainingDue(), true],
+    help: [setupLeft(), false],
   };
   const sel = view === 'client' ? 'clients' : view;
   $('#nav').innerHTML = Object.entries(VIEWS).map(([k, v]) => {
@@ -1012,6 +1039,7 @@ function render() {
   main.innerHTML = view === 'client' ? viewClient(get(current)) : VIEWS[view].r();
   if (view === 'clients') renderClientRows();
   if (view === 'settings' && FS) paintDestStatus();
+  if (view === 'help' && helpQ) filterHelp();
 }
 function rerender() {
   // keep keyboard focus on the same control after a re-render
@@ -2156,6 +2184,133 @@ function viewProcedure() {
   return `<div class="page-head"><div><h1>Procedure</h1><p class="lede">How the paper file and the app stay in step. Print it, go through it with ${esc(asst())}, and both sign it. It updates with the names in Settings.</p></div>
     <div class="row">${FRAMED ? '' : '<button class="btn primary" data-act="printproc">Print procedure</button>'}</div></div>
     <div class="scroll">${procedureSheet()}</div>`;
+}
+
+/* ---------- Help: setup checklist, routine and how-to guides ---------- */
+const md = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+// the first-week checklist; most steps tick themselves from the records, the rest are ticked by hand
+function setupSteps() {
+  const s = S.settings, hand = k => !!(S.help || {})[k];
+  return [
+    { k: 'pw', done: !!vault, t: 'Set a password and print the recovery key', d: 'Sidebar: **Set a password**. Keep the printed recovery key in the office safe.', go: 'settings' },
+    { k: 'firm', done: !!(s.firm && s.user), t: 'Enter the firm name, your name and title', d: 'Settings: **Firm and people**.', go: 'settings' },
+    { k: 'logo', done: !!s.logo, t: 'Add the firm logo', d: 'Settings: **Add logo**.', go: 'settings' },
+    { k: 'policy', done: hand('policy'), manual: true, t: 'Check review cycles and chase timings against the firm\'s AML policy', d: `Settings: currently high risk every ${s.cycles.high} months, medium ${s.cycles.medium}, low ${s.cycles.low}.`, go: 'settings' },
+    ...(FS ? [
+      { k: 'usb', done: !!destName('usb'), t: 'Choose the USB backup folder', d: 'Settings → Backups: **Choose folder** next to the USB drive.', go: 'settings' },
+      { k: 'cloud', done: !!destName('cloud'), t: 'Choose the OneDrive or SharePoint backup folder', d: 'Settings → Backups: **Choose folder** next to the cloud folder. Needs a password first.', go: 'settings' },
+    ] : []),
+    { k: 'import', done: !S.sample && S.clients.length > 0, t: 'Remove the sample clients and import your client register', d: 'Clients: **Import from CSV**, with **Remove the sample clients first** ticked.', go: 'clients' },
+    { k: 'staff', done: S.training.staff.length > 0, t: 'Add staff to the training register', d: 'Training: **Add staff member**.', go: 'training' },
+    { k: 'proc', done: hand('proc'), manual: true, t: `Print the procedure and sign it with ${asst()}`, d: 'Procedure: **Print procedure**.', go: 'procedure' },
+    { k: 'backup', done: !!S.lastBackup, t: 'Make your first backup', d: 'Sidebar: **Back up and lock**, or Settings: **Back up now**.', go: 'settings' },
+    { k: 'excel', done: !!S.lastExcel, t: 'Make your first Excel export', d: 'Reports: **Export to Excel**.', go: 'report' },
+    { k: 'restore', done: (S.restoreTests || []).length > 0, t: 'Test a restore', d: 'See "Test that a backup restores" below, then Settings: **Record a restore test**.', go: 'settings' },
+  ];
+}
+const setupLeft = () => setupSteps().filter(x => !x.done).length;
+function helpRoutine() {
+  const s = S.settings;
+  return [
+    ['Every day', ['Work down the **Overview** worklist, most urgent first.', 'Log every call, letter and email on the client file or the **Outreach** page.', 'As documents arrive: set the status, tick **On paper**, scan, tick **Scan** and **Attach** the scan.', 'Press **Back up and lock** when you step away and at the end of the day.']],
+    ['Every week', [`Monday: give ${asst()} a **Work pack** of files to chase.`, `Check **Paper files** for files out longer than ${s.fileOutDays} days.`, 'Friday: Reports → **Record end-of-week position**, add your notes, **Print report**.', 'Friday: **Export to Excel** and keep the copy on the USB drive.']],
+    ['Every month', [`Look at reviews due in the next ${s.lead} days and plan the month.`, 'Check **Suspicious activity** for decisions or FIA reports outstanding.', 'Check **Training** for refreshers due.', 'Check the FSC, FIA, CFATF and FATF websites for new requirements or high-risk countries.']],
+    [`Every ${s.restoreMonths} months`, ['Test that a backup restores on another computer, then **Record a restore test**.', 'Print an **Inspection pack** of a few high-risk files and check them as an inspector would.']],
+    ['Every year', ['Reports → **Annual**: write the MLRO annual report for senior management.', 'Re-check review cycles, chase timings and document lists against the AML policy and the law.', 'Deliver the annual AML/CFT training and record it.', '**Paper files**: destroy files past their retention period.']],
+  ];
+}
+const HELP = [
+  { g: 'Clients and reviews', items: [
+    { q: 'Add a new client (onboarding)', go: 'clients', steps: ['Clients: **Add client**, under This is choose **A new client: start onboarding**, fill in the details and save.', 'On the client file press **Start onboarding** and choose the documents to request; **Draft letter** writes the request.', 'As documents arrive, record each one, then verify it (status **Verified**).', 'Record screening and complete the risk assessment.', 'Press **Accept or decline**. Accepting sets the first review date; declining records the reason.'], tip: 'A PEP can\'t be accepted without senior management approval.' },
+    { q: 'Add an existing client', go: 'clients', steps: ['Clients: **Add client**, under This is choose **An existing client already on the books**.', 'Enter the last review date and what is already on the paper file.', 'Print the **cover sheet** and put it on the front of the file.'] },
+    { q: 'Import my client list from Excel', go: 'clients', steps: ['In Excel, arrange the columns: name, type, risk, pep, country, last_review, contact, email, phone, address, file_ref, file_location. Only name is required.', 'Choose File → Save As → **CSV (Comma delimited)**.', 'Clients: **Import from CSV**, tick **Remove the sample clients first**, choose the file.', 'Check the summary, then press **Import**. 2,000 rows take about a second.'], tip: 'Dates work best as 2025-03-31. Risk is low, medium or high; pep is yes or no.' },
+    { q: 'Run a periodic review (refresh)', go: 'pipeline', steps: ['Open the client and press **Start refresh**. It pre-selects what to ask for: anything missing, expired or renewed every review.', '**Draft letter**, print or email it. The file moves to **Awaiting client**.', 'When documents arrive: set each status, tick **On paper** and **Scan**, **Attach** the scan, then **Documents received**.', 'Check each document and set it to **Verified**, then **Verification complete**.', '**Record screening**, update the risk assessment, then **Send to sign-off**.', '**Sign off review** confirms the rating and sets the next review date.'], tip: 'The Refresh pipeline page shows every open review by stage.' },
+    { q: 'Chase a client who hasn\'t replied', go: 'outreach', steps: ['Outreach lists who is due a reminder, a final notice or escalation.', '**Draft letter** and choose Reminder or Final notice.', 'Send it, then **Log reminder** so the date counts.', 'After the final deadline, **Escalate** and decide whether to restrict services (Change risk status).'], tip: () => `Default timings: reminder at ${S.settings.chase[0]} days, final notice at ${S.settings.chase[1]}, MLRO at ${S.settings.chase[2]}.` },
+    { q: 'Find a client quickly', go: 'clients', steps: ['Clients: type in the search box. It searches names, client IDs, file references and countries.', 'Use the filters (Overdue, Due soon, PEPs, Restricted…) and the risk and type menus to narrow the list.'] },
+    { q: 'Record screening results', go: 'clients', steps: ['Screen the client in the firm\'s screening tool as usual.', 'On the client file press **Record screening**: date, result, lists checked.', 'A true match goes to the MLRO the same day.'] },
+  ] },
+  { g: 'PEPs and risk changes', items: [
+    { q: 'Mark a client as a PEP', go: 'clients', steps: ['Client file: **Change risk status** → **Mark as PEP**.', 'Enter the connection, public function, country, start date and how it was identified.', 'Enter senior management approval, the reason, then **Record decision**.', 'Print the decision note, sign it and file it behind the cover sheet.'], tip: 'The rating goes to High, enhanced due diligence documents are added and screening moves to every 6 months.' },
+    { q: 'Remove PEP status', go: 'clients', steps: ['**Change risk status** → **Remove PEP status (left office)**, with the date they left office.'], tip: () => `The client stays High for ${S.settings.pepTail} months; the worklist then asks whether to lower the rating.` },
+    { q: 'Raise or lower a risk rating', go: 'clients', steps: ['**Change risk status** → **Raise risk rating** or **Lower risk rating**.', 'The dialog shows how the next review date moves. Give the reason and approver, then **Record decision**.'] },
+    { q: 'Restrict services or exit a client', go: 'clients', steps: ['**Change risk status** → **Restrict services**, **Exit the relationship**, **Lift restriction** or **Reinstate client**.', 'Exiting cancels any refresh and starts the retention period.'] },
+    { q: 'Record a transaction and source of funds', go: 'clients', steps: ['Client file: **Add matter**: value, source of funds, evidence, whether it fits the client\'s profile.', 'Unverified source of funds and transactions that don\'t fit go on the worklist.'] },
+  ] },
+  { g: 'Paper files and your assistant', items: [
+    { q: 'Give files to the assistant', go: 'outreach', steps: () => [`Outreach or Paper files: **Work pack for ${asst()}**.`, 'Tick the files for the week and print. The files are checked out to them.', 'When files come back, open each one, record what was received and **Mark returned**.'] },
+    { q: 'Check a paper file out or back in', go: 'files', steps: ['Client file, Paper file panel: **Check out** (who has it) or **Mark returned**.', 'Paper files shows where every file is.'] },
+    { q: 'Print a cover sheet', go: 'clients', steps: ['Client file: **Print cover sheet**.', 'Reprint it after each update so the paper and the app agree.'] },
+    { q: 'Attach a scan', go: 'clients', steps: ['Client file, Documents: **Attach** on the document\'s row and choose the PDF or photo.', 'Tick **Scan**. **View** opens it later.'], tip: 'Large photos are reduced automatically.' },
+  ] },
+  { g: 'Reports', items: [
+    { q: 'Produce the weekly report for management', go: 'report', steps: ['Reports → **Weekly**.', 'Write your notes for management.', 'Friday: **Record end-of-week position** so next week can show the change.', '**Print report**. Untick **Show client names** to show client IDs only.'] },
+    { q: 'Produce the annual MLRO report', go: 'report', steps: ['Reports → **Annual**, choose the year.', 'Write your commentary, then **Print report**.'] },
+    { q: 'Prepare for an inspection', go: 'clients', steps: ['Clients: **Inspection pack**.', 'Choose all high-risk files, a random sample, or your own choice.', 'Print: an index plus each file\'s cover sheet, history, matters, audit trail and decision notes.'] },
+    { q: 'Export everything to Excel', go: 'report', steps: ['Reports or Settings: **Export to Excel**.', 'Tick the suspicious activity register only if you need it.', 'The workbook opens on an Overview; every sheet is a table ready for filters and pivot tables.'], tip: 'The workbook isn\'t encrypted. In Excel: File → Info → Protect Workbook → Encrypt with Password.' },
+  ] },
+  { g: 'Suspicious activity', items: [
+    { q: 'Log an internal suspicious activity report', go: 'sar', steps: ['Suspicious activity: **Log internal report**: who raised it, the subject and the grounds.', 'Record your decision and reasoning: report or don\'t report.', 'If reporting, record the date and reference of the report to the FIA.', 'Add follow-up notes and close it when finished. Print it for the confidential MLRO file.'], tip: 'Nothing appears on the client file or the weekly report. Never tell the client: that is tipping off.' },
+  ] },
+  { g: 'Training and retention', items: [
+    { q: 'Record AML training', go: 'training', steps: ['Training: **Add staff member** for anyone new.', '**Record training session**: date, course, provider, hours, and tick everyone who attended.', 'When someone leaves: **Left the firm**.'] },
+    { q: 'Destroy files at the end of the retention period', go: 'files', steps: ['When a relationship ends, Paper files: **Set end date** if not already recorded.', () => `After ${S.settings.retentionYears} years the file appears as ready for destruction.`, 'Destroy the paper file securely, then **Record destruction**: method, certificate and witness.'], tip: 'A file with an open internal report or a hold can\'t be destroyed.' },
+  ] },
+  { g: 'Backups and security', items: [
+    { q: 'Set up backups', go: 'settings', steps: ['Set a password first: cloud backups are only allowed encrypted.', 'Make a folder called KYC Backups on the encrypted USB drive, and another in your synced OneDrive or SharePoint folder.', 'Settings → Backups: **Choose folder** for each, and allow the browser to edit files.'] },
+    { q: 'Back up', go: 'settings', steps: ['Sidebar: **Back up and lock**. It saves to both folders, then locks the app.', 'Or Settings: **Back up now**.'], tip: 'Keep the USB drive plugged in when you back up.' },
+    { q: 'Test that a backup restores', go: 'settings', steps: ['On another computer, or in a Guest window of Edge or Chrome, open **KYC Refresh Desk.html** from the backup folder.', 'Settings: **Restore from a backup folder**, choose the newest backup, sign in.', 'Check a few clients and scans look right, then close the Guest window.', 'Back in your usual app: Settings → **Record a restore test**.'] },
+    { q: 'Change the password or recovery key', go: 'settings', steps: ['Settings → Password and security: **Change password** or **Create new recovery key**.', 'Print a new recovery key and destroy the old one.'] },
+  ] },
+  { g: 'Something has gone wrong', items: [
+    { q: 'I forgot my password', steps: ['On the sign-in screen: **Forgot your password? Use the recovery key**.', 'Type the recovery key from the printed sheet and choose a new password.'], tip: 'Without the password or recovery key nobody can open the records, so keep the key safe.' },
+    { q: 'The app opened empty, or with sample clients', steps: ['Close it. You probably opened a different copy of the file, or a different browser.', 'Open your usual copy of the file, in your usual browser, the way you always do.', 'Still empty? The browser\'s data may have been cleared: Settings → **Restore from a backup folder** and choose the newest backup.'] },
+    { q: 'The backup says the USB drive isn\'t connected', go: 'settings', steps: ['Plug in the USB drive and wait for it to appear in File Explorer.', 'Settings: **Back up now**, and allow access if the browser asks.', 'If the drive letter changed, **Change** the USB folder and choose it again.'] },
+    { q: 'It says "Too many attempts"', steps: ['Wait for the countdown, then type the username and password carefully (check Caps Lock).', 'Still wrong? Use the recovery key.'] },
+    { q: 'A red "Not saving" warning appears', steps: ['Free up disk space, then reopen the app.', 'Make a backup straight away: Settings → **Save backup as downloads** if the folders don\'t work.'] },
+  ] },
+];
+const GLOSSARY = [['CDD', 'Customer due diligence: identifying and verifying the client and understanding the relationship.'], ['EDD', 'Enhanced due diligence: extra checks for higher-risk clients, including PEPs.'], ['PEP', 'Politically exposed person, or their family member or close associate.'], ['Source of funds / wealth', 'Where the money for a transaction comes from / how the client built their overall wealth.'], ['Refresh', 'A periodic review: updating a client\'s documents, screening and risk rating.'], ['Remediation', 'Bringing an existing file up to the current standard.'], ['FIA', 'Financial Intelligence Agency: where suspicious activity reports go.'], ['Tipping off', 'Letting anyone know a report has been or may be made. An offence.']];
+const val = x => (typeof x === 'function' ? x() : x);
+let helpQ = '';
+function guideHtml(x) {
+  const steps = val(x.steps).map(val), tip = val(x.tip);
+  const text = [x.q, ...steps, tip || ''].join(' ').toLowerCase().replace(/\*\*/g, '');
+  return `<details class="guide" data-text="${esc(text)}"><summary>${esc(x.q)}</summary><div class="gbody">
+    <ol>${steps.map(t => `<li>${md(t)}</li>`).join('')}</ol>${tip ? `<p class="tip">${md(tip)}</p>` : ''}
+    ${x.go ? `<p><a class="btn sm" href="#${x.go}">Open ${esc(VIEWS[x.go].n)}</a></p>` : ''}</div></details>`;
+}
+function viewHelp() {
+  const steps = setupSteps(), done = steps.filter(x => x.done).length;
+  return `<div class="page-head"><div><h1>Help</h1><p class="lede">Start with the setup checklist, then keep to the routine. Every task has a step-by-step guide below.</p></div>
+    <div class="row">${FRAMED ? '' : '<button class="btn" data-act="printhelp">Print the manual</button>'}</div></div>
+    <section class="card"><header><div><h2>Setting up</h2><p>${done === steps.length ? 'All done. This list stays here for reference.' : `${done} of ${steps.length} done. Steps tick themselves as you complete them.`}</p></div></header>
+      <div class="body"><div class="meter" aria-hidden="true"><i style="width:${Math.round(done / steps.length * 100)}%"></i></div>
+      <ol class="setup-list">${steps.map(x => `<li><button class="tick ${x.done ? 'on' : ''}" ${x.manual ? `data-act="helptick" data-k="${x.k}" aria-label="${x.done ? 'Mark as not done' : 'Mark as done'}: ${esc(x.t)}"` : `disabled aria-label="${x.done ? 'Done' : 'Not done'}"`}>${x.done ? '✓' : ''}</button>
+        <div><div class="setup-t">${esc(x.t)}</div><div class="small muted">${md(x.d)}${x.manual && !x.done ? ' Tick it yourself when done.' : ''}</div></div>
+        <a class="btn sm" href="#${x.go}">Go</a></li>`).join('')}</ol></div></section>
+    <section class="card"><header><div><h2>Your routine</h2><p>What to do, and when</p></div></header>
+      <div class="body routine">${helpRoutine().map(([h, l]) => `<div><h3>${esc(h)}</h3><ul>${l.map(t => `<li>${md(t)}</li>`).join('')}</ul></div>`).join('')}</div></section>
+    <div class="help-find"><h2>How do I…?</h2><input class="inp search" id="help-q" type="search" placeholder="Search the guides, e.g. PEP, backup, letter" value="${esc(helpQ)}" aria-label="Search the guides"></div>
+    <p class="muted small" id="help-none" hidden>No guide matches that. Try a shorter word.</p>
+    ${HELP.map(gr => `<section class="card guides"><header><h2>${esc(gr.g)}</h2></header>${gr.items.map(guideHtml).join('')}</section>`).join('')}
+    <section class="card"><header><h2>Terms</h2></header><div class="body"><dl class="gloss">${GLOSSARY.map(([t, d]) => `<dt>${esc(t)}</dt><dd>${esc(d)}</dd>`).join('')}</dl></div></section>`;
+}
+function filterHelp() {
+  const q = helpQ.trim().toLowerCase(); let shown = 0;
+  $$('.guides').forEach(sec => {
+    let n = 0;
+    $$('.guide', sec).forEach(g => { const hit = !q || q.split(/\s+/).every(w => g.dataset.text.includes(w)); g.hidden = !hit; g.open = !!q && hit; if (hit) n++; });
+    sec.hidden = !n; shown += n;
+  });
+  const none = $('#help-none'); if (none) none.hidden = shown > 0;
+}
+// the printed manual: everything expanded, on plain paper
+function helpSheet() {
+  const s = S.settings;
+  return `<div class="sheet">${firmHead(s.firm || 'KYC Refresh Desk')}<h3>KYC Refresh Desk: how-to manual</h3><div>Printed ${fmtD(TODAY)}</div>
+    <h4>Your routine</h4>${helpRoutine().map(([h, l]) => `<p><b>${esc(h)}</b></p><ul>${l.map(t => `<li>${md(t)}</li>`).join('')}</ul>`).join('')}
+    ${HELP.map(gr => `<h4>${esc(gr.g)}</h4>${gr.items.map(x => { const tip = val(x.tip); return `<p><b>${esc(x.q)}</b></p><ol>${val(x.steps).map(val).map(t => `<li>${md(t)}</li>`).join('')}</ol>${tip ? `<p><i>${md(tip)}</i></p>` : ''}`; }).join('')}`).join('')}
+    <h4>Terms</h4><table><tbody>${GLOSSARY.map(([t, d]) => `<tr><td><b>${esc(t)}</b></td><td>${esc(d)}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
 /* ---------- weekly report for management ---------- */
@@ -3774,6 +3929,8 @@ const ACT = {
     inp.click();
   },
   logooff: () => { S.settings.logo = ''; S.settings.logoW = S.settings.logoH = 0; commit('Logo removed.'); },
+  helptick: el => { const h = S.help || (S.help = {}); if (h[el.dataset.k]) delete h[el.dataset.k]; else h[el.dataset.k] = iso(TODAY); commit(); },
+  printhelp: () => printHTML(helpSheet()),
   theme: el => { try { localStorage.setItem(THEME_KEY, el.dataset.t); } catch (e) { /* blocked: applies this session only */ } applyTheme(el.dataset.t); render(); },
   destset: el => chooseDest(el.dataset.k),
   destdel: el => removeDest(el.dataset.k),
@@ -3822,6 +3979,7 @@ document.addEventListener('keydown', e => {
 });
 let notesT, qT;
 document.addEventListener('input', e => {
+  if (e.target.id === 'help-q') { helpQ = e.target.value; filterHelp(); }
   if (e.target.id === 'q') { F.q = e.target.value; F.limit = 200; clearTimeout(qT); qT = setTimeout(renderClientRows, 150); }
   if (e.target.id === 'ann-notes') {
     (S.annual[repYear] || (S.annual[repYear] = {})).notes = e.target.value;

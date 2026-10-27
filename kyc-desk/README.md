@@ -4,6 +4,10 @@ A single-file app for running periodic KYC reviews (refreshes and remediation) a
 
 **To use it:** download `index.html` and open it in Chrome or Edge. It needs no installation or internet connection, and nothing is sent anywhere.
 
+## Getting started
+
+Open **Help** in the sidebar. It has a setup checklist that ticks itself off as you go (password, firm name and logo, backup folders, importing your clients, first backup and Excel export, a restore test), your daily, weekly, monthly and yearly routine, step-by-step guides for every task with a search box, what to do when something goes wrong, and a glossary. **Print the manual** prints all of it for your desk. The number beside Help in the sidebar is how many setup steps are left.
+
 ## What it does
 
 | Area | Purpose |
