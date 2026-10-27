@@ -1558,6 +1558,7 @@ function viewSettings() {
     <div class="row">
       <button class="btn" data-act="loadsample">Load sample clients</button>
       <button class="btn" data-act="loadlarge">Load 2,000 test clients</button>
+      ${S.sample ? '<button class="btn" data-act="testscans">Add test scans</button>' : ''}
       <button class="btn danger" data-act="erase">Erase all records</button>
     </div>
     <p class="note">Default document lists, cycles and risk weights are a starting point. Align them with your firm's policies and the current Turks and Caicos AML/PTF Regulations and Code before relying on them.</p>
@@ -2253,6 +2254,7 @@ const HELP = [
     { q: 'Run a periodic review (refresh)', go: 'pipeline', steps: ['Open the client and press **Start refresh**. It pre-selects what to ask for: anything missing, expired or renewed every review.', '**Draft letter**, print or email it. The file moves to **Awaiting client**.', 'When documents arrive: set each status, tick **On paper** and **Scan**, **Attach** the scan, then **Documents received**.', 'Check each document and set it to **Verified**, then **Verification complete**.', '**Record screening**, update the risk assessment, then **Send to sign-off**.', '**Sign off review** confirms the rating and sets the next review date.'], tip: 'The Refresh pipeline page shows every open review by stage.' },
     { q: 'Chase a client who hasn\'t replied', go: 'outreach', steps: ['Outreach lists who is due a reminder, a final notice or escalation.', '**Draft letter** and choose Reminder or Final notice.', 'Send it, then **Log reminder** so the date counts.', 'After the final deadline, **Escalate** and decide whether to restrict services (Change risk status).'], tip: () => `Default timings: reminder at ${S.settings.chase[0]} days, final notice at ${S.settings.chase[1]}, MLRO at ${S.settings.chase[2]}.` },
     { q: 'Find a client quickly', go: 'clients', steps: ['Clients: type in the search box. It searches names, client IDs, file references and countries.', 'Use the filters (Overdue, Due soon, PEPs, Restricted…) and the risk and type menus to narrow the list.'] },
+    { q: 'Try the app at full size with test data', go: 'settings', steps: ['Settings: **Load 2,000 test clients**. It replaces the records with fictional clients; your settings are kept.', 'For scans too: **Add test scans** and choose every scanned document or one per client.', 'When finished: **Load sample clients** or **Erase all records** before entering real clients, and delete any backups made of the test data.'], tip: 'Test data is fictional and marked SPECIMEN.' },
     { q: 'Record screening results', go: 'clients', steps: ['Screen the client in the firm\'s screening tool as usual.', 'On the client file press **Record screening**: date, result, lists checked.', 'A true match goes to the MLRO the same day.'] },
   ] },
   { g: 'PEPs and risk changes', items: [
@@ -2337,6 +2339,105 @@ function helpSheet() {
     <h4>Your routine</h4>${helpRoutine().map(([h, l]) => `<p><b>${esc(h)}</b></p><ul>${l.map(t => `<li>${md(t)}</li>`).join('')}</ul>`).join('')}
     ${HELP.map(gr => `<h4>${esc(gr.g)}</h4>${gr.items.map(x => { const tip = val(x.tip); return `<p><b>${esc(x.q)}</b></p><ol>${val(x.steps).map(val).map(t => `<li>${md(t)}</li>`).join('')}</ol>${tip ? `<p><i>${md(tip)}</i></p>` : ''}`; }).join('')}`).join('')}
     <h4>Terms</h4><table><tbody>${GLOSSARY.map(([t, d]) => `<tr><td><b>${esc(t)}</b></td><td>${esc(d)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+/* ---------- test scans: fictional specimen pages for the test register ----------
+   Each is an A4 page image of about the size of a real scan, marked SPECIMEN, so storage, backups
+   and restores can be tried at full size. One image is drawn per document type and stored per document. */
+const SCAN_KIND = { id: 'id', poa: 'bill', coi: 'cert', cgs: 'cert', reg: 'cert', rod: 'table', rom: 'table', rop: 'table', fin: 'table', sowev: 'table', dist: 'table', chart: 'chart', mem: 'letter', deed: 'letter', pa: 'letter', res: 'letter', low: 'letter', ref: 'letter', trustee: 'letter' };
+async function fakeScan(title, kind) {
+  const W = 1240, H = 1754, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const g = cv.getContext('2d'), ink = '#2b2f36', soft = '#b9bec7';
+  // paper with scanner grain, which also brings the file to about the size of a real scan
+  const img = g.createImageData(W, H), px = img.data;
+  for (let i = 0; i < px.length; i += 4) { const v = 247 - ((Math.random() * 16) | 0); px[i] = v; px[i + 1] = v; px[i + 2] = v - 5; px[i + 3] = 255; }
+  g.putImageData(img, 0, 0);
+  const text = (t, x, y, f, c = ink, al = 'left') => { g.font = f; g.fillStyle = c; g.textAlign = al; g.fillText(t, x, y); };
+  const bars = (x, y, w, n, gap = 30) => { g.fillStyle = soft; for (let i = 0; i < n; i++) g.fillRect(x, y + i * gap, w * (0.55 + Math.random() * 0.45), 11); };
+  const box = (x, y, w, h, lw = 3) => { g.strokeStyle = ink; g.lineWidth = lw; g.strokeRect(x, y, w, h); };
+  const sign = (x, y) => { g.strokeStyle = '#1f3a8a'; g.lineWidth = 3; g.beginPath(); g.moveTo(x, y); for (let i = 1; i < 12; i++) g.lineTo(x + i * 22, y + (i % 2 ? -26 : 14) * Math.random()); g.stroke(); g.fillStyle = soft; g.fillRect(x - 10, y + 24, 300, 3); };
+  if (kind === 'id') {
+    box(170, 220, 900, 580, 4); g.fillStyle = '#d9dde3'; g.fillRect(210, 280, 250, 320);
+    g.fillStyle = '#aab0ba'; g.beginPath(); g.arc(335, 390, 62, 0, 7); g.fill(); g.fillRect(255, 470, 160, 130);
+    text('IDENTITY DOCUMENT', 500, 300, 'bold 34px sans-serif'); bars(500, 340, 520, 7, 36);
+    text('P<TCASPECIMEN<<TEST<DATA<<<<<<<<<<<<<<<<<<', 210, 690, '30px monospace'); text('X000000000TCA0000000F0000000<<<<<<<<<<<<00', 210, 735, '30px monospace');
+    text('Certified true copy of the original', 170, 900, 'italic 28px serif'); bars(170, 940, 700, 3); sign(170, 1080);
+  } else if (kind === 'bill') {
+    g.fillStyle = '#26476b'; g.fillRect(80, 90, 1080, 110); text('ISLAND UTILITIES (FICTIONAL)', 120, 160, 'bold 40px sans-serif', '#fff');
+    bars(80, 260, 420, 4, 34); bars(760, 260, 400, 4, 34);
+    for (let r = 0; r < 12; r++) { g.fillStyle = r % 2 ? '#eceef1' : '#f6f7f8'; g.fillRect(80, 470 + r * 52, 1080, 52); bars(100, 490 + r * 52, 560, 1); bars(960, 490 + r * 52, 160, 1); }
+    text('Amount due', 760, 1180, 'bold 34px sans-serif'); box(960, 1140, 200, 60);
+  } else if (kind === 'cert') {
+    box(70, 70, 1100, 1614, 6); box(95, 95, 1050, 1564, 2);
+    text('CERTIFICATE', W / 2, 330, 'bold 76px serif', ink, 'center'); bars(220, 420, 800, 10, 44);
+    g.strokeStyle = '#8a6d1d'; g.lineWidth = 6; g.beginPath(); g.arc(320, 1300, 110, 0, 7); g.stroke(); text('SEAL', 320, 1312, 'bold 34px serif', '#8a6d1d', 'center');
+    sign(700, 1320);
+  } else if (kind === 'table' || kind === 'chart') {
+    bars(80, 260, 600, 3, 34);
+    if (kind === 'chart') {
+      const nodes = [[520, 420], [220, 760], [820, 760], [120, 1100], [420, 1100], [720, 1100], [1000, 1100]];
+      g.strokeStyle = ink; g.lineWidth = 3; [[0, 1], [0, 2], [1, 3], [1, 4], [2, 5], [2, 6]].forEach(([a, b]) => { g.beginPath(); g.moveTo(nodes[a][0] + 100, nodes[a][1] + 90); g.lineTo(nodes[b][0] + 100, nodes[b][1]); g.stroke(); });
+      nodes.forEach(([x, y]) => { box(x, y, 200, 90); bars(x + 20, y + 30, 160, 2, 26); });
+    } else for (let r = 0; r < 26; r++) { g.strokeStyle = '#c9cdd4'; g.lineWidth = 1; g.strokeRect(80, 400 + r * 46, 1080, 46); [100, 420, 760, 980].forEach(x => bars(x, 417 + r * 46, 180, 1)); }
+  } else if (kind === 'letter') {
+    for (let p = 0; p < 5; p++) bars(100, 260 + p * 230, 1040, 5, 34);
+    sign(100, 1470);
+  } else {
+    for (let r = 0; r < 9; r++) { text(['Full name', 'Date of birth', 'Address', 'Occupation', 'Employer', 'Nationality', 'Tax residence', 'Source of funds', 'Source of wealth'][r], 100, 300 + r * 90, '26px sans-serif', '#5b616b'); g.fillStyle = soft; g.fillRect(420, 290 + r * 90, 700, 3); bars(430, 262 + r * 90, 600, 1); }
+    bars(100, 1150, 1000, 6, 34); text('Signature', 100, 1430, '26px sans-serif', '#5b616b'); sign(260, 1440);
+  }
+  text(title, 80, 140 + (kind === 'bill' || kind === 'cert' ? 1500 : 0), 'bold 34px sans-serif', ink);
+  text('Fictional test document generated by KYC Refresh Desk. Not a real record.', W / 2, H - 50, '22px sans-serif', '#7a808a', 'center');
+  g.save(); g.translate(W / 2, H / 2); g.rotate(-0.5); text('SPECIMEN', 0, 0, 'bold 200px sans-serif', 'rgba(200, 30, 30, .16)', 'center'); text('TEST DATA', 0, 120, 'bold 80px sans-serif', 'rgba(200, 30, 30, .16)', 'center'); g.restore();
+  return new Promise(r => cv.toBlob(r, 'image/jpeg', 0.82));
+}
+// the documents marked scanned that have no scan attached yet; one per client if perClient
+function testScanJobs(perClient) {
+  const jobs = [];
+  for (const c of S.clients) {
+    const ds = DOC_LIB[c.type].filter(t => { const d = c.docs[t.k]; return d && d.scan && !d.att; });
+    for (const t of perClient ? ds.slice(0, 1) : ds) jobs.push([c, t]);
+  }
+  return jobs;
+}
+async function addTestScans(perClient, progress) {
+  const jobs = testScanJobs(perClient), cache = new Map(), day = iso(TODAY);
+  for (let i = 0; i < jobs.length; i += 25) {
+    const recs = [];
+    for (const [c, t] of jobs.slice(i, i + 25)) {
+      const key = c.type + t.k;
+      if (!cache.has(key)) cache.set(key, await fakeScan(t.n, SCAN_KIND[t.k] || 'form'));
+      const blob = cache.get(key), rec = { name: `${t.short} (specimen).jpg`, type: 'image/jpeg', size: blob.size, added: day, blob };
+      recs.push([`${c.id}-${t.k}-test`, vault ? await sealFile(rec) : rec, c, t.k]);
+    }
+    await ATT.tx('readwrite', st => { recs.forEach(([id, r]) => st.put(r, id)); });
+    recs.forEach(([id, , c, k]) => { c.docs[k].att = id; });
+    progress(Math.min(i + 25, jobs.length), jobs.length);
+    if (i % 1000 === 0) save();
+  }
+  save(); await writeChain;
+  return jobs.length;
+}
+function modalTestScans() {
+  const all = testScanJobs(false).length, one = testScanJobs(true).length, MB = 0.3;
+  const size = n => (n * MB >= 1000 ? `${(n * MB / 1000).toFixed(1)} GB` : `${Math.round(n * MB)} MB`);
+  const body = `<p>Attach a fictional specimen scan to documents marked as scanned, to see how the app handles the storage. Each is an A4 page image marked SPECIMEN, about the size of a real scan${vault ? ', encrypted like real scans' : ''}.</p>
+    <label class="check" for="ts-all"><input type="radio" name="ts" id="ts-all" checked> Every document marked scanned: ${all.toLocaleString('en-GB')} scans, about ${size(all)}</label>
+    <label class="check" for="ts-one"><input type="radio" name="ts" id="ts-one"> One per client: ${one.toLocaleString('en-GB')} scans, about ${size(one)}</label>
+    <p class="callout warn">Backups include scans. The first backup afterwards copies all of them to the USB and cloud folders, and the cloud copy uploads them. Fine for a test, but delete the test backups afterwards. <b>Load sample clients</b> or <b>Erase all records</b> removes the test scans.</p>
+    <p class="small" id="ts-prog" aria-live="polite"></p>`;
+  modal('Add test scans', body, [{ label: 'Add scans', cls: 'primary', fn: async dlg => {
+    const perClient = $('#ts-one', dlg).checked, n = perClient ? one : all;
+    if (!n) return fail(dlg, 'Every document marked scanned already has a scan.');
+    try { const e = await navigator.storage.estimate(); if (e.quota && e.quota - e.usage < n * MB * 1.3e6) return fail(dlg, `Not enough browser storage for ${size(n)}. Choose one per client, or free disk space.`); } catch (e) { /* no estimate: carry on */ }
+    $$('footer .btn', dlg).forEach(b => { b.disabled = true; });
+    const t0 = Date.now(), prog = $('#ts-prog', dlg);
+    try {
+      await addTestScans(perClient, (d, total) => { if (prog) prog.textContent = `Adding scans: ${d.toLocaleString('en-GB')} of ${total.toLocaleString('en-GB')}…`; });
+    } catch (e) { commit(); toast('Stopped: the browser refused to store more scans. Free disk space and try again.'); return true; }
+    log0(`Test scans added: ${n.toLocaleString('en-GB')} specimen pages.`);
+    commit(`${n.toLocaleString('en-GB')} test scans added in ${Math.round((Date.now() - t0) / 1000)} seconds`);
+  } }]);
 }
 
 /* ---------- weekly report for management ---------- */
@@ -3486,12 +3587,12 @@ async function wrapPassword(raw, pw) { const salt = rnd(16); vault.salt = b64(sa
 async function wrapRecovery(raw) { const rk = newRK(), rsalt = rnd(16); vault.rsalt = b64(rsalt); vault.riter = RK_ITER; vault.wrapR = await seal(await kek(normRK(rk), rsalt, RK_ITER), raw); return rk; }
 
 // scans: encrypted at rest whenever a password is set
-async function putFile(id, rec) {
-  if (!vault) return ATT.put(id, rec);
+async function sealFile(rec) {
   const meta = te.encode(JSON.stringify({ name: rec.name, type: rec.type, size: rec.size, added: rec.added }));
   const bytes = new Uint8Array(await rec.blob.arrayBuffer());
-  return ATT.put(id, { enc: 1, m: await seal(DK, meta), b: await seal(DK, bytes) });
+  return { enc: 1, m: await seal(DK, meta), b: await seal(DK, bytes) };
 }
+async function putFile(id, rec) { return ATT.put(id, vault ? await sealFile(rec) : rec); }
 async function getFile(id) {
   const r = await ATT.get(id);
   if (!r || !r.enc) return r || null;
@@ -3987,6 +4088,7 @@ const ACT = {
   loadlarge: () => modal('Load 2,000 test clients', '<p>Replace every record in this browser with 2,000 fictional clients, each with documents and several years of history, to see how the app runs at the firm\'s real size? Your settings are kept.</p><p class="note">When you have finished, use <b>Load sample clients</b> or <b>Erase all records</b> before entering real clients.</p>', [{ label: 'Load 2,000 test clients', cls: 'danger solid', fn: async () => {
     const sys = S.syslog; S = migrate(seedLarge(S.settings, 2000)); S.syslog = sys; try { await ATT.clear(); } catch (e) { /* none */ } commit('2,000 test clients loaded'); later(() => go('clients'));
   } }]),
+  testscans: () => modalTestScans(),
   erase: () => modal('Erase all records', '<p>Delete every client, document record, scan and audit entry stored in this browser? Settings are kept.</p><p class="callout crit">This cannot be undone. Save a backup first if you may need these records.</p><label class="field" for="er-c">Type ERASE to confirm<input id="er-c" autocomplete="off"></label>', [{ label: 'Erase everything', cls: 'danger solid', fn: async dlg => {
     if ($('#er-c', dlg).value.trim() !== 'ERASE') return fail(dlg, 'Type ERASE in capitals to confirm.');
     const sys = S.syslog; S = migrate(emptyState(S.settings)); S.syslog = sys; try { await ATT.clear(); } catch (e) { /* none */ } commit('All records erased'); later(() => go('overview'));
