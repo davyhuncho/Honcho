@@ -612,23 +612,26 @@ const KV = {
   put: (k, v) => ATT.tx('readwrite', st => st.put(v, k), 'state'),
   del: k => ATT.tx('readwrite', st => st.delete(k), 'state'),
 };
-function lsPut(k, v) { try { localStorage.setItem(k === 'vault' ? VKEY : KEY, v); storageOK = true; } catch (e) { storageOK = false; } }
+function lsPut(k, v) { try { localStorage.setItem(k === 'vault' ? VKEY : KEY, typeof v === 'string' ? v : JSON.stringify(vaultForFile())); storageOK = true; } catch (e) { storageOK = false; } }
 function store(k, v) {
   if (!idbOK) { lsPut(k, v); return Promise.resolve(); }
   return KV.put(k, v).then(() => { storageOK = true; }, () => { idbOK = false; lsPut(k, v); });
 }
+// With thousands of clients, writing the records takes a few hundred milliseconds. Saving waits
+// until the change is on screen, and edits made meanwhile go into the same write. Anything that
+// needs the records stored (backups, locking) awaits writeChain, which includes the pending save.
+let savePending = false;
+const afterPaint = () => new Promise(r => { let done = false; const go = () => { if (!done) { done = true; setTimeout(r, 0); } }; requestAnimationFrame(go); setTimeout(go, 120); });
 function save() {
   _tasks = null;
-  if (!S) return;
-  // serialise now so writes land in order; encrypt and store asynchronously
-  if (vault) {
-    if (!DK) return;
-    const snap = te.encode(JSON.stringify(S));
-    writeChain = writeChain.then(async () => { vault.data = await seal(DK, snap); await store('vault', JSON.stringify(vault)); }).catch(() => { storageOK = false; });
-    return;
-  }
-  const snap = JSON.stringify(S);
-  writeChain = writeChain.then(() => store('plain', snap)).catch(() => { storageOK = false; });
+  if (!S || (vault && !DK) || savePending) return;
+  savePending = true;
+  writeChain = writeChain.then(afterPaint).then(async () => {
+    savePending = false;
+    if (!S || (vault && !DK)) return;
+    if (vault) { vault.data = await sealRecords(JSON.stringify(S)); await store('vault', vault); }
+    else await store('plain', JSON.stringify(S));
+  }).catch(() => { savePending = false; storageOK = false; });
 }
 function emptyState(settings) {
   return { v: 1, sample: false, seq: 100, settings: settings || clone(DEFAULT_SETTINGS), clients: [] };
@@ -2773,7 +2776,7 @@ async function runBackup(ask = true, quiet = false) {
     if (ready.length) {
       S.lastBackup = iso(TODAY); save(); await writeChain;
       const records = JSON.stringify(vault
-        ? { app: 'kyc-refresh-desk', v: 3, enc: true, exported, vault, files: {}, scans: 'separate' }
+        ? { app: 'kyc-refresh-desk', v: 3, enc: true, exported, vault: vaultForFile(), files: {}, scans: 'separate' }
         : { app: 'kyc-refresh-desk', v: 3, exported, state: S, files: {}, scans: 'separate' });
       let keys = []; try { keys = await ATT.keys(); } catch (e) { /* no scans */ }
       for (const x of ready) {
@@ -3266,14 +3269,29 @@ const te = new TextEncoder(), td = new TextDecoder();
 const rnd = n => crypto.getRandomValues(new Uint8Array(n));
 function b64(buf) { const a = new Uint8Array(buf); let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); }
 function unb64(s) { const b = atob(s), a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
-function writeVault() { writeChain = writeChain.then(() => store('vault', JSON.stringify(vault))).catch(() => { storageOK = false; }); return writeChain; }
+function writeVault() { writeChain = writeChain.then(() => store('vault', vault)).catch(() => { storageOK = false; }); return writeChain; }
+// On this computer the encrypted records are stored as binary; backup files carry them as base64 text.
+const bin = x => (typeof x === 'string' ? unb64(x) : new Uint8Array(x));
+async function sealBin(key, bytes) { const iv = rnd(12); return { iv, ct: await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes) }; }
+const vaultForFile = () => (vault && vault.data && typeof vault.data.ct !== 'string' ? Object.assign({}, vault, { data: Object.assign({}, vault.data, { iv: b64(vault.data.iv), ct: b64(vault.data.ct) }) }) : vault);
+// The records are compressed before encryption: an audit trail repeats itself, so 12 MB becomes about 1 MB,
+// which keeps saving and backups quick. Records saved without compression (z unset) still open.
+const pipe = (bytes, t) => new Response(new Blob([bytes]).stream().pipeThrough(t)).arrayBuffer();
+async function sealRecords(json) {
+  if (typeof CompressionStream === 'function') { try { return Object.assign(await sealBin(DK, await pipe(json, new CompressionStream('gzip'))), { z: 'gzip' }); } catch (e) { /* store uncompressed */ } }
+  return sealBin(DK, te.encode(json));
+}
+async function openRecords(box) {
+  const raw = await unseal(DK, box);
+  return td.decode(box.z === 'gzip' ? await pipe(raw, new DecompressionStream('gzip')) : raw);
+}
 function dropPlain() { writeChain = writeChain.then(() => (idbOK ? KV.del('plain') : null)).catch(() => {}); try { localStorage.removeItem(KEY); } catch (e) { /* blocked */ } }
 async function kek(secret, salt, iter) {
   const base = await crypto.subtle.importKey('raw', te.encode(secret), 'PBKDF2', false, ['deriveKey']);
   return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 }
 async function seal(key, bytes) { const iv = rnd(12); return { iv: b64(iv), ct: b64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes)) }; }
-async function unseal(key, box) { return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(box.iv) }, key, unb64(box.ct))); }
+async function unseal(key, box) { return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bin(box.iv) }, key, bin(box.ct))); }
 const importDK = raw => crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
 const RK_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const normRK = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -3321,7 +3339,7 @@ function tries() { try { return JSON.parse(localStorage.getItem(TRIES_KEY)) || {
 function setTries(t) { try { localStorage.setItem(TRIES_KEY, JSON.stringify(t)); } catch (e) { /* ignore */ } }
 async function openVault(raw) {
   DK = await importDK(raw);
-  const st = vault.data ? JSON.parse(td.decode(await unseal(DK, vault.data))) : null;
+  const st = vault.data ? JSON.parse(await openRecords(vault.data)) : null;
   S = migrate(st || seed());
   S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
   setTries({ n: 0, until: 0 });
@@ -3521,7 +3539,7 @@ async function exportBackup(allScans) {
   const exported = new Date().toISOString(), day = iso(TODAY);
   S.lastBackup = day; save(); await writeChain;
   download(`kyc-refresh-desk-records-${day}.json`, JSON.stringify(vault
-    ? { app: 'kyc-refresh-desk', v: 3, enc: true, exported, vault, files: {}, scans: 'separate' }
+    ? { app: 'kyc-refresh-desk', v: 3, enc: true, exported, vault: vaultForFile(), files: {}, scans: 'separate' }
     : { app: 'kyc-refresh-desk', v: 3, exported, state: S, files: {}, scans: 'separate' }), 'application/json');
   const done = S.scansBackedUp || (S.scansBackedUp = {});
   let keys = []; try { keys = await ATT.keys(); } catch (e) { /* no scans */ }
@@ -3649,6 +3667,7 @@ function importBackup(data, scans = [], loadScans = null) {
           for (const sc of [data, ...scans]) for (const [id, x] of Object.entries(sc.files || {})) await ATT.put(id, x.enc ? x : { name: x.name, type: x.type, size: x.size, added: x.added, blob: dataToBlob(x.data) });
           if (loadScans) await loadScans(true);
         } catch (e) { toast('Scans could not be restored in this browser.'); }
+        await writeChain; // let any pending save finish before the restored records replace it
         vault = data.vault; writeVault(); dropPlain(); await writeChain;
         DK = null; S = null; later(() => showLock());
       } }]);
@@ -3877,7 +3896,7 @@ async function boot() {
     if (lv) v = lv; else plain = lp;
     if (idbOK) { try { await KV.put(lv ? 'vault' : 'plain', lv || lp); localStorage.removeItem(VKEY); localStorage.removeItem(KEY); } catch (e) { idbOK = false; } }
   }
-  vault = v ? JSON.parse(v) : null;
+  vault = v ? (typeof v === 'string' ? JSON.parse(v) : v) : null;
   if (vault) { showLock(); return; }
   S = migrate(plain ? JSON.parse(plain) : seed());
   S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});

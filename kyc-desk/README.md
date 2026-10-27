@@ -145,6 +145,17 @@ In **Settings → Firm and people**, choose **Add logo** and pick the firm's own
 
 ## Capacity
 
-Tested with 2,000 clients carrying several years of audit history (13 MB of records). Records and scans are stored in the browser's IndexedDB database, which has no practical size limit; records saved by earlier versions move there automatically on first open. Long lists show 200 rows at a time, and searching filters all clients. Large photos are reduced to 2,200 pixels on the long side when attached, which keeps them legible while saving space. PDFs are kept as they are.
+Load-tested with password protection on, using 2,000 fictional clients with about five years of audit history each (12 MB of records):
+
+| Task | 2,000 clients | On a PC 4× slower | 5,000 clients |
+|---|---|---|---|
+| Sign in | 1.6 s | 6.4 s | 3.3 s |
+| Open a page | 0.1–0.5 s | 0.2–1.6 s | 0.1–0.5 s |
+| Search the register | 0.4 s | 2.0 s | 0.5 s |
+| A change appears on screen | 0.1 s | 0.4 s | 0.1 s |
+| Excel export | 3–4 s | 14 s | 9 s |
+| Backup file size | 1.4 MB | 1.4 MB | 3.5 MB |
+
+Each change shows on screen first and is saved straight after; quick successive edits are saved together. Records are compressed before encryption (12 MB becomes about 1 MB), which keeps saving and backups quick. Records and scans are stored in the browser's IndexedDB database, which has no practical size limit; records saved by earlier versions move there automatically on first open and are compressed at the next save. Long lists show 200 rows at a time, and searching filters all clients. Large photos are reduced to 2,200 pixels on the long side when attached, which keeps them legible while saving space. PDFs are kept as they are.
 - The document lists, review cycles and risk weights are starting defaults. Check them against your firm's AML/CFT policy and the current Turks and Caicos AML/PTF Regulations and Code before relying on them.
 - The app ships with 24 fictional sample clients for trying the workflow. Remove them before you enter real data.
