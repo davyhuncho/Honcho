@@ -518,6 +518,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const plural = (n, w, pl) => `${n} ${n === 1 ? w : pl || w + 's'}`;
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// shown in Settings so it's clear which copy of the app is open
+const APP_VERSION = '28 Oct 2026';
 const FRAMED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
 // appearance: Auto follows the computer's light or dark setting; the choice is remembered on this computer
 const THEME_KEY = 'kyc-refresh-desk.theme';
@@ -1558,10 +1560,10 @@ function viewSettings() {
     <div class="row">
       <button class="btn" data-act="loadsample">Load sample clients</button>
       <button class="btn" data-act="loadlarge">Load 2,000 test clients</button>
-      ${S.sample ? '<button class="btn" data-act="testscans">Add test scans</button>' : ''}
+      <button class="btn" data-act="testscans">Add test scans</button>
       <button class="btn danger" data-act="erase">Erase all records</button>
     </div>
-    <p class="note">Default document lists, cycles and risk weights are a starting point. Align them with your firm's policies and the current Turks and Caicos AML/PTF Regulations and Code before relying on them.</p>
+    <p class="note">KYC Refresh Desk, version ${APP_VERSION}. Default document lists, cycles and risk weights are a starting point. Align them with your firm's policies and the current Turks and Caicos AML/PTF Regulations and Code before relying on them.</p>
   </div></section>`;
 }
 
@@ -2421,6 +2423,8 @@ async function addTestScans(perClient, progress) {
   return jobs.length;
 }
 function modalTestScans() {
+  // test scans only ever go on sample or test clients, so they can't mix with real records
+  if (!S.sample) return modal('Add test scans', '<p>Test scans are added only to sample or test clients, so they never mix with real records.</p><p>Load the 2,000 test clients first. That replaces every record in this browser with fictional ones.</p>', [{ label: 'Load 2,000 test clients', cls: 'primary', fn: () => { later(() => ACT.loadlarge()); } }]);
   const all = testScanJobs(false).length, one = testScanJobs(true).length, MB = 0.3;
   const size = n => (n * MB >= 1000 ? `${(n * MB / 1000).toFixed(1)} GB` : `${Math.round(n * MB)} MB`);
   const body = `<p>Attach a fictional specimen scan to documents marked as scanned, to see how the app handles the storage. Each is an A4 page image marked SPECIMEN, about the size of a real scan${vault ? ', encrypted like real scans' : ''}.</p>
