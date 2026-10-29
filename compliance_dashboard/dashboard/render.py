@@ -8,6 +8,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 from . import fatf as fatf_mod
+from . import sanctions as sanctions_mod
 from .feeds import fetch_sections
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -32,9 +33,11 @@ def build_data(cache: dict, offline: bool = False) -> dict:
         fatf_status = {"checked": False, "newer": [], "error": "offline mode",
                        "plenary_passed": fatf_mod.plenary_passed(fatf, today)}
         sections = []
+        sanctions = []
     else:
         fatf_status = fatf_mod.check_for_update(fatf)
         sections = fetch_sections(sources, cache.setdefault("feeds", {}))
+        sanctions = sanctions_mod.update_all(cache)
 
     return {
         "generated": datetime.now(timezone.utc).isoformat(),
@@ -42,6 +45,7 @@ def build_data(cache: dict, offline: bool = False) -> dict:
         "fatf": fatf,
         "fatf_status": fatf_status,
         "sections": sections,
+        "sanctions": sanctions,
         "resources": sources.get("resources", []),
         "calendar": _load("calendar.json")["events"],
         "checklist": _load("checklist.json")["items"],

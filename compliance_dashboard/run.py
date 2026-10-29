@@ -53,6 +53,14 @@ def build(out_dir: Path, offline: bool = False, send_notification: bool = False)
     print(f"Built {out}  ({stories} stories from {len(feeds) - len(failed)}/{len(feeds)} feeds)")
     for name in failed:
         print(f"  ! could not fetch: {name}")
+    for lst in data.get("sanctions", []):
+        if lst["error"]:
+            print(f"  ! {lst['label']}: {lst['error']}")
+        else:
+            latest = lst["events"][0] if lst["events"] else None
+            status = "baseline recorded" if lst["baseline"] else (
+                f"latest change +{latest['added_count']}/-{latest['removed_count']} ({latest['seen'][:10]})" if latest else "no changes recorded")
+            print(f"  {lst['label']}: {lst['count']} designations, {status}")
     st = data["fatf_status"]
     if st["newer"]:
         print("  ! NEW FATF statement published since", data["fatf"]["as_of"], "- update data/fatf_lists.json:")

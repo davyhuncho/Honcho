@@ -6,7 +6,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from dashboard import fatf, feeds, notify, render  # noqa: E402
+from dashboard import fatf, feeds, notify, render, sanctions  # noqa: E402
 
 NOW = datetime.now(timezone.utc)
 RSS = f"""<?xml version="1.0"?>
@@ -163,6 +163,76 @@ class NotifyTests(unittest.TestCase):
         self.assertEqual(req.get_header("Click"), "https://example.github.io/Honcho/")
         self.assertEqual(req.get_header("Priority"), "4")
         self.assertEqual(req.data, "B ü".encode())
+
+
+UK_XML = b"""<?xml version="1.0" encoding="utf-8"?>
+<Designations><DateGenerated>29/10/2026</DateGenerated>
+<Designation><LastUpdated>04/08/2026</LastUpdated><UniqueID>AFG0001</UniqueID>
+<Names><Name><Name6>HAJI KHAIRULLAH MONEY EXCHANGE</Name6><NameType>Primary Name</NameType></Name>
+<Name><Name6>Haji Alim Hawala</Name6><NameType>Alias</NameType></Name></Names>
+<RegimeName>The Afghanistan (Sanctions) (EU Exit) Regulations 2020</RegimeName>
+<IndividualEntityShip>Entity</IndividualEntityShip></Designation>
+<Designation><LastUpdated>01/10/2026</LastUpdated><UniqueID>RUS0002</UniqueID>
+<Names><Name><Name1>Ivan</Name1><Name6>PETROV</Name6><NameType>Primary Name</NameType></Name></Names>
+<RegimeName>The Russia (Sanctions) (EU Exit) Regulations 2019</RegimeName>
+<IndividualEntityShip>Individual</IndividualEntityShip></Designation>
+</Designations>"""
+
+OFAC_CSV = (b'36,"AEROCARIBBEAN AIRLINES",-0- ,"CUBA",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- \r\n'
+            b'306,"BANCO NACIONAL DE CUBA",-0- ,"CUBA",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,"a.k.a. \'BNC\'."\r\n'
+            b'7157,"SMITH, John",individual,"SDGT",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- \r\n\x1a')
+
+
+class SanctionsTests(unittest.TestCase):
+    def test_parse_uk(self):
+        entries, generated = sanctions.parse_uk(UK_XML)
+        self.assertEqual(generated, "29/10/2026")
+        self.assertEqual(entries["AFG0001"]["name"], "HAJI KHAIRULLAH MONEY EXCHANGE")
+        self.assertEqual(entries["AFG0001"]["regime"], "Afghanistan")
+        self.assertEqual(entries["RUS0002"]["name"], "Ivan PETROV")
+        self.assertEqual(entries["RUS0002"]["type"], "Individual")
+
+    def test_parse_ofac(self):
+        entries = sanctions.parse_ofac(OFAC_CSV)
+        self.assertEqual(set(entries), {"36", "306", "7157"})
+        self.assertEqual(entries["7157"], {"name": "SMITH, John", "type": "Individual", "regime": "SDGT"})
+        self.assertEqual(entries["36"]["type"], "Entity")
+
+    def test_diff(self):
+        old = {"A": {"name": "a", "updated": "1"}, "B": {"name": "b", "updated": "1"}}
+        new = {"B": {"name": "b", "updated": "2"}, "C": {"name": "c", "updated": "1"}}
+        d = sanctions.diff(old, new, track_updates=True)
+        self.assertEqual([e["id"] for e in d["added"]], ["C"])
+        self.assertEqual([e["id"] for e in d["removed"]], ["A"])
+        self.assertEqual(d["amended"], 1)
+
+    def test_update_baseline_then_change_and_guard(self):
+        cache = {}
+        big = {str(i): {"name": f"n{i}"} for i in range(150)}
+        now = datetime(2026, 10, 29, 10, tzinfo=timezone.utc)
+        r = sanctions._update("ofac", "OFAC SDN List", lambda: (big, ""), cache, now)
+        self.assertTrue(r["baseline"])
+        bigger = dict(big, x={"name": "New Person"})
+        del bigger["0"]
+        r = sanctions._update("ofac", "OFAC SDN List", lambda: (bigger, ""), cache, now + timedelta(days=1))
+        (ev,) = r["events"]
+        self.assertEqual((ev["added_count"], ev["removed_count"]), (1, 1))
+        # A truncated download must not be recorded as mass removals.
+        r = sanctions._update("ofac", "OFAC SDN List", lambda: ({"1": {"name": "x"}}, ""), cache, now + timedelta(days=2))
+        self.assertIn("incomplete", r["error"])
+        self.assertEqual(len(r["events"]), 1)
+        self.assertEqual(len(cache["ofac"]["snapshot"]), 150)
+
+    def test_notification_reports_changes_once(self):
+        lists = [{"label": "UK Sanctions List", "events": [
+            {"seen": "2026-10-29T10:00:00+00:00", "added_count": 3, "removed_count": 1, "amended": 2}]}]
+        data = {"fatf": {}, "fatf_status": {}, "sections": [], "sanctions": lists}
+        cache = {"notified_at": "2026-10-28T10:00:00+00:00"}
+        msg = notify.compose(data, cache, today=date(2026, 10, 29))
+        self.assertIn("Sanctions list changes: UK +3 -1 2 amended. Re-screen customers.", msg["body"])
+        self.assertEqual(msg["priority"], 4)
+        msg = notify.compose(data, cache, today=date(2026, 10, 30))
+        self.assertNotIn("Sanctions", msg["body"])
 
 
 if __name__ == "__main__":
