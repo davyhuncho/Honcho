@@ -110,6 +110,14 @@ ul.plain li:last-child { border-bottom: 0; }
 .links { columns: 3 220px; column-gap: 24px; }
 .links section { break-inside: avoid; margin-bottom: 12px; }
 .links a { display: block; font-size: 14px; padding: 2px 0; }
+.sgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .sgrid { grid-template-columns: 1fr; } }
+.slist { border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-width: 0; }
+.slist-h { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; align-items: baseline; }
+details { border-top: 1px solid var(--line); padding: 6px 0; font-size: 14px; }
+details summary { cursor: pointer; }
+details ul { margin: 6px 0 0; padding-left: 18px; }
+details li { padding: 2px 0; }
 footer { max-width: 1280px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: 12px; }
 .empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
 </style>
@@ -245,6 +253,41 @@ document.getElementById("generated").textContent = "Updated " + new Date(DATA.ge
   ));
 })();
 
+// ---------- sanctions list changes ----------
+(function sanctions() {
+  const lists = DATA.sanctions || [];
+  if (!lists.length) return;
+  const daysAgo = iso => (Date.now() - new Date(iso)) / DAY;
+  const counts = e => [e.added_count ? `+${e.added_count} added` : null, e.removed_count ? `−${e.removed_count} removed` : null,
+    e.amended ? `${e.amended} amended` : null].filter(Boolean).join(", ");
+  const entryLi = x => h("li", {}, h("b", {}, x.name || x.id), " ", h("span", { class: "sub" }, [x.type, x.regime].filter(Boolean).join(" · ")));
+  const box = l => {
+    const recent = (l.events || []).filter(e => daysAgo(e.seen) <= 7);
+    const fresh = recent.find(e => daysAgo(e.seen) <= 2 && e.added_count);
+    return h("div", { class: "slist" },
+      h("div", { class: "slist-h" },
+        h("b", {}, l.label, " ", fresh ? h("span", { class: "pill red" }, "RE-SCREEN") : null),
+        h("span", { class: "sub" }, l.count ? `${l.count.toLocaleString()} designations` : "", l.list_date ? ` · list dated ${l.list_date}` : "")),
+      h("div", { class: "sub", style: "margin:4px 0 8px" }, l.note, " ",
+        h("a", { href: l.search }, "Search"), " · ", h("a", { href: l.source }, "Download")),
+      l.error ? h("div", { class: "err" }, "Could not check today: ", l.error,
+        l.checked ? ` (last checked ${ago(l.checked)})` : "") : null,
+      l.baseline ? h("div", { class: "empty" }, "Tracking started today. Changes will show from the next update.") : null,
+      !l.error && !l.baseline && !recent.length ? h("div", {}, h("span", { class: "pill ok" }, "NO CHANGES"), " in the last 7 days") : null,
+      (l.events || []).slice(0, 6).map((e, i) => h("details", { open: i === 0 && daysAgo(e.seen) <= 2 },
+        h("summary", {}, h("b", {}, new Date(e.seen).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })), ": ", counts(e)),
+        e.added.length ? [h("div", { class: "sub", style: "margin-top:6px" }, "Added"), h("ul", {}, e.added.map(entryLi))] : null,
+        e.added_count > e.added.length ? h("div", { class: "sub" }, `…and ${e.added_count - e.added.length} more`) : null,
+        e.removed.length ? [h("div", { class: "sub", style: "margin-top:6px" }, "Removed"), h("ul", {}, e.removed.map(entryLi))] : null,
+        e.removed_count > e.removed.length ? h("div", { class: "sub" }, `…and ${e.removed_count - e.removed.length} more`) : null,
+        e.amended ? h("div", { class: "sub", style: "margin-top:6px" }, `${e.amended} existing designations amended (details in the official list).`) : null)));
+  };
+  app.append(h("section", { class: "card span-12" },
+    h("h2", {}, "Sanctions list changes"),
+    h("div", { class: "sub", style: "margin-bottom:10px" }, "The full official lists are downloaded every morning and compared with the previous day's."),
+    h("div", { class: "sgrid" }, lists.map(box))));
+})();
+
 // ---------- country lookup ----------
 (function lookup() {
   const removed = new Map();
@@ -281,7 +324,7 @@ document.getElementById("generated").textContent = "Updated " + new Date(DATA.ge
     out.append(h("div", { class: "sub", style: "margin-top:6px" }, "Also check: ",
       h("a", { href: "https://www.sanctionsmap.eu/" }, "EU Sanctions Map"), " · ",
       h("a", { href: "https://sanctionssearch.ofac.treas.gov/" }, "OFAC search"), " · ",
-      h("a", { href: "https://sanctionssearchapp.ofsi.hmtreasury.gov.uk/" }, "UK Sanctions List"), " · ",
+      h("a", { href: "https://www.gov.uk/government/publications/the-uk-sanctions-list" }, "UK Sanctions List"), " · ",
       h("a", { href: `https://news.google.com/search?q=${term}%20money%20laundering` }, "news")));
   });
   app.append(h("section", { class: "card span-12" }, h("h2", {}, "Country risk lookup"), input, out));

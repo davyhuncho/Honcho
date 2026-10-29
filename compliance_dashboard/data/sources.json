@@ -56,7 +56,7 @@
     ]},
     {"group": "Lists and screening", "links": [
       {"name": "FATF high-risk and monitored jurisdictions", "url": "https://www.fatf-gafi.org/en/topics/high-risk-and-other-monitored-jurisdictions.html"},
-      {"name": "UK Sanctions List search", "url": "https://sanctionssearchapp.ofsi.hmtreasury.gov.uk/"},
+      {"name": "UK Sanctions List (FCDO)", "url": "https://www.gov.uk/government/publications/the-uk-sanctions-list"},
       {"name": "OFAC Sanctions List Search", "url": "https://sanctionssearch.ofac.treas.gov/"},
       {"name": "UN Security Council Consolidated List", "url": "https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list"},
       {"name": "EU Sanctions Map", "url": "https://www.sanctionsmap.eu/"},

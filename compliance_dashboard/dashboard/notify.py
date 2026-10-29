@@ -7,9 +7,10 @@ NTFY_TOPIC (and optionally DASHBOARD_URL) when running the build.
 from __future__ import annotations
 
 import urllib.request
-from datetime import date
+from datetime import date, datetime, timezone
 
 from .feeds import USER_AGENT
+from .sanctions import events_since
 
 MAX_SEEN = 3000
 
@@ -40,6 +41,21 @@ def compose(data: dict, cache: dict, today: date | None = None) -> dict:
         priority, tags = 4, ["warning"]
         lines.append("FATF plenary has ended: new grey/black lists are out. The dashboard lists need updating.")
 
+    totals: dict[str, list[int]] = {}
+    for lst, ev in events_since(data.get("sanctions", []), cache.get("notified_at")):
+        t = totals.setdefault(lst["label"].split()[0], [0, 0, 0])
+        t[0] += ev["added_count"]; t[1] += ev["removed_count"]; t[2] += ev.get("amended", 0)
+    if totals:
+        parts = []
+        for name, (add, rem, amd) in totals.items():
+            bits = [f"+{add}" if add else "", f"-{rem}" if rem else "", f"{amd} amended" if amd else ""]
+            parts.append(f"{name} " + " ".join(b for b in bits if b))
+        line = "Sanctions list changes: " + ", ".join(parts) + "."
+        if any(t[0] for t in totals.values()):
+            priority, tags = 4, ["warning"]
+            line += " Re-screen customers."
+        lines.append(line)
+
     np = fatf.get("next_plenary") or {}
     if np.get("start"):
         to_start = (date.fromisoformat(np["start"]) - today).days
@@ -58,6 +74,7 @@ def compose(data: dict, cache: dict, today: date | None = None) -> dict:
     if not lines:
         lines.append("No new stories since yesterday.")
 
+    cache["notified_at"] = datetime.now(timezone.utc).isoformat()
     current = [i["link"] for i in items]
     current_set = set(current)
     cache["notified"] = (current + [l for l in cache.get("notified", []) if l not in current_set])[:MAX_SEEN]

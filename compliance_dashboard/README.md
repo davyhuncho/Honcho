@@ -4,6 +4,7 @@ A one-page compliance dashboard for a Money Laundering Reporting Officer in the 
 Open it each morning to see:
 
 - **FATF black and grey lists**: the current jurisdictions, how long each has been listed, what changed at recent plenaries, and a countdown to the next plenary. Every list entry, "listed since" date and plenary change was checked against FATF statements and FATF-sourced regulator notices on 24 Oct 2026. Each run also checks fatf-gafi.org and shows a red banner when a newer statement has been published.
+- **Sanctions list changes**: every morning the full **UK Sanctions List** (FCDO, which applies in TCI) and the **OFAC SDN list** are downloaded and compared with the previous day's. You see who was added and removed (with regime/programme), and UK amendments are counted. A **RE-SCREEN** flag appears when there are new designations, and the phone notification is sent as high priority.
 - **Country risk lookup**: type a country (aliases like "BVI", "DRC" and "North Korea" work) to see its FATF status, plus quick links to the UK, OFAC and EU sanctions search tools.
 - **News**, in four groups: Turks & Caicos and the Caribbean, FATF, Sanctions (UK OFSI, UK sanctions list, OFAC, UN), and AML/CFT (enforcement, FinCEN, FCA, typologies, TF/PF). Stories published since your last visit are marked **NEW**. Stories that mention your watch terms (TCI, Caribbean, BVI, CFATF and so on) are tagged, and a filter can show only those.
 - **Today's routine**: a daily MLRO checklist. Ticks reset each day and you can add your own tasks.
@@ -28,7 +29,7 @@ On Windows, use `py run.py`. If a source is down, the dashboard shows the last c
 ### Have it ready every morning
 
 - **Windows Task Scheduler**: create a daily task at 7:30am that runs `py C:\path\to\compliance_dashboard\run.py --no-open`, then bookmark `output\index.html`.
-- **Online (no PC needed)**: `.github/workflows/compliance-dashboard.yml` rebuilds the page at 6am TCI time every weekday and publishes it to the `gh-pages` branch, which serves https://davyhuncho.github.io/Honcho/. You can also trigger a run by hand from the Actions tab (**Compliance dashboard → Run workflow**). The site is public, but it only holds public information; checklist ticks stay in your browser.
+- **Online (no PC needed)**: `.github/workflows/compliance-dashboard.yml` rebuilds the page at 6am TCI time every weekday and publishes it to the `gh-pages` branch, which serves https://davyhuncho.github.io/Honcho/. You can also trigger a run by hand from the Actions tab (**Compliance dashboard → Run workflow**). The site is public, but it only holds public information; checklist ticks stay in your browser. GitHub switches off scheduled runs in public repos after 60 days without commits, so each morning run re-enables the workflow and, if nothing has been committed for 45 days, adds an empty keep-alive commit.
 
 ## On your iPhone
 
