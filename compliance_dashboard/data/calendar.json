@@ -2,10 +2,9 @@
   "_comment": "Key dates shown on the dashboard. Add your own deadlines (Board reports, regulatory returns, audits, training) and future FATF/CFATF plenaries once announced on their websites. Format: {\"date\": \"YYYY-MM-DD\", \"end\": \"YYYY-MM-DD\" (optional), \"title\": \"...\", \"detail\": \"...\", \"tag\": \"Internal\"}",
   "events": [
     {
-      "date": "2026-10-26",
-      "end": "2026-10-30",
-      "title": "FATF Week, Paris (Plenary 28–30 Oct)",
-      "detail": "Outcomes, including any grey and black list changes, are announced on Friday 30 October. Review customer exposure to any newly listed jurisdictions.",
+      "date": "2027-02-01",
+      "title": "FATF February 2027 Plenary (dates TBC)",
+      "detail": "FATF has not yet announced the dates. Plenaries are held each February, June and October; check fatf-gafi.org/en/calendars/events.html.",
       "tag": "FATF"
     }
   ]

@@ -225,7 +225,7 @@ document.getElementById("generated").textContent = "Updated " + new Date(DATA.ge
       h("a", { href: F.sources.topic_page }, "fatf-gafi.org"), ", then update data/fatf_lists.json."));
   }
   const np = F.next_plenary;
-  if (np) {
+  if (np && np.start) {
     const toStart = daysUntil(np.start), toEnd = daysUntil(np.end || np.start);
     if (toStart <= 14 && toEnd >= 0) {
       const when = toStart > 0 ? `starts in ${toStart} day${toStart === 1 ? "" : "s"}` : "is in session now";
@@ -240,15 +240,17 @@ document.getElementById("generated").textContent = "Updated " + new Date(DATA.ge
 (function tiles() {
   const watchHits = DATA.sections.flatMap(s => s.feeds.flatMap(f => f.items)).filter(i => i.watch && i.watch.length).length;
   const np = F.next_plenary;
-  const dPlen = np ? daysUntil(np.start) : null;
+  const dPlen = np && np.start ? daysUntil(np.start) : null;
   const lastChange = F.history[0];
   const tile = (n, l, extra) => h("div", { class: "tile" }, h("div", { class: "n" }, n), h("div", { class: "l" }, l), extra || null);
   app.append(h("div", { class: "tiles" },
     tile(F.black_list.length, "Black list: call for action"),
     tile(F.grey_list.length, "Grey list: increased monitoring",
       lastChange ? h("div", { class: "sub" }, `+${lastChange.added.length} / −${lastChange.removed.length} at ${lastChange.label}`) : null),
-    tile(dPlen == null ? "—" : dPlen > 0 ? dPlen : daysUntil(np.end || np.start) >= 0 ? "Now" : "Done",
-      dPlen > 0 ? "Days to next FATF plenary" : "FATF plenary", np ? h("div", { class: "sub" }, fmtDate(np.start)) : null),
+    dPlen == null
+      ? tile("TBC", "Next FATF plenary", np && np.label ? h("div", { class: "sub" }, np.label, ", dates not yet announced") : null)
+      : tile(dPlen > 0 ? dPlen : daysUntil(np.end || np.start) >= 0 ? "Now" : "Done",
+          dPlen > 0 ? "Days to next FATF plenary" : "FATF plenary", h("div", { class: "sub" }, fmtDate(np.start))),
     tile(watchHits, "Stories on your watch terms", h("div", { class: "sub" }, "TCI, Caribbean, OTs…"))
   ));
 })();
