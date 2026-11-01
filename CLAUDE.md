@@ -16,3 +16,9 @@ The main project here is `compliance_dashboard/`, an MLRO Morning Brief for a Tu
 ## Skills
 - `fatf-plenary-update`: refresh `fatf_lists.json` after each FATF plenary.
 - `sanctions-match-triage`: work through a screening hit or a RE-SCREEN flag.
+- `customer-risk-assessment`: risk-rate a customer and write the CDD/EDD file note.
+- `sar-drafting`: draft a SAR narrative for the FIA and the MLRO's decision record.
+- `mlro-board-report`: periodic MLRO report to the board.
+- `regulatory-change-summary`: summarise a new notice, law or guidance and the actions it creates.
+
+Never write customer or case details into this repo: it is public.
