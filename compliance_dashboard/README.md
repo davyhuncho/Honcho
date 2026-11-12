@@ -9,6 +9,7 @@ Open it each morning to see:
 - **News**, in four groups: Turks & Caicos and the Caribbean, FATF, Sanctions (UK OFSI, UK sanctions list, OFAC, UN), and AML/CFT (enforcement, FinCEN, FCA, typologies, TF/PF). Stories published since your last visit are marked **NEW**. Stories that mention your watch terms (TCI, Caribbean, BVI, CFATF and so on) are tagged, and a filter can show only those.
 - **Today's routine**: a daily MLRO checklist. Ticks reset each day and you can add your own tasks.
 - **Key dates**: FATF plenaries and your own deadlines.
+- **Search and jump**: press **Ctrl K** (⌘K on a Mac) or **/** to jump to any section, look up a country or search headlines.
 - **Quick links**: TCI FSC, FIA Ordinance, MLRO guideline, sanctions lists, FATF, CFATF, Egmont, Wolfsberg.
 
 On your phone, it installs as a Home Screen app and can send you a morning notification (see **On your iPhone**).
