@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MLRO Morning Brief</title>
+<meta name="theme-color" content="#07080d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MLRO Brief">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+/* Everything is inline and uses system fonts, so the page works offline and on a locked-down PC.
+   Design references: Linear (dark-first, quiet chrome, gradient type), Stripe (drifting gradient mesh),
+   Vercel (hairline borders, dot grid, mono numerals), Raycast (glass panels, command palette),
+   Apple (bento grid, count-up figures, scroll-in reveals). */
+:root {
+  --bg: #07080d; --bg2: #0c0e15; --panel: rgba(20, 23, 33, .62); --panel-solid: #12141c;
+  --ink: #eef0f6; --ink2: #c5cad6; --muted: #8a91a3; --line: rgba(255, 255, 255, .08); --line2: rgba(255, 255, 255, .14);
+  --accent: #8b9cff; --accent2: #5ee7df; --accent-ink: #0b0d18;
+  --black: #f4f5f8; --black-bg: rgba(255, 255, 255, .08);
+  --grey: #ffc76b; --grey-bg: rgba(255, 184, 64, .13);
+  --ok: #5fe3a1; --ok-bg: rgba(64, 214, 140, .13);
+  --red: #ff7a7a; --red-bg: rgba(255, 92, 92, .14);
+  --watch: #9fd2ff; --watch-bg: rgba(110, 180, 255, .14);
+  --blob1: #4f46e5; --blob2: #0ea5a4; --blob3: #9333ea; --blob-o: .38;
+  --glow: rgba(139, 156, 255, .16); --shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 20px 50px -20px rgba(0,0,0,.6);
+  --dot: rgba(255, 255, 255, .07);
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --bg: #f6f7fb; --bg2: #eef0f6; --panel: rgba(255, 255, 255, .72); --panel-solid: #ffffff;
+  --ink: #12141c; --ink2: #2c3140; --muted: #5f6678; --line: rgba(15, 20, 40, .09); --line2: rgba(15, 20, 40, .16);
+  --accent: #4f5bd5; --accent2: #0e9f9a; --accent-ink: #ffffff;
+  --black: #12141c; --black-bg: rgba(15, 20, 40, .07);
+  --grey: #8a5a00; --grey-bg: #fff1d1;
+  --ok: #157a46; --ok-bg: #dff4e8;
+  --red: #b42318; --red-bg: #fde6e3;
+  --watch: #1d5fae; --watch-bg: #e3eefc;
+  --blob1: #a5b4fc; --blob2: #99f6e4; --blob3: #f0abfc; --blob-o: .55;
+  --glow: rgba(79, 91, 213, .12); --shadow: 0 1px 2px rgba(15,20,40,.05), 0 18px 40px -24px rgba(15,20,40,.25);
+  --dot: rgba(15, 20, 40, .07);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f7fb; --bg2: #eef0f6; --panel: rgba(255, 255, 255, .72); --panel-solid: #ffffff;
+    --ink: #12141c; --ink2: #2c3140; --muted: #5f6678; --line: rgba(15, 20, 40, .09); --line2: rgba(15, 20, 40, .16);
+    --accent: #4f5bd5; --accent2: #0e9f9a; --accent-ink: #ffffff;
+    --black: #12141c; --black-bg: rgba(15, 20, 40, .07);
+    --grey: #8a5a00; --grey-bg: #fff1d1;
+    --ok: #157a46; --ok-bg: #dff4e8;
+    --red: #b42318; --red-bg: #fde6e3;
+    --watch: #1d5fae; --watch-bg: #e3eefc;
+    --blob1: #a5b4fc; --blob2: #99f6e4; --blob3: #f0abfc; --blob-o: .55;
+    --glow: rgba(79, 91, 213, .12); --shadow: 0 1px 2px rgba(15,20,40,.05), 0 18px 40px -24px rgba(15,20,40,.25);
+    --dot: rgba(15, 20, 40, .07);
+    color-scheme: light;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); min-height: 100vh; overflow-x: hidden;
+  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased; }
+.mono, .num, .n, td.num { font-family: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+code { font-size: .9em; padding: 1px 5px; border-radius: 5px; background: var(--black-bg); }
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+/* ---------- ambient background: gradient mesh + dot grid ---------- */
+.aura { position: fixed; inset: 0; z-index: -2; overflow: hidden; pointer-events: none; }
+.aura i { position: absolute; width: 60vmax; height: 60vmax; border-radius: 50%; filter: blur(90px); opacity: var(--blob-o); will-change: transform; }
+.aura i:nth-child(1) { background: var(--blob1); top: -30vmax; left: -15vmax; animation: drift1 26s ease-in-out infinite alternate; }
+.aura i:nth-child(2) { background: var(--blob2); top: -25vmax; right: -25vmax; animation: drift2 32s ease-in-out infinite alternate; opacity: calc(var(--blob-o) * .7); }
+.aura i:nth-child(3) { background: var(--blob3); top: 30vh; left: 30vw; width: 45vmax; height: 45vmax; animation: drift3 38s ease-in-out infinite alternate; opacity: calc(var(--blob-o) * .45); }
+@keyframes drift1 { to { transform: translate(18vw, 12vh) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(-16vw, 18vh) scale(.9); } }
+@keyframes drift3 { to { transform: translate(-22vw, -10vh) scale(1.2); } }
+.grid-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px); background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+          mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%); }
+
+/* ---------- top bar ---------- */
+.bar { position: sticky; top: 0; z-index: 20; backdrop-filter: saturate(160%) blur(16px); -webkit-backdrop-filter: saturate(160%) blur(16px);
+  background: color-mix(in srgb, var(--bg) 70%, transparent); border-bottom: 1px solid var(--line);
+  padding-top: env(safe-area-inset-top); transition: box-shadow .3s; }
+.bar.scrolled { box-shadow: 0 10px 30px -18px rgba(0,0,0,.6); }
+.bar-in { max-width: 1280px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 650; letter-spacing: -.01em; white-space: nowrap; color: var(--ink); }
+.brand:hover { text-decoration: none; }
+.logo { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 800;
+  background: conic-gradient(from 200deg, #6366f1, #22d3ee, #a855f7, #6366f1); box-shadow: 0 0 18px -2px rgba(99,102,241,.7); }
+.nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
+.nav::-webkit-scrollbar { display: none; }
+.nav a { color: var(--muted); font-size: 13px; padding: 6px 10px; border-radius: 8px; white-space: nowrap; transition: color .2s, background .2s; }
+.nav a:hover, .nav a.on { color: var(--ink); background: var(--black-bg); text-decoration: none; }
+.kbd-btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line2); background: var(--panel); color: var(--muted);
+  padding: 6px 8px 6px 12px; border-radius: 10px; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; transition: border-color .2s, color .2s; }
+.kbd-btn:hover { color: var(--ink); border-color: var(--accent); }
+kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line2); background: var(--black-bg); color: var(--ink2); }
+.icon-btn { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line2); background: var(--panel);
+  color: var(--ink2); cursor: pointer; transition: transform .3s cubic-bezier(.2,.8,.2,1), border-color .2s; flex: none; }
+.icon-btn:hover { border-color: var(--accent); transform: rotate(20deg); }
+@media (max-width: 720px) { .nav { display: none; } .kbd-btn kbd { display: none; } .bar-in { justify-content: space-between; } }
+
+/* ---------- hero ---------- */
+.hero { max-width: 1280px; margin: 0 auto; padding: 44px 16px 18px; display: flex; flex-wrap: wrap; gap: 18px 32px; align-items: flex-end; justify-content: space-between; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--line2); border-radius: 999px; padding: 4px 12px 4px 8px; background: var(--panel); }
+.live { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 0 var(--ok); animation: ping 2.2s infinite; }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 70%, transparent); } 80%, 100% { box-shadow: 0 0 0 8px transparent; } }
+h1 { margin: 14px 0 6px; font-size: clamp(32px, 5.4vw, 58px); line-height: 1.02; letter-spacing: -.035em; font-weight: 700; }
+.grad { background: linear-gradient(100deg, var(--ink) 20%, var(--accent) 55%, var(--accent2) 80%, var(--ink));
+  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: sheen 9s ease-in-out infinite alternate; }
+@keyframes sheen { from { background-position: 100% 0; } to { background-position: 0 0; } }
+.lede { color: var(--ink2); font-size: 16px; max-width: 62ch; margin: 0; }
+.lede b { color: var(--ink); }
+.clock { text-align: right; }
+.clock .t { font-size: 34px; font-weight: 600; letter-spacing: -.02em; line-height: 1; }
+.clock .s { color: var(--muted); font-size: 13px; margin-top: 6px; }
+@media (max-width: 720px) { .clock { text-align: left; } .hero { padding-top: 28px; } }
+
+/* ---------- layout ---------- */
+main { max-width: 1280px; margin: 0 auto; padding: 8px 16px 48px; display: grid; gap: 16px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.span-12 { grid-column: span 12; } .span-8 { grid-column: span 8; } .span-4 { grid-column: span 4; } .span-6 { grid-column: span 6; }
+@media (max-width: 960px) { .span-8, .span-4, .span-6 { grid-column: span 12; } }
+h2 { margin: 0; font-size: 17px; letter-spacing: -.01em; font-weight: 650; }
+h3 { margin: 18px 0 8px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 650; }
+.sub { color: var(--muted); font-size: 13px; }
+.card-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.card-h .ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: none;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent2) 20%, transparent));
+  border: 1px solid var(--line2); color: var(--ink); }
+.card-h .ttl { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+/* glass card with cursor spotlight */
+.card, .tile { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px; min-width: 0;
+  backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); box-shadow: var(--shadow); isolation: isolate; }
+.card::before, .tile::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none; z-index: -1;
+  background: radial-gradient(420px circle at var(--mx, -999px) var(--my, -999px), color-mix(in srgb, var(--accent) 70%, transparent), transparent 45%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; opacity: 0; transition: opacity .3s; }
+.card::after, .tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
+  background: radial-gradient(500px circle at var(--mx, -999px) var(--my, -999px), var(--glow), transparent 40%); opacity: 0; transition: opacity .3s; }
+.card:hover::before, .card:hover::after, .tile:hover::before, .tile:hover::after { opacity: 1; }
+
+/* scroll-in reveal */
+.reveal { opacity: 0; transform: translateY(18px) scale(.985); filter: blur(4px);
+  transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1), filter .7s; transition-delay: var(--d, 0ms); }
+.reveal.in { opacity: 1; transform: none; filter: none; }
+
+/* ---------- banners ---------- */
+.banner { grid-column: span 12; border-radius: 14px; padding: 12px 16px 12px 44px; border: 1px solid; position: relative; font-size: 14px; }
+.banner::before { content: "!"; position: absolute; left: 14px; top: 12px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 800; font-size: 12px; color: var(--accent-ink); }
+.banner.warn { background: var(--red-bg); border-color: color-mix(in srgb, var(--red) 50%, transparent); }
+.banner.warn::before { background: var(--red); animation: ping-red 1.8s infinite; }
+.banner.info { background: var(--grey-bg); border-color: color-mix(in srgb, var(--grey) 45%, transparent); }
+.banner.info::before { content: "i"; background: var(--grey); }
+@keyframes ping-red { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--red) 60%, transparent); } 80%, 100% { box-shadow: 0 0 0 10px transparent; } }
+
+/* ---------- bento tiles ---------- */
+.bento { grid-column: span 12; display: grid; gap: 16px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 960px) { .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { padding: 18px 18px 16px; overflow: hidden; display: flex; flex-direction: column; gap: 4px; min-height: 150px; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
+.tile:hover { transform: translateY(-3px); }
+.tile .k { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: .02em; display: flex; align-items: center; gap: 8px; }
+.tile .k .dot { width: 8px; height: 8px; border-radius: 50%; }
+.tile .n { font-size: clamp(36px, 4.4vw, 52px); font-weight: 600; line-height: 1; letter-spacing: -.04em; margin-top: auto; }
+.tile .l { color: var(--ink2); font-size: 13px; }
+.tile .foot { color: var(--muted); font-size: 12px; }
+.tile .spark { position: absolute; right: -20px; bottom: -30px; width: 150px; height: 150px; border-radius: 50%; opacity: .5; filter: blur(30px); z-index: -1; }
+.tile.ring-tile { flex-direction: row; align-items: center; gap: 16px; }
+.ring { position: relative; width: 96px; height: 96px; flex: none; }
+.ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+.ring .track { stroke: var(--line2); }
+.ring .bar-c { stroke: url(#ringGrad); stroke-linecap: round; transition: stroke-dashoffset 1.6s cubic-bezier(.2,.8,.2,1); }
+.ring .mid { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; line-height: 1; }
+.ring .mid b { font-size: 26px; font-weight: 600; letter-spacing: -.03em; }
+.ring .mid small { display: block; font-size: 10px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin-top: 3px; }
+
+/* ---------- pills ---------- */
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .04em; white-space: nowrap; line-height: 1.6; vertical-align: 1px; }
+.pill.black { background: var(--black-bg); color: var(--black); }
+.pill.grey { background: var(--grey-bg); color: var(--grey); }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.red { background: var(--red-bg); color: var(--red); }
+.pill.watch { background: var(--watch-bg); color: var(--watch); font-weight: 600; letter-spacing: 0; }
+.pill.new { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: var(--accent-ink); }
+.pill.pulse::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+
+/* ---------- tables & lists ---------- */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; position: sticky; top: 0; background: var(--panel-solid); z-index: 1; }
+tbody tr { transition: background .2s; }
+tbody tr:hover { background: var(--black-bg); }
+td.num { color: var(--muted); white-space: nowrap; font-size: 13px; }
+.scroll { overflow: auto; }
+.meter { position: relative; height: 6px; border-radius: 6px; background: var(--black-bg); min-width: 80px; overflow: hidden; }
+.meter i { position: absolute; inset: 0 auto 0 0; border-radius: inherit; width: 0;
+  background: linear-gradient(90deg, var(--grey), color-mix(in srgb, var(--red) 80%, var(--grey))); transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
+.blacklist { display: grid; gap: 8px; }
+.blacklist div { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 12px; font-weight: 600;
+  background: linear-gradient(90deg, var(--red-bg), transparent 90%); border: 1px solid color-mix(in srgb, var(--red) 25%, transparent); }
+.blacklist div span:first-child { display: flex; align-items: center; gap: 10px; }
+.blacklist div span:first-child::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--red); box-shadow: 0 0 10px var(--red); animation: blink 2s ease-in-out infinite; }
+.change { font-size: 14px; padding: 10px 0; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
+.change:last-child { border: 0; }
+
+/* ---------- inputs & buttons ---------- */
+input[type=search], input[type=text] { width: 100%; padding: 11px 14px; font: inherit; font-size: 15px; border-radius: 12px;
+  border: 1px solid var(--line2); background: color-mix(in srgb, var(--bg) 60%, transparent); color: var(--ink); outline: none; transition: border-color .2s, box-shadow .2s; }
+input[type=search]:focus, input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent); }
+.bigsearch { position: relative; }
+.bigsearch input { padding: 16px 18px 16px 48px; font-size: 17px; border-radius: 14px; }
+.bigsearch svg { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+#lookup-result { margin-top: 12px; font-size: 14px; display: grid; gap: 8px; }
+#lookup-result > div { animation: rise .35s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.toolbar input[type=search] { flex: 1 1 240px; width: auto; }
+.tabs { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 12px; background: var(--black-bg); border: 1px solid var(--line); position: relative; }
+.tabs button { position: relative; z-index: 1; border: 0; background: transparent; color: var(--muted); padding: 6px 12px; border-radius: 9px; font: inherit; font-size: 13px; cursor: pointer; transition: color .2s; }
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-pressed=true] { color: var(--ink); background: var(--panel-solid); box-shadow: 0 1px 3px rgba(0,0,0,.25), 0 0 0 1px var(--line2); }
+.btn { border: 1px solid var(--line2); background: var(--panel); color: var(--ink); padding: 6px 12px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+label.chk { font-size: 13px; color: var(--muted); display: inline-flex; gap: 8px; align-items: center; cursor: pointer; user-select: none; }
+.switch { appearance: none; -webkit-appearance: none; width: 34px; height: 20px; border-radius: 999px; background: var(--line2); position: relative; cursor: pointer; transition: background .25s; margin: 0; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .3s cubic-bezier(.3,1.4,.5,1); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.switch:checked { background: var(--accent); }
+.switch:checked::after { transform: translateX(14px); }
+
+/* ---------- news ---------- */
+.feed { margin-bottom: 18px; }
+.feed-h { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+.feed-h b { font-size: 13px; color: var(--ink2); }
+.item { padding: 10px 10px; margin: 0 -10px; border-radius: 10px; transition: background .2s, transform .2s; animation: rise .4s cubic-bezier(.2,.8,.2,1) both; }
+.item:hover { background: var(--black-bg); }
+.item a.t { font-weight: 600; color: var(--ink); line-height: 1.4; }
+.item a.t:hover { color: var(--accent); text-decoration: none; }
+.meta { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; margin-top: 4px; }
+.sum { font-size: 13px; color: var(--muted); margin-top: 3px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.err { font-size: 13px; color: var(--red); }
+.empty { color: var(--muted); font-size: 14px; padding: 10px 0; }
+
+/* ---------- checklist ---------- */
+ul.plain { list-style: none; padding: 0; margin: 0; }
+.check li { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.check li:last-child { border-bottom: 0; }
+.check input[type=checkbox] { appearance: none; -webkit-appearance: none; flex: none; width: 20px; height: 20px; margin: 1px 0 0; border-radius: 7px; border: 1.5px solid var(--line2);
+  background: transparent; cursor: pointer; display: grid; place-items: center; transition: background .25s, border-color .25s, transform .2s; }
+.check input[type=checkbox]:hover { border-color: var(--accent); }
+.check input[type=checkbox]:active { transform: scale(.85); }
+.check input[type=checkbox]::after { content: ""; width: 10px; height: 5px; border: 2px solid var(--accent-ink); border-top: 0; border-right: 0; transform: rotate(-45deg) scale(0); margin-top: -2px; transition: transform .3s cubic-bezier(.3,1.6,.5,1); }
+.check input[type=checkbox]:checked { background: linear-gradient(135deg, var(--accent), var(--accent2)); border-color: transparent; }
+.check input[type=checkbox]:checked::after { transform: rotate(-45deg) scale(1); }
+.check li span { transition: color .3s; position: relative; }
+.check li.done span { color: var(--muted); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--muted) 60%, transparent); }
+.check .x { margin-left: auto; padding: 0 8px; line-height: 20px; opacity: .6; }
+.progress { height: 6px; border-radius: 6px; background: var(--black-bg); overflow: hidden; margin: 2px 0 6px; }
+.progress i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .6s cubic-bezier(.2,.8,.2,1); }
+.alldone { background: linear-gradient(90deg, var(--ok), var(--accent2), var(--ok)); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 700; animation: sheen 2.5s linear infinite; }
+
+/* ---------- timeline ---------- */
+.timeline { position: relative; padding-left: 4px; }
+.event { display: grid; grid-template-columns: 64px 18px 1fr; gap: 8px; padding: 8px 0; position: relative; font-size: 14px; }
+.event .d { font-weight: 600; font-size: 13px; text-align: right; }
+.event .d small { display: block; color: var(--muted); font-weight: 400; font-size: 11px; }
+.event .rail { position: relative; display: flex; justify-content: center; }
+.event .rail::before { content: ""; position: absolute; top: -8px; bottom: -8px; width: 1px; background: var(--line2); }
+.event:first-child .rail::before { top: 10px; } .event:last-child .rail::before { bottom: calc(100% - 10px); }
+.event .rail i { position: relative; width: 11px; height: 11px; border-radius: 50%; margin-top: 4px; background: var(--panel-solid); border: 2px solid var(--accent); }
+.event.soon .rail i { background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); }
+.event.past { opacity: .45; }
+.event.past .rail i { border-color: var(--muted); }
+
+/* ---------- sanctions ---------- */
+.sgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 960px) { .sgrid { grid-template-columns: 1fr; } }
+.slist { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-width: 0; background: color-mix(in srgb, var(--bg) 35%, transparent); }
+.slist-h { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; align-items: baseline; }
+.slist-h b { font-size: 15px; }
+.big-n { font-size: 28px; font-weight: 600; letter-spacing: -.03em; line-height: 1.1; margin: 8px 0 2px; }
+details { border-top: 1px solid var(--line); padding: 8px 0; font-size: 14px; }
+details summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; }
+details summary::-webkit-details-marker { display: none; }
+details summary::before { content: "›"; display: inline-block; width: 10px; color: var(--muted); transition: transform .25s; font-weight: 700; }
+details[open] summary::before { transform: rotate(90deg); }
+details ul { margin: 6px 0 0; padding-left: 18px; }
+details li { padding: 2px 0; }
+
+/* ---------- links ---------- */
+.links { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 24px; }
+.links h3 { margin-top: 0; }
+.links a { display: flex; justify-content: space-between; align-items: center; font-size: 14px; padding: 6px 8px; margin: 0 -8px; border-radius: 8px; color: var(--ink2); transition: background .2s, color .2s; }
+.links a::after { content: "↗"; opacity: 0; transform: translate(-4px, 4px); transition: opacity .2s, transform .25s; color: var(--accent); }
+.links a:hover { background: var(--black-bg); color: var(--ink); text-decoration: none; }
+.links a:hover::after { opacity: 1; transform: none; }
+
+footer { max-width: 1280px; margin: 0 auto; padding: 0 16px calc(36px + env(safe-area-inset-bottom)); color: var(--muted); font-size: 12px; }
+
+/* ---------- command palette ---------- */
+.pal { position: fixed; inset: 0; z-index: 50; display: none; place-items: start center; padding: 12vh 16px 16px; background: rgba(4, 5, 10, .5); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.pal.open { display: grid; animation: fade .2s ease both; }
+@keyframes fade { from { opacity: 0; } }
+.pal-box { width: min(640px, 100%); background: var(--panel-solid); border: 1px solid var(--line2); border-radius: 18px; overflow: hidden;
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.03) inset; animation: pop .28s cubic-bezier(.2,1.2,.4,1) both; }
+@keyframes pop { from { opacity: 0; transform: translateY(-8px) scale(.97); } }
+.pal-box input { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 18px 20px; font-size: 17px; background: transparent; box-shadow: none !important; }
+.pal-list { max-height: min(56vh, 420px); overflow: auto; padding: 6px; }
+.pal-grp { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 10px 12px 4px; font-weight: 650; }
+.pal-it { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 14px; color: var(--ink2); }
+.pal-it .g { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--black-bg); flex: none; font-size: 13px; }
+.pal-it .r { margin-left: auto; font-size: 12px; color: var(--muted); }
+.pal-it.sel { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--ink); }
+.pal-foot { display: flex; gap: 14px; padding: 10px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+
+/* ---------- toast ---------- */
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); opacity: 0; z-index: 60; pointer-events: none;
+  background: var(--panel-solid); border: 1px solid var(--line2); border-radius: 999px; padding: 10px 18px; font-size: 14px; box-shadow: 0 20px 40px -12px rgba(0,0,0,.5);
+  transition: opacity .3s, transform .4s cubic-bezier(.2,1.3,.4,1); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.burst { position: fixed; pointer-events: none; z-index: 70; width: 8px; height: 8px; border-radius: 2px; animation: burst .9s cubic-bezier(.1,.7,.3,1) forwards; }
+@keyframes burst { to { transform: translate(var(--bx), var(--by)) rotate(var(--br)); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  .reveal { opacity: 1; transform: none; filter: none; }
+  html { scroll-behavior: auto; }
+}
+@media print { .aura, .grid-bg, .bar, .pal, .toast { display: none !important; } .card, .tile { backdrop-filter: none; box-shadow: none; } .reveal { opacity: 1; transform: none; filter: none; } }
+</style>
+</head>
+<body>
+<div class="aura" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="grid-bg" aria-hidden="true"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b9cff"/><stop offset="1" stop-color="#5ee7df"/></linearGradient></defs>
+</svg>
+
+<div class="bar" id="bar">
+  <div class="bar-in">
+    <a class="brand" href="#top"><span class="logo">M</span><span>MLRO Brief</span></a>
+    <nav class="nav" id="nav" aria-label="Sections"></nav>
+    <button class="kbd-btn" id="open-pal" aria-label="Search and jump (Ctrl K)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      Search <kbd id="kbd-hint">Ctrl K</kbd></button>
+    <button class="icon-btn" id="theme" aria-label="Switch light or dark theme" title="Theme">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+  </div>
+</div>
+
+<header class="hero" id="top">
+  <div>
+    <span class="eyebrow"><span class="live"></span><span id="generated"></span></span>
+    <h1><span id="greet">Good morning</span>.<br><span class="grad">MLRO Morning Brief</span></h1>
+    <p class="lede" id="lede"></p>
+  </div>
+  <div class="clock"><div class="t mono" id="clock"></div><div class="s" id="today"></div></div>
+</header>
+<main id="app"></main>
+<footer>
+  This dashboard collects public information for convenience. Before acting on it, check the official
+  FATF, sanctions authority and TCI regulator publications. List data comes from <code>data/fatf_lists.json</code>;
+  update that file after each FATF plenary.
+</footer>
+
+<div class="pal" id="pal" role="dialog" aria-modal="true" aria-label="Search and jump">
+  <div class="pal-box">
+    <input type="text" id="pal-q" placeholder="Jump to a section, look up a country, search headlines…" autocomplete="off" aria-label="Search">
+    <div class="pal-list" id="pal-list" role="listbox"></div>
+    <div class="pal-foot"><span><kbd>↑</kbd> <kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const DATA = {"generated": "2026-11-27T19:21:42.628104+00:00", "today": "2026-11-27", "fatf": {"_comment": "Curated baseline of FATF public statements. The dashboard checks fatf-gafi.org each run and warns you when a newer statement exists than 'as_of' below. After each plenary, update this file from the official FATF pages (links in 'sources').", "as_of": "2026-10-30", "as_of_label": "FATF Plenary, 28-30 October 2026", "next_plenary": {"label": "February 2027", "note": "Dates not yet announced by FATF. Check fatf-gafi.org/en/calendars/events.html."}, "sources": {"black_list": "https://www.fatf-gafi.org/en/publications/High-risk-and-other-monitored-jurisdictions/call-for-action-october-2026.html", "grey_list": "https://www.fatf-gafi.org/en/publications/High-risk-and-other-monitored-jurisdictions/increased-monitoring-october-2026.html", "outcomes": "https://www.fatf-gafi.org/en/publications/Fatfgeneral/outcomes-fatf-plenary-october-2026.html", "topic_page": "https://www.fatf-gafi.org/en/topics/high-risk-and-other-monitored-jurisdictions.html"}, "black_list": [{"country": "Democratic People's Republic of Korea", "iso": "KP", "measure": "Countermeasures"}, {"country": "Iran", "iso": "IR", "measure": "Countermeasures"}, {"country": "Myanmar", "iso": "MM", "measure": "Enhanced due diligence"}], "grey_list": [{"country": "Angola", "iso": "AO", "listed_since": "2024-10", "months_listed": 25}, {"country": "Bolivia", "iso": "BO", "listed_since": "2025-06", "months_listed": 17}, {"country": "Bosnia and Herzegovina", "iso": "BA", "listed_since": "2026-06", "months_listed": 5}, {"country": "Cameroon", "iso": "CM", "listed_since": "2023-06", "months_listed": 41}, {"country": "Haiti", "iso": "HT", "listed_since": "2021-06", "months_listed": 65}, {"country": "Iraq", "iso": "IQ", "listed_since": "2026-06", "months_listed": 5}, {"country": "Kenya", "iso": "KE", "listed_since": "2024-02", "months_listed": 33}, {"country": "Kuwait", "iso": "KW", "listed_since": "2026-02", "months_listed": 9}, {"country": "Lao PDR", "iso": "LA", "listed_since": "2025-02", "months_listed": 21}, {"country": "Lebanon", "iso": "LB", "listed_since": "2024-10", "months_listed": 25}, {"country": "Nepal", "iso": "NP", "listed_since": "2025-02", "months_listed": 21}, {"country": "Papua New Guinea", "iso": "PG", "listed_since": "2026-02", "months_listed": 9}, {"country": "South Sudan", "iso": "SS", "listed_since": "2021-06", "months_listed": 65}, {"country": "Syria", "iso": "SY", "listed_since": "2010-02", "months_listed": 201}, {"country": "Venezuela", "iso": "VE", "listed_since": "2024-06", "months_listed": 29}, {"country": "Vietnam", "iso": "VN", "listed_since": "2023-06", "watch": "FATF warned in October 2026 that it will consider next steps if Vietnam makes no tangible progress by the next plenary.", "months_listed": 41}, {"country": "Virgin Islands (UK)", "iso": "VG", "listed_since": "2025-06", "watch": "Fellow UK Overseas Territory and Caribbean neighbour", "months_listed": 17}, {"country": "Yemen", "iso": "YE", "listed_since": "2010-02", "months_listed": 201}], "history": [{"date": "2026-10-30", "label": "October 2026 Plenary", "added": [], "removed": ["Bulgaria", "Côte d'Ivoire", "Democratic Republic of the Congo", "Monaco"]}, {"date": "2026-06-19", "label": "June 2026 Plenary", "added": ["Bosnia and Herzegovina", "Iraq"], "removed": ["Algeria", "Namibia"]}, {"date": "2026-02-13", "label": "February 2026 Plenary", "added": ["Kuwait", "Papua New Guinea"], "removed": []}, {"date": "2025-10-24", "label": "October 2025 Plenary", "added": [], "removed": ["Burkina Faso", "Mozambique", "Nigeria", "South Africa"]}, {"date": "2025-06-13", "label": "June 2025 Plenary", "added": ["Bolivia", "Virgin Islands (UK)"], "removed": ["Croatia", "Mali", "Tanzania"]}], "other_lists": [{"name": "EU high-risk third countries", "note": "Largely mirrors FATF. Last amended by Delegated Regulations (EU) 2026/46 (adds Russia) and 2026/83 (adds Bolivia and the Virgin Islands (UK)), published 9 January 2026. Check the Official Journal for later changes.", "url": "https://eur-lex.europa.eu/eli/reg_del/2016/1675/oj"}, {"name": "UK high-risk third countries (MLRs Schedule 3ZA)", "note": "Relevant to TCI as a UK Overseas Territory; the UK list tracks FATF statements.", "url": "https://www.gov.uk/search/all?keywords=money+laundering+advisory+notice+high+risk+third+countries&order=updated-newest"}]}, "fatf_status": {"checked": false, "newer": [], "error": "HTTPError: HTTP Error 403: Forbidden", "plenary_passed": false}, "sections": [{"id": "tci", "title": "Turks & Caicos and the Caribbean", "feeds": [{"name": "TCI financial and regulatory news", "url": "https://news.google.com/rss/search?q=%22Turks+and+Caicos%22+(financial+OR+bank+OR+%22money+laundering%22+OR+FSC+OR+sanctions+OR+fraud)+when:30d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "TCI environmental health officers explore solutions to waste management challenges at London conference", "link": "https://news.google.com/rss/articles/CBMi0wFBVV95cUxPUW9Sb1BVeWtZQjB0YUkzVExDdmZhVnN1cVZ4d0JxTExZZEhVWW1lSTNLNFF3X1lXRWNlNGJOcVV4UTVxSFNEazZSaklGVGVrNUQyellqRHViNEU5YzhRWlBmTkhzOUlTMHE1aUdmYTlFZkNHc1l0cXdQaUdZU19DYlRWUXo3cXhhYkNMVlBhVXQ4UHRzVFRRQjJRTlYzTWgyYi0zZi12YlZiSXQxNVNLYUdteThETldlcG1YenJ5VHVwR25DT05qc0ljY1h5YTExSE4w?oc=5", "date": "2026-11-26T15:40:26+00:00", "source": "Sun TCI", "summary": "", "watch": ["TCI"]}, {"title": "FIVB posts loss and defers calendar reform", "link": "https://news.google.com/rss/articles/CBMiigFBVV95cUxPTl9nZ1A0ZVo0M0VncHM3NnEwXzRLRlJ5QXZOanU4SnUweDhiS2FzYU5ENEhqd3NzaTF2cFlpN2dmVEd4a1V1ejFXeXZOWk5iMHRGc1JjbVlRY19majYtMzBnVmZCNEhET0hDVGpmaU94R25tTFVDWDBGcGdXWmFiR3A1VkgtUEplYXc?oc=5", "date": "2026-11-26T13:13:24+00:00", "source": "Inside The Games", "summary": "", "watch": []}, {"title": "Guyana to update regional financial watchdog on money laundering safeguards", "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxPQzhKUlM4SDZrQ2h3NjVrdXZ2N0YwTm5FYzhKOTRCdzlpTmc1NDNfTWpDeGt3OG94aHpBakx0bVQtSVVqV19rZnJjdkV5RDdVUjBWbVIwcUs3Mnd3alNLVjBndFBlcFkwWnJoUGRyalN5MGg3Z2VUSlE5N2dBZVNseWZ1dXdyVHdvdXA0ekZMelRYeG5oTC1JTkItZk91NTJCbG1jSktRRzlqd00?oc=5", "date": "2026-11-26T09:12:28+00:00", "source": "News Room Guyana", "summary": "", "watch": []}, {"title": "Dr. Lise Cloutier Launches Keynote Speaking After 31 Years in Chiropractic Practice", "link": "https://news.google.com/rss/articles/CBMi2gFBVV95cUxQVjRuZU9nVzFPZzlJeEJpcXBSUFQxWXdXc1RyWU9uRU9PWFUydTZhQkR4eTRuWm9DNEJhSkpFWDV1R3ZzZ0ZqR0NDODlhQjVwUXFCQjVFamJyUkYwZmNXV1BucjdsamRTNjRKellmYThESWhmb3RvWFFVRzgxOEZqclJ1aWJSaWpMYndXSkpCNlZZenZ4Z3M3LXBMZ1I1QVRNbDA5TDhEQ0JBaFJoZUZyVWpGeWpUREM4TVdDNWg2WlZWbWotZEdYcEJTU3VaQTZHUG5lQkNhZ0p2UQ?oc=5", "date": "2026-11-25T19:08:28+00:00", "source": "The Courier-Journal", "summary": "", "watch": []}, {"title": "Investment Firm Misused Funds From Lottery Client, SEC Says", "link": "https://news.google.com/rss/articles/CBMirgFBVV95cUxOTFVFZXNiWTBxYnl1VzR4R0hDOXhKV2VRaFJyMXlRbUljU0U3QkFHQURvOWFiSGx5elpwYllieGNyT2lyT2htQy0xd0JUUVFUZzVSNEJiWUxvR1RCUjdSZTJXRm1STHF4allpUUdTMHhzM1Aybzl3Z0xYX2Y5d2dXVUlQdWFGUms4eUJScV9PN2NqVUdjMUV3Z1hhZzFOWHlJbzRPMFZuY0V2ekthZHc?oc=5", "date": "2026-11-25T18:13:00+00:00", "source": "Bloomberg Tax", "summary": "", "watch": []}, {"title": "More than $7 million still set aside for credit union as Premier Washington Misick explains delays", "link": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxPUTZQamlmVXJnUVdoS3g3SF9OSHVMMVR6cnFlQjZkWXdSQXZJdFY5dTB4Sm9hOWVScUFYSWVNejY3MUxDakY3U0tuUTQtOENGcU5PdDlUU1EtY1JLVDBPb3E5cmlDdU83dEFwUHNudkNOam91eVBQUTBnSWVtN09HUF9lWWlQc3NZWVU3QXdjOVBubmZmeklUWVUwX053YVFBel9EM091aGtsbFBWckJfY25jZEw4WUZrOUhsZkc4SGlUODRDZDRYQw?oc=5", "date": "2026-11-25T16:18:37+00:00", "source": "Sun TCI", "summary": "", "watch": []}, {"title": "PNC Financial Due Partial Dismissal of Health Plan Tobacco Suit", "link": "https://news.google.com/rss/articles/CBMiowFBVV95cUxNQ1ByUFpOWHdFS1pKZWpHTDJETl9jeG1Xa25CRnZuaXc0R1JXNU5jQ2xHSGk4alh2TEhmRGZUdmFERFQwWDQ3X01lRTU3LVc0T2oxSkZiYWIxWGs5aVdVck90WHdDdk13eWxzZWtrblg4V1FCM2owQnQxT2hUVWxvREN3dDlyQ0Z3ZXAwVjRWTW1FejJzUFpQRldVcmFyZ09pcHlZ?oc=5", "date": "2026-11-25T15:31:00+00:00", "source": "Bloomberg Tax", "summary": "", "watch": []}, {"title": "GoodRx Restates Results After ‘Overriding’ of Internal Controls", "link": "https://news.google.com/rss/articles/CBMisgFBVV95cUxQelkyamtOci0tRUNjQnV4TTN3SDVwN2xDSGlqMG1BVG0tY00tYjRVZTE3YTNXRFdwdVNja3ctRnNEa3NFbUVzWU5USlphcXdmUGdqUGM3eW9ybS1Cb2NoQkplVzVVMkJrRFFsUEFzNUcwcXRfYmMzTWhYdC1jT3g2Q3BhX0I0Z014eFRjNVdaMjlvSkVubHBvczhIY0UyRnN5OXFVWnVHMERJcTdyT1JjQWRR?oc=5", "date": "2026-11-24T23:22:00+00:00", "source": "Bloomberg Tax", "summary": "", "watch": []}, {"title": "Healthcare drives $30 million supplementary spending request", "link": "https://news.google.com/rss/articles/CBMilAFBVV95cUxORHJFR1c5Qzl5aEJRMW5JMm1VWVp5bXYxMDNpYTZYRHpwcVJHaEk4dVVtb1d5RlduSVNqN1FXeGtQQ3RsMFpzZ0xySUs3UktoeVdPb25oT2lOZDZMUmFoUFJqMlFMYVc4eEVYZXNQQ1g2RXR6SWFOeDJSY29WWW1yMElTQ0ZuUmtKQTljUXBNaTZ4OVlk?oc=5", "date": "2026-11-24T21:38:36+00:00", "source": "Sun TCI", "summary": "", "watch": []}, {"title": "Opposition Leader Edwin Astwood raises reports of banks favouring Canadians over Turks and Caicos islanders in lending", "link": "https://news.google.com/rss/articles/CBMi5wFBVV95cUxQNTVPa2FBbTNkZEltNmxZalo1WkVpblRjN0xUcVE2NmFpTGVhRWhjZWZiazdEZlhZTkg0RmlJTXNrTG82TFpLMERxNG16ak5TYkgtLWpIUjlKV3NlRG5fMjltWG5RYUl0eWNLWHJvYV9nX2REUzB0X0xfbGVmNVljNHE4QnJpaFVMQ3k4MGpFSTRuMWlXU2dlbm1oakZ4SnFVRHBmMTgzMjFzX3RGRGVfcDZiaG9nc3NPaDYxSnBGaFJvcmhRR1hYcXFsbVQ4VWx5bW82X1ZhUkFOQjUzRXdsYUNuODlKTE0?oc=5", "date": "2026-11-24T21:33:35+00:00", "source": "Sun TCI", "summary": "", "watch": ["Turks and Caicos"]}, {"title": "Merchants Split With Banks, Fintechs on FDIC State Bank Proposal", "link": "https://news.google.com/rss/articles/CBMiqAFBVV95cUxNVTk0VkFkWUJNbm5TSkt5TDJYT0VrNFJJT3p6Vk1JUFg2TzhlZkQ1dEl5TTdYaWRISXlmcTZaNVJfc0xhUTlndXg5TGpsVFJhR1hzeXVaSUh4QjFVUFJhTkRGVi13Wi1MUnlWRWk5N090MGM0dVFkanFfQmt6Z29uRlc3WTEzdU9JY3FlZjREN1NCcHpfNmNCZHBZZGFZbTlTOFdEdVh3RE0?oc=5", "date": "2026-11-24T19:27:00+00:00", "source": "Bloomberg Law News", "summary": "", "watch": []}, {"title": "Sanctions Remain on International Criminal Court Judges, for Now", "link": "https://news.google.com/rss/articles/CBMiqAFBVV95cUxPYV9RemU4UmcwTEpVLXVxQU9hektNZmltZUhvbFlDLWhrVVdUYkx3TjM3U2cyMEc0ZzEyM3ZkbmR2YVZyaG9OUkRLbEpKdmQybDdwUUM1WVhJdEdQZ2dCczlnOGhOTUQ3b05qNDBwRldzMzhsem8tSWVyWndmZTVCb0hMSlF1TVlsczRVTEJPTy1oV29DVm1XQVJPSUk0WTBvU2hrQTUxeG4?oc=5", "date": "2026-11-24T14:58:00+00:00", "source": "Bloomberg Law News", "summary": "", "watch": []}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.401491+00:00"}, {"name": "CFATF and Caribbean AML", "url": "https://news.google.com/rss/search?q=(CFATF+OR+%22Caribbean+Financial+Action+Task+Force%22+OR+(Caribbean+%22money+laundering%22))+when:30d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "Naturalised Cypriot tycoon and firm suspected of money laundering in Deutsche Bank leak", "link": "https://news.google.com/rss/articles/CBMihwFBVV95cUxNXy1Hd0psV25tYTYzaUZIc1Q2RUIyU0lPVXFYaldwbDM2OW1meS1KNjg5Z0ZBT1JXb2Z1R0pMbjRIb0ZRbW1yc1FSRk5GOGxlTk80ZUhOY2ltRUM3OG1mVVAySWlVQnFXTzJpSjVoaHkxWEtzNXNQUlBBdHNDV3FQQ0NRUndyM2s?oc=5", "date": "2026-11-20T06:28:40+00:00", "source": "Philenews", "summary": "", "watch": []}, {"title": "Archived: Operation Caribbean Pirates nets 27 arrests for drug trafficking, money laundering", "link": "https://news.google.com/rss/articles/CBMisAFBVV95cUxOZXE3a2ZicXMyVnQ2eEs1OTBRRGI1bHNHeGxMOEdocjZRY3F5bDVwSVdiZGlBdGUwNHFIS3g3dVl4dGQzRHctaU92SGZYaWVXYmkxVl8xMWhpWnhrSmQ1VzZYNEJBbGgzQTNEYWpUSnNYQm4za2VkdFpCWW02ZHY0ck5sdmZ5SHlEbzBhWm1tZlgyTW84X2kwb19HWDR5MTdYU21aSVY1Ykx2T2VoTkVaVQ?oc=5", "date": "2026-11-16T08:00:00+00:00", "source": "ICE | U.S. Immigration and Customs Enforcement (.gov)", "summary": "", "watch": ["Caribbean"]}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.401661+00:00"}, {"name": "UK Overseas Territories: beneficial ownership and finance", "url": "https://news.google.com/rss/search?q=%22Overseas+Territories%22+(%22beneficial+ownership%22+OR+%22money+laundering%22+OR+sanctions)+when:30d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "Crown Dependencies blasted for copying BVI’s ‘secrecy’ framework", "link": "https://news.google.com/rss/articles/CBMiigFBVV95cUxQampTSnJIeF9nMzBpR3dYUm9nTlhUR0U4TEFBWjNNX0Y4SG9HUEY2c2x1b1NwT0pfejU4eWIwSUw3QVdBcnJvekpoWk1DZEtYSjZMZnhvOHdLdVEzWFVRNzhUZkxKNC1idFd5ZVUyT0k1WVBOQllRM0p1WmoxY0dDbHlncVgtZ2tPYVE?oc=5", "date": "2026-11-25T10:33:29+00:00", "source": "BVI News", "summary": "", "watch": ["BVI"]}, {"title": "Ed Miliband sanctions the Houthis and senior officials after renewed attacks", "link": "https://news.google.com/rss/articles/CBMiqAFBVV95cUxOWGJCb0R3THMzSEdRcF9nV0JzVnZRX3hLQUZac191RVlUZkoxRE1INnpqRXdZLUM3eTY4Vkl6cFZ2SDlqU3NkVi1VMnFqQWxvdGZ2WTB4dHFfRFhHd3JzMmsycVlvSEt5VE5PSnY2X1VsTWlOd2hhMU4zVXFzZ0FGRjhxVjdfR3ZHek5KdHdRVFVjdFVGTHo0ZFY2bU9HeFFoRjF2ek5FLVo?oc=5", "date": "2026-11-25T09:17:35+00:00", "source": "www.labourhome.co.uk", "summary": "", "watch": []}, {"title": "MPs urge Miliband to force UK overseas territories to publish public company registers", "link": "https://news.google.com/rss/articles/CBMixAFBVV95cUxPWDc2Z3NKUTRTZlo0elpfb1JCSXNydkZQdmlNWU1BTVJ4OW1sbjExbVFQbC1LODAyQTE0OGtSRUwzQ1RZQUFadk5Sd1IxeWt3c2lYejlMNVFWV2E0Y2p3MGNpQk1RVWpGaDJmQng4b1F4NUd1TDNoRG5fMzJNOVJWVm5GenNtZzF1Rzc3UDFiMHRhS05kcmFoNTIwODlGT09rcmhWM0hSVnp2Nk1DM2xPTnd0TWNPOWk1WDctNkNrMDFXNjdR?oc=5", "date": "2026-11-23T06:00:00+00:00", "source": "The Guardian", "summary": "", "watch": ["Overseas Territor"]}, {"title": "Sanctions & Export Controls Round-Up: December Update", "link": "https://news.google.com/rss/articles/CBMihgFBVV95cUxQOXdIZGpKcDhNNThlMFlzdEt3NnlQQnltTHZMa1hpa0VNa3FGa1B6RG9OLWFxT0xwdUlYS1dxMjFHazVkeU5tUng0QmdlZ2IydnZ1UmtZOVlOaEhtZ1g2amxXUGlCNU5FVnRVREVsN0kzYVFCT1lPby1yNU84Z3FOOU5qLW0zZw?oc=5", "date": "2026-11-23T00:00:00+00:00", "source": "BCL Solicitors", "summary": "", "watch": []}, {"title": "Chambers and Partners Sanctions 2024 Guide", "link": "https://news.google.com/rss/articles/CBMie0FVX3lxTE5GUTdkRmpLVFl5UU1hQ3RjOEFrMExrR19Db1JLbGJFemZNdWlrZ1Vsb2NzT21vRS1MdlJpNHRoVjIxWWFDdzM3OUpPQ2hWVlhqNXNfZ2tobXppdXl4SGtfY1dFM3FzN0RwdnRHTmptcVJrSGU0S0NUcUg3OA?oc=5", "date": "2026-11-23T00:00:00+00:00", "source": "BCL Solicitors", "summary": "", "watch": []}, {"title": "BCL Sanctions Update: Key UK Enforcement, Policy and Compliance Trends", "link": "https://news.google.com/rss/articles/CBMingFBVV95cUxNV0p2c25yd1VpaWJEYkFZOFNFTW5iUUFwdzFsM1FXZko2d2dSc3VmUE15LWxrUE1uMF9kZ3hDTGpjbmlWUzdKTGlhOVhQYVZLc0ZNd25fOWJjbUU1TEpyVGlyRWtpOVFySjJ5MWFFVndxUUllakxkWEtjVFNUQnFBdzlNWWlzdThEUzBHUW1CWXgzWTdlRmYwbkNpWGRYZw?oc=5", "date": "2026-11-23T00:00:00+00:00", "source": "BCL Solicitors", "summary": "", "watch": []}, {"title": "Helen Goodman urges UK reset on offshore funds — Uk Taxpayers Offshore Funds Hmrc Data", "link": "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1ieV9RM3NqZGlqdV9veXA2bTd0YVBQWGY3LXo0eUNpLWI5bFl6azJlOEFfZTNRMl9uRzB1Rnh3aHBKcVNZRGFudUZqNFNDendYVF9R?oc=5", "date": "2026-11-22T17:25:24+00:00", "source": "شبكة تواصل الإخبارية", "summary": "", "watch": []}, {"title": "Gibraltar Attends the Annual Sanctions Forum For Overseas Territories And Crown Dependencies", "link": "https://news.google.com/rss/articles/CBMiygFBVV95cUxNYnZXWFRnQi1XYVVRdjgxOERxQnQzcXJtSUg2eEdpMllkTTl0U1E2TkJ4UkN0cEpCMFZhbEpQTEN3NVJVUXNHaUowQzNzeUZta3V5SnFnc2l6QktQdE1lZFRQYXlVeUZENWpvMVFpMFQzaTNGUGtuUTFGTGJfa0poTmVQNXdqYWloMmJtWFZPYzFFQllPSzZSQ1JuaVdSZmprSTVkMDVXSU5nVVh3ZVdOUllQVWRIZUxSRzhGaVgydVl0anZMMUhtSlh3?oc=5", "date": "2026-11-18T09:09:17+00:00", "source": "Your Gibraltar TV", "summary": "", "watch": ["Overseas Territor"]}, {"title": "Opinion | The U.K. Aims Sanctions at Israel, Hits the Cayman Islands", "link": "https://news.google.com/rss/articles/CBMimAFBVV95cUxNdjJBc1lHV0NRN1FURjg3eWRsalpKalB6QldheHRZLUg0SmM3SGpMRFFXWDc2Vm9qbGFQdGluQ1c0dkY4WE5DdmswdzdDazQwTkdDaENiQmhDYlZJd2FjcDFoVmhyQzVPa3hLZ2dQZUFRb2RuZGpTTkVJYUpEOElma055REV1ZlBPTEkwY2owTjh0SVNwNncySA?oc=5", "date": "2026-11-08T08:00:00+00:00", "source": "WSJ", "summary": "", "watch": ["Cayman"]}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.401690+00:00"}]}, {"id": "fatf", "title": "FATF and global standards", "feeds": [{"name": "FATF news", "url": "https://news.google.com/rss/search?q=(FATF+OR+%22Financial+Action+Task+Force%22)+when:14d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "Spain Lets Its Financial Intelligence Unit Freeze Crypto Accounts Without a Court Order", "link": "https://news.google.com/rss/articles/CBMiswFBVV95cUxNTUc3VzUxM2xaUzMwbGNVNmpiMTlESkVidWRoQ01NclJVMWd3NVRYdUdtXzlUcW9FUkhIWEVmcS1kRGpHX20yQm1Pd2FqWU9zOXJReFZhclFzWWY1WW5YdlRJa2FQSG9XOEdfYXV2RnFnN2doYVFnYUFxOUp0ekhjclp4NXBUZ0VGV3gwakphXzdOMms3anowanY4a0pfWlhaX0x6S1lEZjctVm4wY2ZkTUs3Zw?oc=5", "date": "2026-11-26T16:43:02+00:00", "source": "Decrypt", "summary": "", "watch": []}, {"title": "Spain Hands Sepblac Power to Freeze Crypto Accounts for Five Days Without a Judge", "link": "https://news.google.com/rss/articles/CBMidkFVX3lxTE5GYkctQ3BQc1VXdTZFSWt2VTRBTlJFUEhXWUtMMnN5RkdNeDF2M1ktTU0yZG95OV9JRWJaWlRPU2Z5R045TkVSNHJiaDlMTjhPaFVkdVhwUTdySVBSTWRtNlpWOTBkTklKQXFwdTczTmxDQkJRalE?oc=5", "date": "2026-11-26T16:05:00+00:00", "source": "BigGo Finance", "summary": "", "watch": []}, {"title": "UAE concludes MENAFATF Plenary in Abu Dhabi, Bahrain to lead in 2027", "link": "https://news.google.com/rss/articles/CBMitAFBVV95cUxOLVRzajhUV1ROUmdYV3R0bm92ZjVfX0Y0YW5QMjlKcnp6VW9vb1RtdldHNEJVMjdNTjNYaElzalRyQl9aVGJzeFllWWhBYnk2WjhaZzdkempWNGdWaFNveHZucXZtT1NaaVpwUzY2dU5HLTdEdlJnNEhRWGdzbFpxTk5KbzhrT0JsQWlvLVUxUEx4OW9VLWp2LVZaZkxadmtzWGstU2dsNTZ6UHhfX1dNVWJmR0fSAccBQVVfeXFMTXNlNWJTaGFWYmxwbVJ1dWdQX0JEQTJ3UE16bHdYQTNlUnhBYUpnNkdLM1UtdEpLWjhIVHNpRlFhc3VSWEJmRTV4aDRnS2N3YkxpM3Y3LXpFUHhIZ1A5OC1zWkVQNFNkVDZvVk5yZjZYbEZpbDhiMFg2LUlJLWRjajlnZXN3Nkp3cV83ZXVpOUp5b3Bmd2xXVzUtOTR4b1JEWjh6bHFJUTg0dDZJV2JFVnZJcmM5T1VoOTZlOEtTY016RjJqbXVzNA?oc=5", "date": "2026-11-26T14:57:36+00:00", "source": "Gulf News", "summary": "", "watch": []}, {"title": "Spain gives anti-laundering unit power to freeze crypto accounts without a judge", "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE5TYkVSMm9pcy1NYlJwWE5rTXU1V0k5VENUWU1Ba1ZSVUlCTGhReDRlQlRIaWowZ0lrMUF3OFdWcU9fY18ySEQ1Y2pWRC1jV25qS1REZVVYY183UQ?oc=5", "date": "2026-11-26T14:33:02+00:00", "source": "Cryptonews.net", "summary": "", "watch": []}, {"title": "Spain’s financial intelligence unit to temporarily block crypto accounts without prior court approval — CoinDesk", "link": "https://news.google.com/rss/articles/CBMizwFBVV95cUxQSEV6WFZZQWhrc01FNVA4Y3FNZjgzN19WdzZVWGYwS0JWbVVXSnVKeWdGcGh2eUpLTkZWaldLam1vM3lZbXFBMGxtQmQ5b2QwZVQ2aUZOZ2w2Y1JBSUh4ZUtIUXlnbklwY09SWUVEYjFOY0RVb2VpR25zZi1CV3dSOUYtcmFPcXYyOWNyY3hPZm5pSmZBbzJqdlY3RmdnZEtabWp5alNtZ2tfYTZNcXRxSzl2RERZR29lUS0wamt0NzhRRF8zLW41NG15WlEwTkE?oc=5", "date": "2026-11-26T14:19:22+00:00", "source": "UA.NEWS", "summary": "", "watch": []}, {"title": "Guyana to update regional financial watchdog on money laundering safeguards", "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxPQzhKUlM4SDZrQ2h3NjVrdXZ2N0YwTm5FYzhKOTRCdzlpTmc1NDNfTWpDeGt3OG94aHpBakx0bVQtSVVqV19rZnJjdkV5RDdVUjBWbVIwcUs3Mnd3alNLVjBndFBlcFkwWnJoUGRyalN5MGg3Z2VUSlE5N2dBZVNseWZ1dXdyVHdvdXA0ekZMelRYeG5oTC1JTkItZk91NTJCbG1jSktRRzlqd00?oc=5", "date": "2026-11-26T09:12:28+00:00", "source": "News Room Guyana", "summary": "", "watch": []}, {"title": "Monaco rallies its honorary consuls after grey-list exit", "link": "https://news.google.com/rss/articles/CBMihwFBVV95cUxQUFJKeWVPNkVMZC1mNkR6dW1ieGVueXZrWlpwT29CaXRVNWJ5Y19MMU9vWkdsTTVXTFBteHZkTVQwZm45UEh0REtlLTR5VkRTNTBZcUxiOFNtU3lUUWlyYm1qZURyblRJbzlnSlV4MEFPRXF4QXBjRVp6NGZmUzZmd1lXUmkyRUk?oc=5", "date": "2026-11-25T19:42:46+00:00", "source": "Monaco Life", "summary": "", "watch": []}, {"title": "Govt appoints former FATF President as consultant ahead of MONEYVAL evaluation", "link": "https://news.google.com/rss/articles/CBMipAFBVV95cUxNcGUyZ2UyeEdDWEd1YTA2SXhES3pDT1IzWm5HQVJac0JMemdIZUN1VmphRjVHUHRlOHdTY09HZmdWeWdOQmN6RTJCWFNlUERBUlJibnBaZGlTVTBmdVdGbTQ1QlE3aEtWcXJyZjdwei11UjNzWmxhOUU2dW9RSllzd2hwOHN5dWhaSTNFNVppWkVPTERvdkQzTzkyZTQzRjJEQkxIdw?oc=5", "date": "2026-11-25T12:59:07+00:00", "source": "Gibraltar Broadcasting Corporation", "summary": "", "watch": []}, {"title": "FATF President commends roundtable organised by the UAE Presidency of MENAFATF", "link": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxNTGQ2SktaaV9veW44WVZOaXFaaEhlalBtVzhzOTJlWTZuNFJ6SWtScVNEbEpieTVFMlZUa2pMVExqSjJ3VF9reU4wVHAzZC1GQmxUdWtYWEJwNnVyN1YzdF9VZVJKem90ejZsbWw2OFhaS0lMMWFRNk4teVI2YlhWV1c3OHNIdGptUmNFY25SX2R2WGhUMlhFU0hlc1Qzbk5GaFRObFJua1dPcjJuT3MtaFh3VWZYbkgzSGg5dTJ2STNRVknSAdYBQVVfeXFMTnV0Q19VbWYtcklBVUxubWJ5UU5ZbEtGVlhfWmtDaWgySzlydnZqb2QyR1I0bHJ2SlRSbFc1eVZjeUt0ZE1UVHl5VWZaU1NVMWZVSXNJR3FHS1Q1U0FoNi1Yem8yQUY4b3hqN2FQNnJhYmNlamNuMFpiOXNSZms4YTYwQVZ4RFNzYkM3V01NLWI4NG1CdkJXZFpScG1aSWRvNkFrYlJ2NGNxbUN6dDdKcnRKZFc1NjNwSU9fMnZRWV9SbDZQS2pZTXlxNXpxekc4YlpIbzBOdw?oc=5", "date": "2026-11-25T12:27:33+00:00", "source": "Gulf News", "summary": "", "watch": []}, {"title": "FATF commends roundtable organised by UAE Presidency of MENAFATF", "link": "https://news.google.com/rss/articles/CBMirwFBVV95cUxOSmtGZmI2WHFYOUxWY0ZCS25YTENNSFloSGJsbHdhV1ZpWEtJb0dRSW9hM2FDVy1tLU1RMW5yTlByRzJJb3ZvT0lwOS12RWN4Q3RBejFSdTZjN2hVT3JLUU83WU1kNU9LWXdpbXRlLW1Ob01Jd19rTFd0TG14TVhSNXMwR3JpOVdTVjdTXzJuNERFS285RENsODFqc3BhOVNobFNndzhLbXFNcWhqb1Rz?oc=5", "date": "2026-11-25T07:49:00+00:00", "source": "Big News Network.com", "summary": "", "watch": []}, {"title": "Enhanced AML/CFT regimes lift Monaco, Bulgaria, Côte d’Ivoire and the DRC off FATF 'grey' list", "link": "https://news.google.com/rss/articles/CBMixwFBVV95cUxPUTRuZlBieGNrblFIcUJ1akFqNmhYSDZkRWZDNUVzZDhzLWJhZi1FWVpDV21rdXBUcFpyREdxYmFoeHZPODIyZFFqUkEtQXc3dkFmcDJjWUlkN3lPbEF0cXBPOFY1REhPTlJqN1pvVjhLd2ZKWTA0dzBiY1FlaTBIZndYVzlRZ1drMEJhVU1Mb3dEVTNmY0otZkd5THVTOUlubDN5UlRucFotenlCZE9FQ3N6Sldac0otdDNTeHY2SVVjLW5vN1pn?oc=5", "date": "2026-11-25T01:15:46+00:00", "source": "Compliance Week", "summary": "", "watch": []}, {"title": "BVI Making Progress on FATF Action Plan and Financial Services Growth Strategy", "link": "https://news.google.com/rss/articles/CBMimwFBVV95cUxOc0NqZFZsbV80WERiVFllRW9yTEQ4Qk8taU1JZ1o2VmkzdGV1cVl2aFZnalo5aXRUZUVFWnljVFdoeHZ2NWpIcjJNNWxFYTB1eWFfRk5DYzhaX09DQVJqdlZyRTllMlAxUGd0Y0RtUDlQY3RKQ0Y5a3ZsRm92MmZVdjl5djhQU1Y2aXpjY1F4dkpMaC1jQnZ1bkhGVQ?oc=5", "date": "2026-11-24T22:53:55+00:00", "source": "GOV.VG", "summary": "", "watch": ["BVI"]}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.401794+00:00"}, {"name": "Grey list and blacklist coverage", "url": "https://news.google.com/rss/search?q=FATF+(%22grey+list%22+OR+%22gray+list%22+OR+blacklist+OR+%22increased+monitoring%22)+when:30d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "North Korea denounces FATF blacklist as U.S.-driven political manipulation", "link": "https://news.google.com/rss/articles/CBMif0FVX3lxTE84NV80RjdQWWJzcm9FMk93YklEQmp3N0szeFZjdHdBdlNlTWpzQnl5QjhaLXFUNjhUSzNTS2dLb0JnMGd3azZnUExuZ2JaUlRtY2xxbU9tY3YySnhudC1iTko1VkNEYzdHNFh5cERJaEp0Z2ppeXMzSkFhN2hKSjDSAZMBQVVfeXFMTk96LXhpTjBuLVlqX1BBT2hhZ2JFQW1RY3Zjbk5oRzdMVG5TV1JaSUlVU1p2VmdVZWdFY0FKaWNMMDZwWEVxRE1hQXI3YTVFZWFSektVQlU2NEFLX0k5aXI5UkE1M2hPN1ExWXB0anMwUWtfRzR2SDExNHVBM0hRYTV0MkxxbzREemU1bmp6MDNHWVNR?oc=5", "date": "2026-11-06T08:00:00+00:00", "source": "Chosunbiz", "summary": "", "watch": ["blacklist"]}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.401960+00:00"}]}, {"id": "sanctions", "title": "Sanctions", "feeds": [{"name": "UK OFSI (applies in TCI)", "url": "https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=office-of-financial-sanctions-implementation", "items": [], "error": null}, {"name": "UK sanctions list updates", "url": "https://www.gov.uk/search/all.atom?keywords=sanctions+list&organisations%5B%5D=foreign-commonwealth-development-office&order=updated-newest", "items": [{"title": "Poland travel advice", "link": "https://www.gov.uk/foreign-travel-advice/poland", "date": "2026-11-27T16:40:32+00:00", "source": "", "summary": "FCDO travel advice for Poland. Includes safety and security, insurance, entry requirements and legal differences.", "watch": []}, {"title": "UK and Overseas Territories Joint Ministerial Council 2026: Communiqué", "link": "https://www.gov.uk/government/publications/uk-and-overseas-territories-joint-ministerial-council-2026-communique", "date": "2026-11-27T11:14:15+00:00", "source": "", "summary": "The Foreign Secretary and Minister for the Overseas Territories joined elected leaders and representatives of the UK Overseas Territories for the 2026 Joint Ministerial Council.", "watch": ["Overseas Territor"]}, {"title": "Mauritius travel advice", "link": "https://www.gov.uk/foreign-travel-advice/mauritius", "date": "2026-11-26T16:39:27+00:00", "source": "", "summary": "FCDO travel advice for Mauritius. Includes safety and security, insurance, entry requirements and legal differences.", "watch": []}, {"title": "International Day for the Elimination of Violence Against Women and Girls 2026: Joint statement to the OSCE", "link": "https://www.gov.uk/government/speeches/international-day-for-the-elimination-of-violence-against-women-and-girls-2026-joint-statement-to-the-osce", "date": "2026-11-26T15:37:48+00:00", "source": "", "summary": "Speaking on behalf of 42 participating States, Ambassador Holland marks the 2026 International Day for the Elimination of Violence against Women and Girls and the beginning of the 16 Days of Activism against Gender-Based Vio…", "watch": []}, {"title": "Portugal: medical facilities", "link": "https://www.gov.uk/government/publications/portugal-medical-facilities", "date": "2026-11-26T13:40:24+00:00", "source": "", "summary": "List of English-speaking medical facilities for UK nationals in Portugal.", "watch": []}, {"title": "The UK Sanctions List", "link": "https://www.gov.uk/government/publications/the-uk-sanctions-list", "date": "2026-11-26T12:39:18+00:00", "source": "", "summary": "Find out which people, entities and ships are designated or specified under regulations made under the Sanctions and Anti-Money Laundering Act 2018, and why.", "watch": []}, {"title": "Libya: list of designations and sanctions notices", "link": "https://www.gov.uk/guidance/libya-list-of-designations-and-sanctions-notices", "date": "2026-11-26T12:39:00+00:00", "source": "", "summary": "List of designated persons and notices issued about new designations, revocations, delistings and other changes to the UK Sanctions List .", "watch": []}, {"title": "Chemical weapons: list of designations and sanctions notices", "link": "https://www.gov.uk/guidance/chemical-weapons-list-of-designations-and-sanctions-notices", "date": "2026-11-26T12:38:48+00:00", "source": "", "summary": "List of designated persons and notices issued about new designations, revocations, delistings and other changes to the UK Sanctions List .", "watch": []}, {"title": "Global Human Rights and International Humanitarian Law: list of designations and sanctions notices", "link": "https://www.gov.uk/guidance/global-human-rights-and-international-humanitarian-law-list-of-designations-and-sanctions-notices", "date": "2026-11-26T12:38:40+00:00", "source": "", "summary": "List of designated persons and notices issued about new designations, revocations, delistings and other changes to the UK Sanctions List .", "watch": []}, {"title": "Malawi travel advice", "link": "https://www.gov.uk/foreign-travel-advice/malawi", "date": "2026-11-26T10:49:53+00:00", "source": "", "summary": "FCDO travel advice for Malawi. Includes safety and security, insurance, entry requirements and legal differences.", "watch": []}], "error": null}, {"name": "OFAC recent actions", "url": "https://news.google.com/rss/search?q=OFAC+(sanctions+OR+designates+OR+%22general+license%22)+when:7d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "OFAC Targets Hizballah-linked Charity And Gold And Cash Network", "link": "https://news.google.com/rss/articles/CBMizgFBVV95cUxOOVZhOUc3UllCd3c2Q0d3ZEpxMnQ5YjFVV2lscDlrdnFRcjVJa2t3SlhzeS1EeWJGQUJlbW1yaVZkWWk0T3UzYlM3cTJEajNkTnJGTXhUeU9lOHVNZWx6MVJGelBzV3BlbzdSdVNFYUVpXzRkRElKeEpQWk1BNXJsc25lSUV3VDczeUo3eGVXa0xzbWZUQlhhdmtKSlFnNjVMSjlpTXZCdjhCQ1gxZWJRQUlhTmVMZTNrRkg5ZnFpeDVKLWI4RVJjYktNcDBLZw?oc=5", "date": "2026-11-26T08:22:40+00:00", "source": "Legal 500", "summary": "", "watch": []}, {"title": "OFAC Administrative Subpoena USA: 2026 Guide", "link": "https://news.google.com/rss/articles/CBMijwFBVV95cUxOX015UUxjcWlnbE01SmZrc2NTNFB1aFYwR2JjcXJlN05ORVc5UDZiR3AxZ1FoZHo2WjE4SEF6djJ2ZGNRVWN3RklXOTAwZVdaRlZsdHVteXZyZm10elJuYmsteVNSZHluX0hsNkN2czBIX2pmc0xsZnFDbWJtOUtLLTFTdU45TGN6WVl5T2VPNA?oc=5", "date": "2026-11-25T02:09:28+00:00", "source": "Global Advisory Experts", "summary": "", "watch": []}, {"title": "TIN Comply Launches KYBCompliance.org, a Free Know Your Business Reference", "link": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxQUFQ0NnY0ZzB1Q3ZCclBsRXFnS3BWR1lKQlRYRXNrZU02ckp2TXVFWnZrcEdiMWllQjFHazJDZXpWRUU5cmxocU5vb2xJdFg1eXRzbEZzUkJhWE1haU9FQXpvWGplWlAyQXpaT3Z0Nk5YNXpFZU1XaWhUbEVncXNHZ3RWWVVsNXFGLVpRdGFCM1JHWXU5T1dRTW45MDVYUTVEQ2RfTGlmMDVaSmt5c0hXZU9fSVFCczRJUkx0RVZFRFUyWWdjOVA0cQ?oc=5", "date": "2026-11-24T22:52:04+00:00", "source": "The Detroit News", "summary": "", "watch": []}, {"title": "State Dept & OFAC Issue Four SDN Sanctions Notices", "link": "https://news.google.com/rss/articles/CBMingFBVV95cUxQbkVsY19qZTBKbWJZRlcxRGtJdEt4VDN2VUEtT0tzTFpfZlY3OTVqTWZScXNMWUlkN3hkZnd1T21NNXdfSVdVdlk1NFVjVmdCQ3dVdFdWWU10M0ZEYzlEY1JjZ2JpTVdieldVd1pObl9zMmlWVHAxcG03VVVYX00yRzNweFlXTVlScWY4eVJwWGJvNk53aHVuc2ZIZDFnQQ?oc=5", "date": "2026-11-24T17:27:54+00:00", "source": "CASRAI", "summary": "", "watch": []}, {"title": "Iran currency plunges after fresh US sanctions | Gulf Times", "link": "https://news.google.com/rss/articles/CBMingFBVV95cUxPLVQtckY2OWJXcU5TOExSVkpjZjF4RGF6TnZuTV9yWjRBeGZNTjAxTHVuaEpYY0x0eUJmam9vc2x0LWRvYlJyeVhBamNOUWQzb1cyQnNvY0hVSkhqa0FIYXZ1cXNkOEUzSWQ3ZldhNFNRZlJDUlZGa1oxaGxVVGZMaVRhUFJuRE9UMU0wOVh4bVNjWVpzRkpMalhNYnFId9IBowFBVV95cUxPOFVscFVBTURGa3FjbEhCejAxU2pPMTVYbjBobkJwaDRJdUZ2RzY3MjhINl9wMG9IbjFfNXcwWDI1blJHdHU3VzU1T1ZtcUl1dUNXOGxBUm8yZ1VNZ21oRUF1UzIxZW1scGZ1UHJzS2ZkV1BqRTNfdWlSUWtSQXhiaGNzT0JyaGxUanRjZVU2Ui0xbm9jVVpoUm9MOG1VanczM1ZB?oc=5", "date": "2026-11-24T14:34:00+00:00", "source": "Gulf Times", "summary": "", "watch": []}, {"title": "U.S. imposes sanctions on shadow banking networks linked to Iran", "link": "https://news.google.com/rss/articles/CBMiogFBVV95cUxQMDgycE1Bc1R3SkRSdEtWU3ZNVkplNjNkUk1qODVFZ0dNcDBpblRuTDl3c0xOZk1mRU9iUl9qdWZCOGE1VTgybVAzalY5bFF4V1NSbzI5UWJ6eEY3RVpTZnBSUmZEU011eDUzMUZLUVZ3b3ppYXdyV3NFeUFZLUJfaDl6bW4xS0g0UHh0Qy05TU1nWGdqVG1lZTQ3M3lDRjJDZ0E?oc=5", "date": "2026-11-24T07:02:25+00:00", "source": "IGIHE News", "summary": "", "watch": []}, {"title": "US imposes new sanctions targeting Iran's global financial networks", "link": "https://news.google.com/rss/articles/CBMikgFBVV95cUxPRFNqX3JfZ1BkY1B5WTQ3UWlSU3Y5ZlA2anoyTUs4VXlzSm9DUlpIZEQtNi05dldzTDhfaXVrbVhjdTk0WVZmRmhubWQ0VjA3czI5VDNJYXJkMFNsWHFsQzUxREFlMy15RWFSd0dFTEREd0FIUV9EZHExZmtnZDN3MjNfNDBrUUFyZmg3b0FKU0hhUQ?oc=5", "date": "2026-11-24T06:07:15+00:00", "source": "Latest news from Azerbaijan", "summary": "", "watch": []}, {"title": "Toronto Faction of Italy-Based ’Ndrangheta Sanctioned by U.S.", "link": "https://news.google.com/rss/articles/CBMilAFBVV95cUxOMWtmMnVDMTNjZ0I2Mnh6cm1mVE0tX3dJdFhFeWxWR0kxSE5hRzFwX2RvZTRnV2E0V2pIZHV6VHc5dXFXUm1ZSm5EbGtaVEZDMUMwUXRGX2lNMHBBNlpDQk54YUpFUHhPQmdRTXBxa2p0S2Q4Rlhka0hqMmJzRE9aZ3NsOTNDZU5PUUI3Q0VxcWNqYTUz?oc=5", "date": "2026-11-24T04:36:31+00:00", "source": "ontariopost.ca", "summary": "", "watch": []}, {"title": "U.S. Expands Iran Sanctions to 30 Targets", "link": "https://news.google.com/rss/articles/CBMihwFBVV95cUxPaW9Cams5d1E1ZGhNMU5ZcnhEajNOMHFHclQ0Zm0yMEhvSllHUFJEdkR4QWpRNFRid2JjS1hlNWFvQUtHQkFWSHZWdm81eFA4aHBZTlVrSTlrdEltb3ZLQWh1M2xNRl9FV2ZNaGVxcW9DNHhmUTB2azhDLXJ1RklIUE1DWnFPa28?oc=5", "date": "2026-11-23T22:39:08+00:00", "source": "Wisevoter", "summary": "", "watch": []}, {"title": "US sanctions target Comancheros", "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE9McEExX2NINGNkOG53Z3FyVU9peTByZ1hsNjZqT2FjSnh3amtnVXR6M25CVTRJaTRLMEExQWpRWFk1R2dSQ1RHVkdQcmp4Ti1MeERfbDN3Mnl5M3ZVUVJoTnBSX2Q4RDExaU15ZQ?oc=5", "date": "2026-11-23T21:00:34+00:00", "source": "https://franklintimes.co.nz/", "summary": "", "watch": []}, {"title": "OFAC amends FAQs on blocking, rejecting and reporting transactions", "link": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxNWk9wc3dUOEJVa0hHU29jVWlhU0tNaEh4anVUZmpoWEhKWWs0OHAwS0JJc1AzTjZDbEFXOF80TGRpWU1jb0ZJeDU0LTJrRy1IWGIyWWlFT1ZnSWpVWERWYzJtVHF1VFd2OC1NR1h5aDhHcUU2UGZvNkhOM05tZ1lIQ3VqS2Z4WXBD?oc=5", "date": "2026-11-23T19:00:48+00:00", "source": "JD Supra", "summary": "", "watch": []}, {"title": "U.S. Treasury maintains broad OFAC sanctions framework across multiple jurisdictions", "link": "https://news.google.com/rss/articles/CBMinwFBVV95cUxPaHlBSVl4S21zTUVHcnRpUllTZ2pZdjVicS1WNFd0VEpLY3dZQk1vM1liQUtYanNXRkhqSW5qQnpvMlJkMEZudkdoOVFCeFA3cktwTUFWblZGcE15cVFoZ0NSY0licWlXRTJURjNVc0VXQWhMTDFHeTVwWVV5N2RqRnVLY0xWLWJNR3hFbExkcUZuenFmZm03aGY0RmNsMms?oc=5", "date": "2026-11-23T18:25:35+00:00", "source": "Traders Union", "summary": "", "watch": []}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.402284+00:00"}, {"name": "UN Security Council sanctions", "url": "https://news.google.com/rss/search?q=%22Security+Council%22+sanctions+committee+when:14d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "UN Security Council sanctions vessel over illicit Libyan oil exports", "link": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxNejRkOUlCYlV0cHo4bThWYlMwRGxaSmE2R3hpQW54UTAwbWhuU2Jnbmo2WTUzb1BPQk9reldBdGpNb0h4TXA5LWwwUHozVUpFQkcwNm0wdFd1QmdKeExOU2JnNmVpOWduRFp2Y2pWLWRzVjNlRlRZR2hncXRad2hYS2o3cjlZS3BDaGtsTWtDcGNLV0ZYMFZTbkF5M1FSYWdCdUczbWc1RkxRd1FaODN3eGJpeTBLMERf?oc=5", "date": "2026-11-26T11:54:15+00:00", "source": "The Eastleigh Voice", "summary": "", "watch": []}, {"title": "RBI Notification No. RBI/2026-27/308 - UNSC ISIL and Al-Qaida sanctions list: 81 entries amended", "link": "https://news.google.com/rss/articles/CBMi4AFBVV95cUxOOTBSdXI5azB5V2ZISDJDTFpZVTBnVEFBWld0bVNjaXRhNGZBS0ZlVmVJTmVuMEZ3aVVhUnhVYTBqaEgycDVfZDBGLWU0VXhOcmlQUmx2cklpS19yYnVERDZGNFgzbXd6bjRtcWxVSkd1emxXSVV1czd3eUFaX0M5b25zUVJEelN1cjBvck9RaGFVYlpGaGQtZm5Nb2lUSnBLeWtUdkFTNHk1QUk2SUl2clh4Z2l5TWpld25JU3FGeHFiYmo3RC1UbW15dllIX21CMm1pV3NpZmxzWXJQd3hQRQ?oc=5", "date": "2026-11-26T10:34:00+00:00", "source": "CAclubindia", "summary": "", "watch": []}, {"title": "RBI Circular on 81 UNSC ISIL and Al-Qaida Sanctions List Amendments Under UAPA", "link": "https://news.google.com/rss/articles/CBMimAFBVV95cUxPeHlEQ2lzRnNFdWwyU1hYYVRJNGhMTzhIUmRhNVhLUHd2SGJVSzFmMmEwWVg2S1FZcm84azVVbGZEM2NST0RtRmk4aGdzZlo1TGFKckhzaFBwVTI1Tk11S2R1XzJja0tNRzBZQ0E0WnlsQ2ZsZ1BlWXdZa1J1RzVrZVhocjZCRHZNN29JZzJ2d3duVElpUVd0Ug?oc=5", "date": "2026-11-26T04:50:41+00:00", "source": "TaxGuru", "summary": "", "watch": []}, {"title": "UN Security Council Adds Vessel to Libya Sanctions List", "link": "https://news.google.com/rss/articles/CBMiggFBVV95cUxNbjJ1SUpZTGc1WHAyNWE2ZkRWYmJGT3VISGJZMTA1dkd1RjlEaWgzSldtTzFzVklmTEpQa1FoWUNhbFdYX0Fxdkx1a050ZW13Qi1CX2U2TFNXWGJmbnVVdE1PRTBKRVI5NXNTajBMWHVOcEI3MUY3UUdQc2pLdUY2OW5n?oc=5", "date": "2026-11-25T17:17:00+00:00", "source": "Mirage News", "summary": "", "watch": []}, {"title": "Iran vows to break US naval blockade, threatens force against renewed strikes", "link": "https://news.google.com/rss/articles/CBMiWkFVX3lxTE5XNFhrQXUyV19WOXcxSm9NSFBIY3VUNWhBVXpXTklocUVQODF4OG50a1FSTGNUWURKMHIwSTU0cDVXQkoyb3NmUVBZWkstMkxrNzVKVjR2NGh6dw?oc=5", "date": "2026-11-25T04:15:09+00:00", "source": "Israel National News", "summary": "", "watch": []}, {"title": "Security Council, 10278th Meeting (AM & PM) Conflict Resolution in Rapid Technological Change", "link": "https://news.google.com/rss/articles/CBMiTEFVX3lxTE1FRW9EQVh5bUpoU0lzMnlON1lmcm1JcGJiRHVsNGtVOHdfaHBRMkZ5Z3AwVnpTdFBHaHRrNDdjNlhpdEZlWDEtbEVlcko?oc=5", "date": "2026-11-24T12:00:00+00:00", "source": "UN Meetings Coverage and Press Releases", "summary": "", "watch": []}, {"title": "Conflicts and emerging technologies | The accelerating pace of technological development has significant implications for international peace and security | France at the United Nations", "link": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxQY1pGOWhRdDhqdm9uYUIydElVb2hQdlh2dzBFcXJsNnpsYWFjNURfclZ4SjVtRXVvMjBuaVdiQVJ1R1g3UTFaTUJyNFVtTFcxUFg2eDR3NmhaYkJBeTlndXBIMDZkTHhHRDdVOHRPUHBYcHhybUV2cHZVdVFYbExROG42U1NXNDdvNFJTMkxpbnVEV0VJTU1pTXVIR18zYW9KdGFaeDh6cm1DZjEwWDJETHY5OU5ERUVuRlV0VHpoUFJkVVNXSnNsRQ?oc=5", "date": "2026-11-24T08:00:00+00:00", "source": "La France à l'ONU", "summary": "", "watch": []}, {"title": "What Happened At The Afghan Women's Summit In Madrid", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE04czVCQXhJVXNSU0ZIc3ZMZmN3Qk5iMkV1anNjT1RqTm4wM1ZyMk9GNkNYQk9TOGQwSlY4cXI5T2pHdklnQW83SGE0NWxGYjA?oc=5", "date": "2026-11-23T13:21:18+00:00", "source": "Afghanistan International", "summary": "", "watch": []}, {"title": "Iranian Parliament's National Security and Foreign Policy Committee Chairman Azizi says Iran will have no geographical restrictions in responding to threats in any future conflict, Tasnim reports", "link": "https://news.google.com/rss/articles/CBMizgJBVV95cUxPZFQ1RkJaTUZmTjlCSE5SWmxsY1V6UUItYjg5blB0cEYzcU0tZ2hsbVoyM0d0M0ZDVFcxODE2NDVFSHZnODhBbXExZGhHcFRwcVdibVpsQzA3OFpmNmhYVlkwUzZIZlRxNmJyc1VHMDlpbDBYYVE1aWU1MnY5MVZ2ZXZ2MWE0Rmp4STNyT0tfTEhZaVZaT21fTm45RmVoeEhLN3BqOHEyRU1iVnJMT21nYkMwSnFPWWVpUTBLRDVrRHo5T3AzN0s4cXpvQmlLd0RLTDdTWlJoM1pnNnRNbkpwTzhidDBELXpCRGZQR09vT3Y0Y1VaSm04cG1FRXNPUEtLaWpPUmhaODMwaFM0OHZZTVczWUluakF4U3piWWVCTURGSlV0TkxTYnBnU1Q1eElsZzZtRFJFTlc4TU1rTVF3ZmNNZ0cwLXFmVzNqUTVB?oc=5", "date": "2026-11-23T08:28:03+00:00", "source": "Newsquawk", "summary": "", "watch": []}, {"title": "United Nations - Organs, Security Council, General Assembly", "link": "https://news.google.com/rss/articles/CBMickFVX3lxTFBiWm5Sa0Y2cGk3b1FIN2d0d0ZXYVJlMlk3ek5RUjhIcUZ2YVNWWUcwUUM2VF96WEFWR1hGRmYxVzg1cTJOYmtXWHh3Tm8wMEdaSDF3R2xXYlBnZEFiZk1ncUtQS3hmQ2pPMmxBa0F0SHowZw?oc=5", "date": "2026-11-23T08:00:00+00:00", "source": "Britannica", "summary": "", "watch": []}, {"title": "US Must Honour Its Promises To Afghan Allies, Says Congressman Jason Crow", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE9IMXV1cUI2Qkp2a0J0a0h0enRLbGl3dzZrNDZONzNsdzNHLW43bHBnR3Z0VjE3TjdLLTA2bGxRTXA4bm9wUDZxWXMxZWxJMHM?oc=5", "date": "2026-11-23T07:17:09+00:00", "source": "Afghanistan International", "summary": "", "watch": []}, {"title": "Bahrain Urges Coordination Among UN Counter-Terrorism Panels", "link": "https://news.google.com/rss/articles/CBMinAFBVV95cUxOQjlnd2xGTVVmQm9MVDhOWVN3cE5Idm1YU21seVRQUFQ5eVV1WDJ6Ym5uNzNVRWdqVXBGN25CUGtmeGMxTEtYMmdMck0tWFllT01ESzE0Wk1TQlpPT2VzTDBkemdrX2M4VHZnS1FFRmwtTk1wSG1tMmYxMUpFVEc4S0dWR1RQbTJHaTJzTmZTSm9KRy0wRkE1UEYzTjU?oc=5", "date": "2026-11-22T07:44:48+00:00", "source": "Wisevoter", "summary": "", "watch": []}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.402389+00:00"}]}, {"id": "aml", "title": "AML / CFT news", "feeds": [{"name": "Money laundering enforcement and fines", "url": "https://news.google.com/rss/search?q=%22money+laundering%22+(fine+OR+penalty+OR+enforcement+OR+charged)+when:7d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "Enforcement Directorate Targets Suspected Money Laundering in Northeast Banned Tobacco Trade", "link": "https://news.google.com/rss/articles/CBMisAFBVV95cUxQbnNFOXNNVDNrYzR2SFc4UG5oeWZIMUZhdm9jY3NhTVRtTDNZdU5wcENSM1paRVgydWxFWEp2OElXb2d4cjI4cklqaFBZbzRqQjZELTdVYWVrRWs1aUt3MXdsejg0NGdjVGM5eHdhalFiOWg0MV9tX0FPRVJLSnlONW1UM2ZGcHlzeGZJTnF3S2xzWGtYQ05oLWd3WkFEaFA5emJncXd6WkFadk5XYXgzUg?oc=5", "date": "2026-11-26T16:50:00+00:00", "source": "The 420.in", "summary": "", "watch": []}, {"title": "ED attaches Rs 545 crore assets in Vatika money laundering case", "link": "https://news.google.com/rss/articles/CBMirAFBVV95cUxOR3N6SGwzcXNhVUdyRUs1T2E2OEh6dG9XR2N6UXVoM0ZtempwdWw0YzBqMmdtaHg2Uk5abGVyVzg4a3hkLXJTY0FaZXB2RWdhZjFmeFFSX21aaW5HRlFCZUxOSGNwQ3pwTFZwWGNHRGFpY2VpQ1JLLWxZTXV1SExLVklzQUpiUGh5blp3M0pRMUFEU3RBMHg0SFhTOHJUZ3NLd25xZ0NjNWFlX1Ru?oc=5", "date": "2026-11-26T15:01:52+00:00", "source": "Zee Business", "summary": "", "watch": []}, {"title": "Chhattisgarh HC rejects retired IAS officer Anil Tuteja’s anticipatory bail plea in DMF money laundering", "link": "https://news.google.com/rss/articles/CBMijwJBVV95cUxNNFZxVV9GY1lqVEFWYVJzbjBjUWJSQ1FKWUdVUFJGc29KZU5hU2h2Um1FU1M5XzNFYUFPOHpzaTE5SFRqbUJRYVJHcERsZVJuR2NpSl9ya0szMmI4Q1pVRnE5TTIyOUo0SnphT012Smo1cWhkTGpaQ0Q1YTZZUWlOWXVzQlh3UmFRd2ZqRC1mUEtlRGxPd0RnVkxTM0Flang0bDdJdmN1V1JqV2JaXzduRHh6QnE5dDNDa3p4TkVBVEN1enFadTN4YlBvdWlxRENTNDFjLVFCd1NuMEZ4OTdXX1drRllnOVRCRFFVZFdESUw4UHBGcWctVXJTS2Q2VmF2Wml0cjVvamFzTERLaUNZ0gGUAkFVX3lxTFBvaU1NZHc2UzdjT0w5UldWZGE2ZmNBa0JFLURXeGo4d1ZzZ3VqaXFidTloNEd1U2FySTdvamtoNzFNbFZCUzJVT3pMTndNbDZKdjh1WXg4bUVNcTdDanpHd2t6RXpMR1M1Z3F2a1NKbWw5Q1N2RmFLVjZFNVpSRHNkakM2SXp6WW0xTlZHTlNhVjZGMXlrMFZjVlUzSjNCVF9FMzBQbExNdW9pekRUSDNrOHVwRHkySUNEYVBFdmpzVEpVeHEzdDdHS09IdTRpM1VHMlBmR3lqajVMQ0Y3ZWVSd1prSHZKSW1rWkVoZzdGNlZLLW8zdGs5eURqSVU2c194R010aDdNT0hiOThKLWxLVW15bw?oc=5", "date": "2026-11-26T14:59:00+00:00", "source": "The Times of India", "summary": "", "watch": []}, {"title": "ED Seizes Rs 545 Crore Assets From Vatika Group Promoter In Money Laundering Case", "link": "https://news.google.com/rss/articles/CBMipgFBVV95cUxQNzVEcTVaYmhGWk1WZnpUTGxwTkhDMS1Vcy1WaXBleUp6ak9fRk5LNXplU09wZ3BtS2kwLTVpODZaQ1FQMGFyOGZBdEx6bm9VSkhhNWxJSnMwQURHT09xenRxZzhSc2FUZDZRdk8weFR5V25EVU4tYjZ4dHRJY0JiQWY2c1BOVzVuRGJkLVBsTG80aTQxbUpNdzJzaWR5aGVReEN6a3lR0gGoAUFVX3lxTE12WjBGdmEwajZQMWs5NllQS2VFTmZ3QWVLc1pkeG52WldvMDhhZDNQeHJ3dFpDTFNwWFR5c3MtbWlYMW9JQ2Y3dzU3X0ZIVXdiYW03QWYxenl2dW9ZWGxTcWpHVHR6MXFzakpQYllRRGl1RGFVOEJOT1g0ZGdRQXZrTFJFbU9vbzg3ZXZCOXlWcGJNMXBLczJTajBzbTdQOElUYk9SdlljNA?oc=5", "date": "2026-11-26T14:47:26+00:00", "source": "Rediff.com", "summary": "", "watch": []}, {"title": "ED Attach Properties In Money Laundering Case Of Vuenow Group", "link": "https://news.google.com/rss/articles/CBMifEFVX3lxTFB4MzVHZmo4NVNsdGI5dlotLV84c1FqQjFCM3dWSGNJT2owSXYtY1JmT19BVWNnbzBtWktuTmN3VDFyS1l4bDJ2S3cwbDVNaUcyZXJHNXVMUmhGeGtpWkZKSzZBYjdLWEpoeU44dXdibGd6dmRIQW5Lc0VoWHY?oc=5", "date": "2026-11-26T13:03:45+00:00", "source": "Inventiva", "summary": "", "watch": []}, {"title": "Russia Takes Its Law Enforcement Agenda to Sri Lanka, With Money Laundering in Focus", "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxNWGZiRS1oR3I4cjN2Z3FVeWhXTnFFeC1HUWIzU2FnWFRhMFYxb1pHNG05aWJuNGYtempqZEMtX2Q5QWhJODVNQ2NMZklsNDhjUHN3R0FCU3cxbVRRaHQtTGxXVmVXanIwVmZKYnl5VWNjSnhfT1R5T01qbHhib2IwVF9RM2Ryc0ozR1ZkWXJoUUtBZEpFTXZJVXVMbktCRFkzZ0NfNmJZaS1NVk0?oc=5", "date": "2026-11-26T09:16:10+00:00", "source": "Sri Lanka Guardian", "summary": "", "watch": []}, {"title": "ED Files Complaint Against Ex-PWRD Engineer and Wife in Rs 3.08 Crore Money Laundering Case", "link": "https://news.google.com/rss/articles/CBMizgFBVV95cUxNVEY5Mkk0emdya2NqRnhtYUc3eWU0SkNSVTFEM2k0RjVKd1BYQVRWdkNDa000ZFFIVHJqTkZmZ05Qcllwa3dLVmxRUnYzdEVaTmctMzh3RG5Ya3B2NEFYYnB5NTNWazdwb0tpOEVfaTA4dmVQR21XUWpPTnktWlFHckNIRDY4WFk4a1ZwUEo4Y0RSYlpKQzczLVBsR2pFMnptNGJVM3VHVzFpcjU1TFJBcGxMdmFfQ24tN2FLdW9jQ1FKUHQxZkxaYU94OGlHUdIB2wFBVV95cUxPblFJNmowdUxPbkpUVWhkQ1loVWVoUjkyR29fVFAzM1VPckMxSm5OdEVFQ0hxeld0ZnR3Zm51WW04RUlYSXh1WkFfVmhPY1hvRWs5X3NZYnhlX19ja3BqMjl5dFQxRnRCdnA0OTNiUl80U09MZloyeWl1WktiTUw1cnpLREUxblVwSVo1XzdjMkI4V1hkd0hYZ0M0WkFwYjRuY3lxQ1RrQUZQclBMY1NJY1BPOXBDNHc3ckM1cVB5aU9qQ3pZSC1ESnZFN3J0dVNNbWFLUzNodTIyRlE?oc=5", "date": "2026-11-26T02:56:15+00:00", "source": "The Sentinel - of this Land, for its People", "summary": "", "watch": []}, {"title": "Two more charged in multimillion-dollar money laundering crackdown", "link": "https://news.google.com/rss/articles/CBMiqwJBVV95cUxORUM5bVQ5XzNlUlNtYzNLX21WS2l5QVJuUEFBdTlDVHpWRFVaQ1E0VjRMMU04QlhmU0luczVJWGVNQ2xITzRUaTlHX29OM19GQUFzdGpsaVBXakJ3TXJrU3l3VHlCUGxWazRQaVd0LUxOX3hENmpHZUtrOHZhN2s2OVpEbVdnVkhBVnJnM29UZEMtaHFKbFBzaGFIQV9oTDBESjZab0dyTDloenVWM0tncmhwSHgtdERJRVhzZmRNUEZTTXNvT1U0Qm1nRi15d2NBcE5LWWxpR3hZMDFKUTVJY1doeWR5TW0tSTRFemt1X2hwcE5MX0JlVzlXUHQ4QjVBRGdia3k0LUV6SmxmOEsza1A1ZklBZmgyc0YxRURGclhwTTVMUW9iYWZMc9IBsAJBVV95cUxQaVlXdnJyRjRac2J0clVadGZpMUlNSWs1TXVRdTloYlpLMzJtQWdldmNWZ21CY25VUGhvMlZTVTRGakdnNnFYaHRrQlEzVW8zVWRmcnBuUkt0dnVjZ0FocFpyN1UtLWhXenkydWNyVkJsVjJQcU5qV1VxdnkwVFE3bXBiVWhEdTlHYkVKVkJFdUZFdXdPY1pVMmNYZFRTU19NVk9naW04ZmJIOHlqYWhsZnBXejNOSURnU25uNGJtZlJ0MGdWeFZEcG54UjNxMS1RUnpuYVpoNEFOTWFOZ2t6amdtbVRNbkNzWTkzdDNiWldZMXJxUG5LZzlBWEdWdFdpbWxRQkxxS1k1NWV6XzlqakZsMXBYay02ZTA1WWxhVUVlQVRPTWUtenpONzgxbi0x?oc=5", "date": "2026-11-25T23:43:16+00:00", "source": "News24", "summary": "", "watch": []}, {"title": "Treasury probes ‘cybersecurity incident,’ unauthorized access to financial crimes bureau", "link": "https://news.google.com/rss/articles/CBMixAFBVV95cUxPX2JsUkQ4bGZTQU9BNHBndDF6UlFobnBIdDRFTFMwekRCZ1dINDJNQi1EemMxdTJvV09sUHpKTUdzaFhzSVltOWJqaHV6bHAtVEMwbVU2dnBjQjlwYjBqZmlkZkdveDlndWgtX3lkMW9sMzAwRTFhS1FSelB4elhCM0p5QUZGaFlwRnNGLUtXVi1ObmRYemhoLUtDM1B1ejBTRVQ0ZXdxenhfOXA1MEFNX1doT0hjbldISm9FaTdRUHU0SWQ1?oc=5", "date": "2026-11-25T22:30:37+00:00", "source": "Baltimore Sun", "summary": "", "watch": []}, {"title": "ED Arrested Roshan Fiaz, Ammar In Online Fraud Case", "link": "https://news.google.com/rss/articles/CBMijwFBVV95cUxQVE9zR1RIaHc0WGFDNWN0TUtqNS03REJSS2NKNFZHRE5lVk9EMkh3MmRlQ1ZPTzdCVjhweEpLRGxFdXNJYXk4bFZjWDVrSkZHVEh1Ykt4UnhfVXZEaU1kR0pZMk5oMm1CcllmTW5VaUJBZ3FiaHZ2YWZPNUR2UVFTZmVQWDRhTGRQWU9yZ241dw?oc=5", "date": "2026-11-25T17:59:13+00:00", "source": "Inventiva", "summary": "", "watch": []}, {"title": "EU money-laundering watchdog sets out rules to harmonize fine calculations", "link": "https://news.google.com/rss/articles/CBMizgFBVV95cUxNTU5XekVOWUlpZnN5U05mTTF5VnZHMG92NFczQVJXWnRncXh6dk53MG5KS205TVRDN1VMSkhyNWdQY1lmdWRlbXByTXpLdV94eW5QQzhBaTBCM2lKVHhYS0lGZ2k1X1pPb2E0MUZqSms0V3hTcTFYU3h2Z3M1R3hnTkF5Q0lGUmtQbm13SFJxU2ZiVFJUcFlKR3JkWURzZmlKcF96SHFpYk1BWC1DMGFqZ1l1OEs4QmtOTnJSRnlsRGtfODFFcGhhb3B1dUg2Z9IBWkFVX3lxTE1LN1VNREdRbkdRZ0dJZWh4MVU3bERXZ3dLYjBVcHZuaXBsbjduVjV1SVMtbTk4ckYzeUVNTjFxY0tENU5UcFpOZUlwWUNTcEEtMXFxRW03MGpwZw?oc=5", "date": "2026-11-25T15:07:36+00:00", "source": "MLex", "summary": "", "watch": []}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.402544+00:00"}, {"name": "FinCEN", "url": "https://news.google.com/rss/search?q=FinCEN+when:14d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "Treasury FinCEN systems latest to be hit by cyber incident", "link": "https://news.google.com/rss/articles/CBMisgFBVV95cUxQSHY0a1FET0JHekw5TW82cFFTQkNfMGNPYU9oQ3EtMEFsYmVQQWRRbW02NTJKSEtrVG5PVUp4ZXhnOWNqVkxza3RkbmlMdWpBcE8wWjJBNklPSWNvaWlTdW9WWU5VSzcxU21YTWhySTNuc2E4dXpjZkVIUzdkRE5zWi0yaE1mTXZLT3N0NkJzMUJES3lkV2RRdlRDTEN0M3ptNHZmMHlOMWlUUGFfa3haa2R3?oc=5", "date": "2026-11-26T17:41:43+00:00", "source": "Federal News Network", "summary": "", "watch": []}, {"title": "Treasury’s FinCEN Takes Systems Offline After Cyber Incident", "link": "https://news.google.com/rss/articles/CBMidkFVX3lxTE1XcnVtMDZqWVYzcTNDdzloSlhVR3A1RGNXSExsUEdWR0VsdlRoRmktSDAyRlNTTFJ3dDFZUUFBWnhHYUt4WGV4WDFqamF5NmdhNzlZOFZsNjN2NFJDTVNQWTNQdF9oUE1ZRTlQdUpsTGhqaGFQQmc?oc=5", "date": "2026-11-26T16:30:27+00:00", "source": "eSecurity Planet", "summary": "", "watch": []}, {"title": "FinCEN hack: ‘unauthorized access to a limited subset of its systems’", "link": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxQZVFMMzZzMkUxT2ZST0FpN0FiNU8yWUg4RWx5emo1TlNDRkptYUYwaHhyZWMwRVpuZk4xZlRNbmF5Yk5IVkZjMXQ5bFBxRkdLbUtvYXk1djBmcWZmUzBFRllWakJ6T2F3cmZvSWwxY1RPRkxrNll5Tm1iMUlRbmZ6akM0aDRlVjhV?oc=5", "date": "2026-11-26T15:51:09+00:00", "source": "The Next Web", "summary": "", "watch": []}, {"title": "FinCEN takes systems offline after cybersecurity incident, extends filing deadlines", "link": "https://news.google.com/rss/articles/CBMiO0FVX3lxTE1CVjF4eDJGaW9rX1lYZlBfRkgxcW1LMVM2NURLOHpHQzlrclZBTFhWaV95ZlNBRk5rejB3?oc=5", "date": "2026-11-26T12:50:56+00:00", "source": "Howl.Link", "summary": "", "watch": []}, {"title": "Treasury's FinCEN takes systems offline after unauthorized access", "link": "https://news.google.com/rss/articles/CBMiogFBVV95cUxOYTZyTzc4UndxdjBoZ2ZfcFM3a3RGMzRYSjg1NkhQMmxJWFl6Q1dpSUgyRXk2MmRTbXluQ1J0ZFkxTWRqMzJWVmx5VnRPQ0NWM2l2MjNicjFsT0E1OENKQnVCbTdWSVhXeEtEY09idWcwYTVpdWpUc00tRHhEanBJMjRiemdXdlVhc3BhZGo0bnVHX3Y3d2ZfZlVvNDdIaGRNeGc?oc=5", "date": "2026-11-26T11:10:19+00:00", "source": "Scripps News", "summary": "", "watch": []}, {"title": "US agency tracking money laundering is latest casualty in string of federal breaches", "link": "https://news.google.com/rss/articles/CBMifkFVX3lxTFB0VExxQk9jdm9fMTZpeHNhWUhkTjV4dE9UbGtDZDJhV0ZLUnNFWDFmTmIzdzhzTThOSTZCNF85RXgxUDhaenlRTDdsTkRmR0w1a1VObnZDVlFuUUJRRmV3aTFfZ3N6U3RiY0ZQd2RUZ1pnQThWcV9TN0Z5bzRyUQ?oc=5", "date": "2026-11-26T11:05:01+00:00", "source": "Help Net Security", "summary": "", "watch": []}, {"title": "Cybersecurity News: FinCEN systems attacked, 800 defendants in scam crackdown, 1Password vaults stay sealed", "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTFBuWEtyR0lfTVFlUEp1d2pKenhUaVlxVURqZ0d6dTRTTlFmSkFQbWlQNUx0dEtNTWhYTzJ3b3h3Umt0NmMzZmk1VWJwYlBMOFRoazE1VlVEZlpoMkhDeElTbjRXcWF4eFNhRXBn?oc=5", "date": "2026-11-26T11:00:00+00:00", "source": "CISO Series", "summary": "", "watch": []}, {"title": "US Treasury takes financial crime systems offline after cyberattack", "link": "https://news.google.com/rss/articles/CBMitgFBVV95cUxOaFpoUXdPWlkxYndwOGtfdHQteFh4OVFJanB6Q1h3d3ZzcjJZLWJmNmJ4a0lXTjYyZ1d6R3VQSlhGaUFWZWVZRUtPQnl5NDlFem1EVmMwWHVTeDNUMTE4aFRjU3h4M2xneDU5Z3VyczZaWWR1V2dyeUtEc3J2S29qNU45amN6aFMtSlJ5UGNIekNCa3J5S0R1VmRGS0phWTlXdkNRSkJPN1ZCd2xnQXVyaGVINjM3Zw?oc=5", "date": "2026-11-26T09:41:42+00:00", "source": "Gulf Business", "summary": "", "watch": []}, {"title": "Treasury’s FinCEN Unit Shuts Down Systems Due to ‘Cybersecurity Incident’", "link": "https://news.google.com/rss/articles/CBMirgFBVV95cUxPbS1oNHo5LVlqdzd0R3E1eHQydmZRT3AtLXRMVDNrc3NsNGJqTzFNM01TZ2x2Vl80RWtLTExsMW15T2pseXhaUGY4UGs1ellCbjZJeXEwZzVuRFRYSkpuQW1IaDU1OGpsWENnUlY4bjVnQ2RVMFd6TWctNS1oYUEwTjZQMkFKbTZZeFRxVkloLWxZN28wSWs2U1Vrc2xZWjRaeEZhRmI1NlVVbEVRQ3c?oc=5", "date": "2026-11-26T08:40:53+00:00", "source": "Security Boulevard", "summary": "", "watch": []}, {"title": "U.S. Treasury’s FinCEN Hit by Cyberattack, Disrupting Financial Crime Reporting", "link": "https://news.google.com/rss/articles/CBMidEFVX3lxTE10dExQMjdLVlJrV0FqYlNseDViOFN2LVZoRnZidm9LWThOUnV1bl9ENDl0bjEwS0F5dmtvZG13SVh1Tm5xWmsyWUZDNkNQaUduWGJKTEYxb01QYy1sZTBySUtTbWJwTHo3QTc2QTZaRC1zb0FJ0gF0QVVfeXFMTXR0TFAyN0tWUmtXQWpiU2x4NWI4U3YtVmhGdmJ2b0tZOE5SdXVuX0Q0OXRuMTBLQXl2a29kbXdJWHVObnFaazJZRkM2Q1BpR25YYkpMRjFvTVBjLWxlMHJJS1NtYnBMejdBNzZBNlpELXNvQUk?oc=5", "date": "2026-11-26T04:49:41+00:00", "source": "GBHackers News", "summary": "", "watch": []}, {"title": "FinCEN Breach – Systems Offline After Unauthorized Access", "link": "https://news.google.com/rss/articles/CBMingFBVV95cUxPR0ZNMUlxSnppeVBGTkc1VzU1eDRtU2o2UmQ2ZzB4YXlPaUM4S1ZWVFFLazRYOG5IQ004VFZKZHJJZ0hlZi1jbm5CaDVZelM4RmNkNDZRTHJPV3h3a2FKQlBacFBOWU1OZGFWOU10Snl1NDNrb0FXUGxWNEt3QU5pNVpsZ2RGdndmdXZNTEh5OGY1MUJzVjhzOGFDYTkwZw?oc=5", "date": "2026-11-26T04:17:24+00:00", "source": "Meteora Web", "summary": "", "watch": []}, {"title": "Hackers Get Into Treasury’s Financial Crimes Unit", "link": "https://news.google.com/rss/articles/CBMiekFVX3lxTE91bTU4ZmgtU0FpNEFMaVhDZUJPcVNuc25YT29CbE85bS13blFjZmgwbDd5cERrSUxfVF9YTGJnWUZWanFkX3ZWOVR2dGJsSXE5S0JTZzhkeDB5a3NVT0xuZWU2QnR0dnZpdGxncHJkS05lOVFISVJZLWtn?oc=5", "date": "2026-11-26T03:23:20+00:00", "source": "The SOFX Report", "summary": "", "watch": []}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.402686+00:00"}, {"name": "UK FCA financial crime", "url": "https://news.google.com/rss/search?q=FCA+(%22financial+crime%22+OR+%22anti-money+laundering%22)+when:14d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "Check The Firm Before You Invest, FCA Warns, As AI Scams Rise", "link": "https://news.google.com/rss/articles/CBMirAFBVV95cUxONDhpbEcwMHByUTlaUm42YnczbnhKc21jbXJlYmdFYnZ4dU9wajFfeEs0WTdRTExaS0p6UWhBZUl4dDNaMUdJMG1zNU1rbWNVZXAwOFYwdm1vZGJvWjNwSWVHS3lZbEZtLWdHUzJLd1Rpa291dTktZzFYWDZ3MlVpUXF6QldxVl9KUC13WTJZSHBDRnFLdHJyRlA1SjhHTmdNNUgzZjJIMFpPYi16?oc=5", "date": "2026-11-26T09:55:41+00:00", "source": "Crowdfund Insider", "summary": "", "watch": []}, {"title": "From London to Hong Kong, regulators are tightening crypto rules", "link": "https://news.google.com/rss/articles/CBMijgFBVV95cUxOczdpTEp5dHRUQnRMbG9kNU5QTTJGUktodGJSQXViRkxXVzkxLU9zYzNSSmlybk5tV2IzUUV3R29vYWNQZmFTWmRSTU45MV93ZjQtTERVVjlsZ2hqalV5dmJlbHNvR2otQWRTcEgzUWdEbkVfaXo2aDVPR2lDQnRnSlNkRlVsSVN5MkNOVTBR?oc=5", "date": "2026-11-26T06:00:00+00:00", "source": "CoinGeek", "summary": "", "watch": []}, {"title": "CryptoUK Submits Response to FCA on DeFi Guidance, Key", "link": "https://news.google.com/rss/articles/CBMihAFBVV95cUxNSDNnMkl4U01weDJlZ1h2dGxBVlJpanR3UFdnNXJXT3NpQ0REQmxDd29wUHlPR2hxUldBNFJYY3BSdnFWTTVLN2R4RURNM25GUjhraUdJekR4d2owbHZTTzdQTEg5azJoNGMtTlF5VDRaYk5qVm1KaGpGNkVOcWFuMnFRZ1k?oc=5", "date": "2026-11-25T12:47:12+00:00", "source": "Coinfomania", "summary": "", "watch": []}, {"title": "FCA Proposes One Fee for Firms Applying for Payments and Crypto Approval", "link": "https://news.google.com/rss/articles/CBMiywFBVV95cUxPMk9tbDBmcG55YzlqR3pkOG1PSDVNb2Y2SUtac0h6Y1hINVBFQ2poYWtwUjRWSHBwazkwY0xYSGh3WnZSWWZLOGhaajFpQlBJZDVhYVJrZEpIUlUtQkdKU2dhbjhiZEVFZHliY1g0cjhkQXNsNzNBWC05SGc4b0RZcUdvdE1yUWZ2ekFyNXhMVXhhUWNkdkl6RDRyQTB6YmNlNm96R2pZS1RoQ3o2SGNpcTlCTUk2aHV2TWdLSEFUX3JkdjJ0OEtUVkZSOA?oc=5", "date": "2026-11-24T18:03:39+00:00", "source": "Finance Magnates", "summary": "", "watch": []}, {"title": "The financial crime gaps hiding in plain sight", "link": "https://news.google.com/rss/articles/CBMilgFBVV95cUxONldOMFBUY2wtZEVZS0tFNXJkcFlWRWRMRmxxTDJtOW5LNFkyaEQzbWt4b3drd2xMNm5GbFlyZUpPZVhFT2d2T3BfY0tWU0hjSW50Tk5YZGYzSWRiVUVrTlVORGhNbGtReXM4RVd5Z19IQUphT2x1Tjd0bmZwMkRvOG41VUhtbFNyQnVmZ01nMXR3ZEV2WWc?oc=5", "date": "2026-11-24T15:16:30+00:00", "source": "Professional Adviser", "summary": "", "watch": []}, {"title": "Briefing: Strengthening the UK’s defence against dirty money through the Financial Services and Markets Bill 2026", "link": "https://news.google.com/rss/articles/CBMi6wFBVV95cUxPYmRZZ2lpVmxROFB0cnQ5eUJuZDM2QUktZGVMSUlQaXJObExaalFPTTJzdng5NEZnMklLYzNaWFFERlJzRElLMGZXSW5qbGNaXzhLcHU4MUFxUEtYaENBMGNWREdITkxCNUM3QUZGSDg3SUE3dnM1ZHkxMnEzRU1zLTRXZnlJR05Td0NtN1FUYmVsNjBrX1JEQWlTVFducG1QRGZ6YTVJYVpYZU9NMHJGdVowZTRMZFhjZ3F0QzlyNjNIaUI2OEEzR2hZZWR4cURLb1VlQWdIaS1naW5IakY1Q2dZMWNlY2hkVzlV?oc=5", "date": "2026-11-24T13:12:32+00:00", "source": "Spotlight on Corruption", "summary": "", "watch": []}, {"title": "FCA enforcement action against HTX", "link": "https://news.google.com/rss/articles/CBMi1wFBVV95cUxPSGZXMUhCU2tCM1VjdFVHQnhkZUFQTnI1Sk5FWnZNcTVndHJLMmFXOG9kenIzQWo4Nkd3bWR0a0pHSjVQTUR0eGduSEZTczVsbXAxWVEtb3FLVDhPa0R3VDF2SThsTVhyOHEyRlZVQmVzeHF0ek9HTm1qc3BUR2hEN3ZrYWlnb2pjWFlLWVFUNkVWSFhmVGZ2aG54OFBFc1NNcW42Q3NnakswZzRfazY2dHl1bEpPRWQyZmNveFJ4czE4b0dQaDRyc2NoTlhocWNqTG1QMG9pOA?oc=5", "date": "2026-11-24T11:20:00+00:00", "source": "Signature Litigation", "summary": "", "watch": []}, {"title": "FCA sets out timetable for major expansion of anti-money laundering supervision", "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxNWFQ4eW9NanAxQjlfd0taSzlNU19aODFWaUdPZEd2SFJSNEV4TEc4SFdmSlZKXzZfRzRMMEpPazdxOGx5LXZ6OVVnZnY2c0I1U1VCTUFUak1UZk42UmphRlhCV1RoOU1VYUo4eG5RNENNU191d0EwTDNMY2puMTNvM0dmWm1Gbk5OOTVMY2U4QUFURXA2NmtvV1BuV2U2a2tPVWR2R2UxeExDQnc?oc=5", "date": "2026-11-24T00:29:16+00:00", "source": "Mortgage Soup", "summary": "", "watch": []}, {"title": "Data security and financial crime risk: FCA clarifies expectations on controls, cyber security and AI", "link": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxQamxKUlhLd2ZpMkRYb3dib2tHRFRMcC1zODZDX2dQakNibnVBdW1Va2Z3TTY1S1NlWEZSSU1VcVZWWVVpWmRsajY0OGZaaFd5RGxLNEVmVWlVU09hRTBTdVhodW9XcGE1SzJMdGFZSkluYnBoMWU2eDhzZkg3cXZvaFg4TlBBQ3d5VzdQRDU1djNMRnR2NVI5dFg1S3JfZEFlRTZOUW80b1ZtQWhXZk5TcGhiZnZqRkM3NjdqcEI4bjFXN0Q0WUJGbVhaRDZsN1VGR25ueUpiWHU4aFk?oc=5", "date": "2026-11-23T21:36:15+00:00", "source": "Stephenson Harwood", "summary": "", "watch": []}, {"title": "Same Risk, Different Letterhead? The City Watchdog Takes On the Professions", "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxNMkc3aUZPN0lEaTlhLVdkLS1ZUEJENzUzUWRRQ3JaTlkyTWJQSzJZZzJza18wbkQ3eXVoOW9SQ0lMZnlZN21QQ21RVEl6c1FhM3NCM1NpT3VJbDdmaTNLRjV6bzlVVmlXWmdvWFNhdzBOd1RDTDYwY0xjVzMxLTg0eWdLZUNFU3hsWXU0ak5GdlgwTnZINmJnSDBEZ3FYYXppMzdSR0ZzenR0SmM?oc=5", "date": "2026-11-23T18:00:00+00:00", "source": "Royal United Services Institute (RUSI)", "summary": "", "watch": []}, {"title": "Financial Services and Outsourced Crime Controls: A Concern", "link": "https://news.google.com/rss/articles/CBMigAFBVV95cUxQeXdaRlRYZXIxLWQwcTFHb3Z5S3dILVJQVHZ3NnFQM3p5TVdfd2JZSEdyc1hXak0tZ2x6MGZQTFVFUVJVbGtDZ1k5eFJRVXJ6V0lHV1kyRTVrSlVKNnRYZUd4cTE5MFFDQWdtb2hKLUxIRW9ka2ZfTHRlbE9XUXBoLQ?oc=5", "date": "2026-11-23T15:31:47+00:00", "source": "European Business Magazine", "summary": "", "watch": []}, {"title": "FCA launches world-first platform giving firms new insight into AI innovation", "link": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxNeUFrd09RalNJeWM3QXF2emFfMDRtd3Z2NUNnYVFoTmJ3UWFrRFhseTdsLWxEd1JpSkR3TW5WZE55ekRuYW5NYnoxR1h2TGxlSWNqbUJ6bmdyQVBtM3ZmMDkzYWVTOExNcmgxNVRNd0Jic0JYNWliSWhvcTk3SmlIcVo0c3ZCZ2pndEx0U3RfT2hPcWw4R2lMTTN6aXI0TkR3QnVnLWhkeFhmQndFb1FtcHdKR2lKYS13djBFMEp5aTVTZTlxZzNwT19ZeHp1VFQ3bEc2QzRsNDBhYmM?oc=5", "date": "2026-11-23T10:28:24+00:00", "source": "Wired Gov", "summary": "", "watch": []}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.402825+00:00"}, {"name": "Typologies: crypto, TBML, fraud", "url": "https://news.google.com/rss/search?q=(%22trade-based+money+laundering%22+OR+%22crypto+laundering%22+OR+%22virtual+asset%22+AML+OR+%22pig+butchering%22)+when:14d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "VASP Licensing in Kenya: Budget, Plan and Operations", "link": "https://news.google.com/rss/articles/CBMikgFBVV95cUxPekVwOWFaMVZaNkI5ZFBuQnpyaVBZMDVyTlhiZ1FKSzZHNExwdnFCQnVoVWdZOVhhUVJBby1VYnp4ejM0dmdjTU5rSkVRdVV3VXozT3JuMUtYTDNsdWwzcXM0aHV5SVNHckVrSk1IZ0ZRdzNvSW1LOG1uSzF6N0V1R2NFUkhVMmpURUxlZEZNeThpZw?oc=5", "date": "2026-11-26T10:38:41+00:00", "source": "Global Advisory Experts", "summary": "", "watch": []}, {"title": "VASP Registration Taiwan: A Business Guide to FSC Licensing in 2026", "link": "https://news.google.com/rss/articles/CBMiiwFBVV95cUxPVFdFMUh2ZjVlMWNieU9RX1Bmc2Zpdm13QVIyVmVwcDZuRzBuTWhyNFVmX2Yxa3RVc05Oa1R0akNBTWJTTlZZRld2LWROd1pwZGd2V2hfZ3NlMnY3anpSdzFmSGRJWVRNVmM5cGpwajBGdmU4SmhfVjA2bGdFSGRPYm15RmZoMjM2alUw?oc=5", "date": "2026-11-25T09:04:47+00:00", "source": "Global Advisory Experts", "summary": "", "watch": []}, {"title": "South Korea to Keep One-Exchange, One-Bank Rule for Crypto Exchanges, Prioritizing AML", "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE1kZEJXV3o5WHFJVndzalBCb1JybkZtVm56a2FVTnhNaUFtWFBvWF9xbnAxemxFbF9YSHI0Ti1BSFJrVmhEYlc5STdDTWxPTFBMWmFCOA?oc=5", "date": "2026-11-25T06:01:41+00:00", "source": "bloomingbit", "summary": "", "watch": []}, {"title": "RA 9160 AML Compliance Guide for Philippine Fintechs", "link": "https://news.google.com/rss/articles/CBMikAFBVV95cUxPdXBreTRHX0ZBcGplMzJYSUpRV2pKSksyUTl1bHIySVViVzU3dXlQN3BjRDNINUZ5WUdrWl93NjRONkpISDZidEh6VmYtc21vYUtOb1EyNm1jQXZydHNtemRPRWVGY05mZmFmQXhZcmRvaGJYTTE1TDE1T3RfOTJlbGtmamNLVWdLc3dYOEt4bmg?oc=5", "date": "2026-11-24T05:03:37+00:00", "source": "Global Advisory Experts", "summary": "", "watch": []}, {"title": "South Korea’s 28 Crypto Firms Complete Revised AML Law Filings as Regulators Start Review", "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE9LU1JoUDVaZTFsUU11UXdaWTZ2S0s1VFpXNXhGV3VhUHVnTDFQeEdhcldDcjJlZXZMa2hENTRKU21Bd0EwSGVBWENobkN4Ul82UzFyWA?oc=5", "date": "2026-11-23T23:11:48+00:00", "source": "bloomingbit", "summary": "", "watch": []}, {"title": "Why trade-based money laundering threatens insurers now", "link": "https://news.google.com/rss/articles/CBMilAFBVV95cUxOOGN2aGphaFpaNncxX0NUUEdSckd5RmtPZV9XdUpGQ1JneEkzdUNYSTd2RF9pcm45Y2x6R3o5VUliekJZV2tkTG9DSlk2QlBWOEpGUm9hNDhTVC00TXJMU0xCeDlVWTdpU3hoY0o4bGZwbnJhaEpFT2czdDI5MTVfTzRDMXRLcFVCN3dta0FFb0doWEs3?oc=5", "date": "2026-11-23T09:36:41+00:00", "source": "FinTech Global", "summary": "", "watch": []}, {"title": "Fintech License Philippines: Bank, EMI or VASP 2026", "link": "https://news.google.com/rss/articles/CBMikgFBVV95cUxQMV9ncnFtUjJBTllwbFhqaVh3cVBqWG53Y3ZoU3lGSFNFcmxNSGV5V3VnVWRCNUU3bEd4U0tSZUtTY1U2UVRRMndaUEdOWnlEOU9GTU1FQzB1YmpmalJSRW5RVnpENVRVUGNFMk13ZzVCV3AyWm9sUlJBQ1ZEUjV5UEZOenJ5aXpoMzV0Y1ZZLVZCQQ?oc=5", "date": "2026-11-23T08:27:43+00:00", "source": "Global Advisory Experts", "summary": "", "watch": []}, {"title": "Crypto Licensing Sri Lanka: 2026 VASP Roadmap", "link": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxNUGJEUS1rZ0I4dFdLYUhXbzBaVUQ2YTFiTHJ0bTJLdW41a2syTU5MWnlXN2RXcWgzbk5scU5IR3psdXg3SWgzTlF2dlBZRDd0U3hnVWtZUC1iejNXZy1tN2hJNXBFMDRLMHJuRm95QlRCRmd5UFRrV0tLc3dXc0VUQl9QenBUV3Ry?oc=5", "date": "2026-11-23T00:07:39+00:00", "source": "Global Advisory Experts", "summary": "", "watch": []}, {"title": "Crypto Fund Domicile Global: Cayman, BVI or Luxembourg for Tokenised Funds", "link": "https://news.google.com/rss/articles/CBMikgFBVV95cUxNLTRfbGg3NTFidzFhMnFjVFpDVHEyaGRZVHV5UUI4OEs0M2pCbFFQeGpvcTNiamRqQVVIM2JBY3BLS201Und4TjVJeldTZDB4andJRklfaWh1ek9oRzhBYVFWOHdKeWV0bXY3UUw0UVdTaFpDcWZWVEFTemZvcExJeW42OUk3NFFIemVyUzBYdnZpdw?oc=5", "date": "2026-11-22T06:07:33+00:00", "source": "Global Advisory Experts", "summary": "", "watch": ["BVI", "Cayman"]}, {"title": "Esports Betting Cyprus 2026: Licensing and AML Guide", "link": "https://news.google.com/rss/articles/CBMilAFBVV95cUxPWmZObjNTY0RYZzBnWTFTR0VQZ2dLWUFiTVRBU2ttakZmYmNYb0JldVdQZDBzWWRlbEEyT0NYbFp5Q0JjWlpaSk5MQ1MyVDRMVFNmanFVcE1paVc2Y1JjOWJkc3AtNXprYVlGZ2hCekUyN3U5U180Zm5ERnZVejhCcFlNTTJMczdNYTdKeHRaTE9qN2Z5?oc=5", "date": "2026-11-22T01:27:32+00:00", "source": "Global Advisory Experts", "summary": "", "watch": []}, {"title": "Launching a Crypto Fund in Estonia in 2026: Licensing, AML, Tax and Passporting", "link": "https://news.google.com/rss/articles/CBMilgFBVV95cUxPLXFJc2VxM1RYVzk4U3dKOHJKeVhaN0U4Ql90Z045THZ5dVZ2R3Nmakl0RjJhRThzWXlicmhqTTdPd0Z4YVdpZ19fT2NsQ1lJRkk3R0NBdDFmNVpjeVVVU3pPMUdsVTBNOW9DRkdZZml0UjJQOEZaeVJsWExObjNJcTBUQjE5Sk9oSDR3VzJJajRlSDRQNGc?oc=5", "date": "2026-11-22T00:32:32+00:00", "source": "Global Advisory Experts", "summary": "", "watch": []}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.402967+00:00"}, {"name": "Terrorist and proliferation financing", "url": "https://news.google.com/rss/search?q=(%22terrorist+financing%22+OR+%22proliferation+financing%22)+when:14d&hl=en-US&gl=US&ceid=US:en", "items": [{"title": "Spain Lets Its Financial Intelligence Unit Freeze Crypto Accounts Without a Court Order", "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE5mRXBJeUFhMW10bDNhWDFVVEF3b29xMWxfVFo2YUk2aVI3ZkZNRDV2TGhIeVB5SV9WREhuREp5UWJPMG9lM2FvSXE2Z0VMRWwtQlpKX0Rn?oc=5", "date": "2026-11-26T17:17:40+00:00", "source": "Cryptonews.net", "summary": "", "watch": []}, {"title": "43rd MENAFATF Plenary Meeting concludes in Abu Dhabi", "link": "https://news.google.com/rss/articles/CBMikAFBVV95cUxOZGZLeFpIYkdwTlMzZnVzTW53XzdIck9FTDgxS09Dd3lFekJRX0NjYzJqc2FTNFM5Zndfb01VY2ktMzdTbDhYbmZuYlJudEUzcVRjMGwyenZCQlpucFpZZ3RmYnJ2bjY4NDZBZVJKaFFFWVFiMUhQcXhZOW44MGpieGZOcDZoVUVBNDFlQmZZM0w?oc=5", "date": "2026-11-26T17:10:26+00:00", "source": "www.wam.ae", "summary": "", "watch": []}, {"title": "UAE concludes MENAFATF Plenary in Abu Dhabi, Bahrain to lead in 2027", "link": "https://news.google.com/rss/articles/CBMitAFBVV95cUxOLVRzajhUV1ROUmdYV3R0bm92ZjVfX0Y0YW5QMjlKcnp6VW9vb1RtdldHNEJVMjdNTjNYaElzalRyQl9aVGJzeFllWWhBYnk2WjhaZzdkempWNGdWaFNveHZucXZtT1NaaVpwUzY2dU5HLTdEdlJnNEhRWGdzbFpxTk5KbzhrT0JsQWlvLVUxUEx4OW9VLWp2LVZaZkxadmtzWGstU2dsNTZ6UHhfX1dNVWJmR0fSAccBQVVfeXFMTXNlNWJTaGFWYmxwbVJ1dWdQX0JEQTJ3UE16bHdYQTNlUnhBYUpnNkdLM1UtdEpLWjhIVHNpRlFhc3VSWEJmRTV4aDRnS2N3YkxpM3Y3LXpFUHhIZ1A5OC1zWkVQNFNkVDZvVk5yZjZYbEZpbDhiMFg2LUlJLWRjajlnZXN3Nkp3cV83ZXVpOUp5b3Bmd2xXVzUtOTR4b1JEWjh6bHFJUTg0dDZJV2JFVnZJcmM5T1VoOTZlOEtTY016RjJqbXVzNA?oc=5", "date": "2026-11-26T14:57:36+00:00", "source": "Gulf News", "summary": "", "watch": []}, {"title": "strengthens regional cooperation to combat money laundering, terrorist and proliferation financing, and illicit financial flows | SADC", "link": "https://news.google.com/rss/articles/CBMirAFBVV95cUxOS2ZtVHVXV09rb25neW9QeGtCci0xUnlWMXNLSjE4MWF1LTVldkwtcHZSekVaU2tiTGVLeEpnYl9SMnE2dWp4NzlQYzdKeTNOVW5jRTktOGpPQmg0SmtLN2dTY0dWWHZ3RUwySnRiekQ5VUdJN05DV0h1dTIzbzJrRTBiTEpoUFpHcVdCWV81OF9pUkpyaURHSHFoZ3JPRUVIYl9RRnNlTm1WVlRD?oc=5", "date": "2026-11-26T09:53:26+00:00", "source": "SADC", "summary": "", "watch": []}, {"title": "Kyrgyzstan completes 95% of anti-money laundering tasks for 2025-26", "link": "https://news.google.com/rss/articles/CBMiX0FVX3lxTE02S2oxSWVDcC01Y2ttTnhkQk85NkVrLVlVOEpVQW5ybGF1SlJtcURGcnJ5X3Rkb29ac2cxQWNqeHFRZk8tRmZEMkFfMmY1V24xdVZfc29tM0pDWkxOWVU4?oc=5", "date": "2026-11-26T09:07:24+00:00", "source": "Trend News Agency", "summary": "", "watch": []}, {"title": "UK Treasury Uncovers North Korean Sanctions Evasion Links in Probe of Suspicious Entities", "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTE93dnB6bmRHb1I2eFd4VFk5OUNMVWlFVTh4LXZDSnppaVNrMXVUeUNQQXB5UmJXNEVGVjVjQmlZTmFfWDZYMGdyd2t5RUpINzVWbW0zX0pFZ3NpTW92aDl4RVlLTWRockl4ZG5KNDBR?oc=5", "date": "2026-11-24T23:50:41+00:00", "source": "news.sbs.co.kr", "summary": "", "watch": []}, {"title": "MENAFATF Plenary opened to strengthen regional cooperation against financial crime", "link": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxQeEpfMHpaLUFTYldEWk9NdFVMeEpCdDF3U0NKN1k1NU9ZMkNLbG16MFlpX2NmaVBySzZMYTVNZTFKNGo4dkFrdDBTR3RINXB5Vm03Z1RoaEdMOWZYRmxUZGR2SXpUT090V2RXNmpJMFVkRk4xeE9ldTZhTk9TTWh5LUNyVU1lY044ZkFQU2NfWWFCYW8xRzhiNUpvZVR4RUxMVDhMc1N6UHpUSER1Y29ZUE1UYzJIX05MdWZBZFM3UDI4X1lTM0pfddIB2wFBVV95cUxNSEFhRERJd0QxSldrX0FDa2ZzRlFrQ0IyOVlrLW1XY1ZRcXo4Ry1lRmE5QnRHWUw2ZTkxOWNJZGoyVTlmcndlc0s5MFJzM1Nuei14M1A4Wi1ESmpsSnpzLV9hbHpPekxWVkhNR1E1S1dycVNhejNPYURlTkVZZG1hTENEeFVMNWlFNi1hRl9kbnJtR3BiVlB4cGJsODdPMlZBQzE4TlhsVjdsQ1ZYbmNEZW1BWXZfSFlZQkFILWhHYXVoN0NzaWxjanBNS281QUlyZEE1eF9kaVZuMUE?oc=5", "date": "2026-11-24T14:54:38+00:00", "source": "Gulf News", "summary": "", "watch": []}, {"title": "43rd MENAFATF Plenary opens in Abu Dhabi", "link": "https://news.google.com/rss/articles/CBMigAFBVV95cUxNUUpSU1FfTWJ2VDVmYl9TYkZYY0ZGMTBmbnhOMWJuZF85Tld0bXZ2QjZVU1hpa0dZaS0xVmJuUXIzR1lJcnAyTWoweTJvY08yWTVMZ2g1MHZITmQtQy1HdjI4RGZmdlBDcnppSzNVVUFNRnVJblRQUWZzQWZLaWYyRA?oc=5", "date": "2026-11-24T13:24:02+00:00", "source": "www.wam.ae", "summary": "", "watch": []}, {"title": "Ministry of Community Empowerment organises 'Partners in Safeguarding Giving' forum", "link": "https://news.google.com/rss/articles/CBMikAFBVV95cUxNbVA2NjFtTGt0MUhXN09YVVVBNHVIRFh4T093eWtVcFZnUndIXzhYUG1yRjZQamVhSE81c2hJVTM3c1V0aUJLMGRCeEVNX3BtMkVvWkI2Rmd1Y252ODYtMUh5UW5QakxoMy1qcDhjXzZOLWJBQXU5RDBMUmF2eU5MLWphcTVtdnhOV01yRDZKUkU?oc=5", "date": "2026-11-23T13:30:50+00:00", "source": "www.wam.ae", "summary": "", "watch": []}, {"title": "Curaçao Government Reviews New Risk Assessment on Terrorist Financing and Nonprofit Organizations", "link": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxOMl9ickRSZGFIYUhmVDhIazNPUjVySjZlbTR4UG41LXEyVm01OEs4UG0xZjdLSG9IdVVva0Z0VGJWLVo2ZWhkT2J5cm5pWnR2aGdqd1lSdWxMUFJRVko4SDh5OHQwd2RRanNXUkVjUG11Qi1saXJFQjJmWnFaM0U1SzJxUk90ZF9iSHN2WFJkNUtibERqcnpLOThucmhlY0h4MXZZZ2s1Z2NiYWFYTWNRWG84bVJnS1RPU3FXX1B1UE5nRUQ2NFJiVDBiVlV1YXdWNXl4dnhNOUNnYzg?oc=5", "date": "2026-11-23T13:17:36+00:00", "source": "Curaçao Chronicle", "summary": "", "watch": []}, {"title": "FG Moves To Disrupt Terrorist Financing, Illicit Financial Networks", "link": "https://news.google.com/rss/articles/CBMikgFBVV95cUxQb3JQUXlIMHBBOUVSYTlmNnhHRjZ2aFFidF9ONFk1VWphVXduYlhpcGFKSnh3VUFneFFONjJYZXlwZkZZeGZ1UC11Q3FoYXFZZ2xDdzNBTmFYd19VZi1lOXVncUFOcFRZT0d3WUE3Zy00dVN6NF9KM1pzR05vZEdZNWlVc1NSOWlST3VQeUxrUjk5QQ?oc=5", "date": "2026-11-23T07:38:05+00:00", "source": "Arise News", "summary": "", "watch": []}, {"title": "MENAFATF committees, forums continue meetings ahead of 43rd Plenary", "link": "https://news.google.com/rss/articles/CBMipwFBVV95cUxNVXJtdkViZE1qUS1CVEJLa2xYaHppc2w4S3dxT0xoRzU4b2hiQlJKQlFwNy1qTmdqMEtEV3d0R1VBTDcyZHdlQmExSF84TTZnZE5hM1V6QXRaR2h2cTFsNzVnWlRJazVscGJmZjFlNzNQWHF3bWhtbzlfa0dMYVotZVFoUUY1eDEtVVo4VXVxdTZBeU9lNFBMVUZpUndSeVRZQTNTeElsRQ?oc=5", "date": "2026-11-22T18:32:28+00:00", "source": "برق الإمارات", "summary": "", "watch": []}], "error": "HTTPError: HTTP Error 503: Service Unavailable", "stale_since": "2026-11-26T19:25:21.403084+00:00"}]}], "sanctions": [{"label": "UK Sanctions List", "error": null, "count": 6458, "list_date": "26/11/2026", "baseline": false, "events": [{"seen": "2026-11-26T19:25:21.403631+00:00", "list_date": "26/11/2026", "added_count": 1, "removed_count": 0, "amended": 2, "added": [{"name": "IMO 8027705", "type": "Ship", "regime": "Libya", "updated": "26/11/2026", "id": "LIB0080"}], "removed": []}, {"seen": "2026-11-24T20:29:43.690084+00:00", "list_date": "24/11/2026", "added_count": 4, "removed_count": 0, "amended": 1, "added": [{"name": "Abdul Hakim AL KHAIWANI", "type": "Individual", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "24/11/2026", "id": "GHR0216"}, {"name": "Abdulkarim Amiruddin Hussein AL-HOUTHI", "type": "Individual", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "24/11/2026", "id": "GHR0217"}, {"name": "Mohamed MOUFLEH", "type": "Individual", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "24/11/2026", "id": "GHR0215"}, {"name": "Sarim Al Din Mufadal", "type": "Individual", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "24/11/2026", "id": "GHR0214"}], "removed": []}, {"seen": "2026-11-23T21:54:03.100377+00:00", "list_date": "23/11/2026", "added_count": 5, "removed_count": 0, "amended": 1, "added": [{"name": "Kyaw SOE", "type": "Individual", "regime": "Myanmar", "updated": "23/11/2026", "id": "MYA0089"}, {"name": "Kyaw Swar OO", "type": "Individual", "regime": "Myanmar", "updated": "23/11/2026", "id": "MYA0090"}, {"name": "Myat Thet Oo", "type": "Individual", "regime": "Myanmar", "updated": "23/11/2026", "id": "MYA0086"}, {"name": "Myo Htut HLAING", "type": "Individual", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "23/11/2026", "id": "GHR0218"}, {"name": "Myo Min TUN", "type": "Individual", "regime": "Myanmar", "updated": "23/11/2026", "id": "MYA0088"}], "removed": []}, {"seen": "2026-11-20T18:20:50.736106+00:00", "list_date": "20/11/2026", "added_count": 0, "removed_count": 1, "amended": 4, "added": [], "removed": [{"name": "LNG SOARS", "type": "Ship", "regime": "Russia", "updated": "24/02/2026", "id": "RUS3470"}]}, {"seen": "2026-11-17T18:57:17.212322+00:00", "list_date": "17/11/2026", "added_count": 9, "removed_count": 0, "amended": 2, "added": [{"name": "AMI GVIRTZMAN ARCHITECTS 2021 LTD", "type": "Entity", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "17/11/2026", "id": "GHR0205"}, {"name": "ARIEL RESIDENTIAL JUDEA AND SAMARIA LIMITED", "type": "Entity", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "17/11/2026", "id": "GHR0204"}, {"name": "HAR HEVRON DEVELOPMENT COMPANY LTD", "type": "Entity", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "17/11/2026", "id": "GHR0203"}, {"name": "HAREY ZAHAV MANAGEMENT LTD", "type": "Entity", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "17/11/2026", "id": "GHR0212"}, {"name": "HEMDAT SHOMRON LTD", "type": "Entity", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "17/11/2026", "id": "GHR0206"}, {"name": "LEV HAHAR YAZAMUT LIMITED", "type": "Entity", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "17/11/2026", "id": "GHR0210"}, {"name": "S.A.G. (VELVEL) BUILDING & DEVELOPMENT LTD.", "type": "Entity", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "17/11/2026", "id": "GHR0208"}, {"name": "TZAV 9", "type": "Entity", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "17/11/2026", "id": "GHR0213"}, {"name": "Z.F. BUILDING COMPANY LTD", "type": "Entity", "regime": "Global Human Rights and International Humanitarian Law Sanctions Regulations 2026", "updated": "17/11/2026", "id": "GHR0207"}], "removed": []}, {"seen": "2026-11-12T17:55:58.087334+00:00", "list_date": "12/11/2026", "added_count": 20, "removed_count": 0, "amended": 2, "added": [{"name": "FORTEZA TRADING DMCC", "type": "Entity", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3794"}, {"name": "IMO 9252967", "type": "Ship", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3810"}, {"name": "IMO 9274616", "type": "Ship", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3797"}, {"name": "IMO 9321304", "type": "Ship", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3811"}, {"name": "IMO 9402328", "type": "Ship", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3798"}, {"name": "IMO 9460564", "type": "Ship", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3799"}, {"name": "IMO 9958303", "type": "Ship", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3795"}, {"name": "IMO 9958315", "type": "Ship", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3796"}, {"name": "IMO9630028", "type": "Ship", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3805"}, {"name": "IMO9915105", "type": "Ship", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3806"}, {"name": "IMO9958298", "type": "Ship", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3807"}, {"name": "IMO9958327", "type": "Ship", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3808"}, {"name": "JOINT STOCK COMPANY UGOLNAYA KOMPANIYA KUZBASSRAZREZUGOL", "type": "Entity", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3801"}, {"name": "JOINT-STOCK COMPANY \"SIBERIAN COAL ENERGY COMPANY\"", "type": "Entity", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3802"}, {"name": "JSC NIPIGAZPERERABOTKA", "type": "Entity", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3792"}, {"name": "LLC Vostok Oil", "type": "Entity", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3809"}, {"name": "NOVUS ENERGY DMCC", "type": "Entity", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3804"}, {"name": "PATERA FZCO", "type": "Entity", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3803"}, {"name": "PJSC OIL AND GAS COMPANY SLAVNEFT", "type": "Entity", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3800"}, {"name": "PJSC SIBUR HOLDING", "type": "Entity", "regime": "Russia", "updated": "12/11/2026", "id": "RUS3793"}], "removed": []}, {"seen": "2026-11-10T17:30:13.946081+00:00", "list_date": "10/11/2026", "added_count": 0, "removed_count": 0, "amended": 3, "added": [], "removed": []}, {"seen": "2026-11-03T17:34:05.897544+00:00", "list_date": "03/11/2026", "added_count": 0, "removed_count": 0, "amended": 1, "added": [], "removed": []}, {"seen": "2026-10-30T16:33:03.893350+00:00", "list_date": "30/10/2026", "added_count": 0, "removed_count": 0, "amended": 5, "added": [], "removed": []}], "checked": "2026-11-27T19:21:38.997489+00:00", "source": "https://sanctionslist.fcdo.gov.uk/docs/UK-Sanctions-List.xml", "search": "https://www.gov.uk/government/publications/the-uk-sanctions-list", "note": "UK sanctions apply in the Turks and Caicos Islands. Re-screen customers when designations are added."}, {"label": "OFAC SDN List", "error": null, "count": 19629, "list_date": "", "baseline": false, "events": [{"seen": "2026-11-23T21:54:03.100377+00:00", "list_date": "", "added_count": 34, "removed_count": 0, "amended": 0, "added": [{"name": "ABBASI, Mohammad Hossein", "type": "Individual", "regime": "IRAN-EO13902", "id": "59233"}, {"name": "AKHLAGHI, Mahmoud", "type": "Individual", "regime": "IRAN-EO13902", "id": "59231"}, {"name": "ALAM AL SAHRA BUILDING MATERIALS TRADING CO. L.L.C", "type": "Entity", "regime": "IRAN-EO13902", "id": "59183"}, {"name": "ARABNEJAD, Mojtaba", "type": "Individual", "regime": "SDGT] [IFSR", "id": "59250"}, {"name": "BAVAND, Mohammad Javad", "type": "Individual", "regime": "IRAN-EO13902", "id": "59251"}, {"name": "BERKELEY TRADING LLC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59184"}, {"name": "BOGAZICI GUMRUKLEME ITHALAT IHRACAT TURIZM PETROL URUNLERI SANAYI VE TICARET LIMITED SIRKETI", "type": "Entity", "regime": "IRAN-EO13902", "id": "59127"}, {"name": "DEXTEROUS GLOBAL DMCC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59119"}, {"name": "EWAN AL MADEENA GENERAL TRADING LLC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59118"}, {"name": "FASHKI, Farzad", "type": "Individual", "regime": "IRAN-EO13902", "id": "59126"}, {"name": "FASHKI, Mina", "type": "Individual", "regime": "IRAN-EO13902", "id": "59125"}, {"name": "FAZLJU, Parviz", "type": "Individual", "regime": "IRAN-EO13902", "id": "59232"}, {"name": "GESPL INTERNATIONAL GENERAL TRADING LLC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59121"}, {"name": "GRAND TARGET HEAVY EQUIPMENT AND MACHINERY SPARE PARTS TRADING L.L.C", "type": "Entity", "regime": "IRAN-EO13902", "id": "59111"}, {"name": "GRANDEZ TRADING LIMITED", "type": "Entity", "regime": "IRAN-EO13902", "id": "59128"}, {"name": "H N B TRADING CO LLC", "type": "Entity", "regime": "SDGT] [IFSR", "id": "59110"}, {"name": "HEMMATI, Valiollah", "type": "Individual", "regime": "IRAN-EO13902", "id": "59123"}, {"name": "HEMRAJ TRADING L.L.C", "type": "Entity", "regime": "IRAN-EO13902", "id": "59114"}, {"name": "INTEGRAL PETRO ENERGY TRADING LLC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59185"}, {"name": "IRAN CENTER FOR EXCHANGE OF CURRENCY AND GOLD", "type": "Entity", "regime": "IRAN-EO13902", "id": "59187"}, {"name": "JALALI, Sayyed Mohammad", "type": "Individual", "regime": "IRAN-EO13902", "id": "59124"}, {"name": "KALHOR, Ali", "type": "Individual", "regime": "IRAN-EO13902", "id": "59120"}, {"name": "KHORE AL HILAL GOODS WHOLESALERS TRADING LLC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59130"}, {"name": "MEETHALE RAW MATERIALS TRADING COMPANY LLC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59122"}, {"name": "MELLAT EXCHANGE COMPANY", "type": "Entity", "regime": "IRAN-EO13902", "id": "59230"}, {"name": "MINA FASHKI AND PARTNERS EXCHANGE COMPANY", "type": "Entity", "regime": "IRAN-EO13902", "id": "59116"}, {"name": "NORDIC INTERNATIONAL TRADING LLC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59180"}, {"name": "OGA GLOBAL GENERAL TRADING L.L.C", "type": "Entity", "regime": "IRAN-EO13902", "id": "59117"}, {"name": "RAHBAR BAZARGANI NESIM BAHARAN QESHM COMPANY", "type": "Entity", "regime": "IRAN-EO13902", "id": "59113"}, {"name": "RECAZ STAR GENERAL TRADING LLC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59112"}, {"name": "ROBUST TRADING LLC", "type": "Entity", "regime": "IRAN-EO13871", "id": "59186"}, {"name": "ROYAH ALTAHABIA TRADING L.L.C", "type": "Entity", "regime": "IRAN-EO13902", "id": "59178"}, {"name": "SERVATI, Mohammadhossein", "type": "Individual", "regime": "SDGT] [IFSR", "id": "59253"}, {"name": "TAJ, Majid", "type": "Individual", "regime": "IRAN-EO13902", "id": "59252"}], "removed": []}, {"seen": "2026-11-19T18:52:27.592076+00:00", "list_date": "", "added_count": 24, "removed_count": 0, "amended": 0, "added": [{"name": "BEI FANG BO LIN CONSTRUCTION DECORATION CO., LTD.", "type": "Entity", "regime": "CYBER4", "id": "58871"}, {"name": "COFFEN, Marco Francis", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58805"}, {"name": "COMANCHERO OUTLAW MOTORCYCLE GANG", "type": "Entity", "regime": "ILLICIT-DRUGS-EO14059", "id": "58804"}, {"name": "COMMISSO, Francesco", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58793"}, {"name": "COMMISSO, Rocco Remo", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58794"}, {"name": "DEMARIA, Vincenzo", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58796"}, {"name": "FIGLIOMENI, Angelo", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58791"}, {"name": "FIGLIOMENI, Cosimo", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58792"}, {"name": "FRATELLI VESCIO FUNERAL HOMES LTD.", "type": "Entity", "regime": "ILLICIT-DRUGS-EO14059", "id": "58797"}, {"name": "MEEHAN, Allan John Norman", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58807"}, {"name": "NAUFAHU, Pasilika", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58808"}, {"name": "NAUFAHU, Vetekina", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58809"}, {"name": "ONE, Saw A", "type": "Individual", "regime": "CYBER4", "id": "58851"}, {"name": "PHANTOM LIMOUSINE SERVICES INC.", "type": "Entity", "regime": "ILLICIT-DRUGS-EO14059", "id": "58803"}, {"name": "VARELA VILLAR, Alexandre", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58806"}, {"name": "VESCIO FUNERAL HOME MAPLE INC.", "type": "Entity", "regime": "ILLICIT-DRUGS-EO14059", "id": "58799"}, {"name": "VESCIO FUNERAL HOMES INC.", "type": "Entity", "regime": "ILLICIT-DRUGS-EO14059", "id": "58798"}, {"name": "VESCIO JR., Luigi", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58801"}, {"name": "VESCIO SR., Luigi", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58795"}, {"name": "VESCIO, Laura", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58802"}, {"name": "VESCIO, Rose", "type": "Individual", "regime": "ILLICIT-DRUGS-EO14059", "id": "58800"}, {"name": "WAH, Saw Shwe", "type": "Individual", "regime": "CYBER4", "id": "58850"}, {"name": "ZHAO, Hui", "type": "Individual", "regime": "CYBER4", "id": "58870"}, {"name": "ZHZ INVESTMENT CONSULTING CO., LTD.", "type": "Entity", "regime": "CYBER4", "id": "58872"}], "removed": []}, {"seen": "2026-11-18T18:39:42.790507+00:00", "list_date": "", "added_count": 6, "removed_count": 0, "amended": 0, "added": [{"name": "CHOUMAN, Afif Abdel Rida", "type": "Individual", "regime": "SDGT", "id": "59189"}, {"name": "GOLD GLOBAL COMPANY", "type": "Entity", "regime": "SDGT", "id": "59175"}, {"name": "KHECHEN, Hassan", "type": "Individual", "regime": "SDGT", "id": "59173"}, {"name": "KHECHEN, Ibrahim", "type": "Individual", "regime": "SDGT", "id": "59174"}, {"name": "SANKARI GOLD KUYUMCULUK TICARET LIMITED SIRKETI", "type": "Entity", "regime": "SDGT", "id": "59176"}, {"name": "WA TA'AWANU ASSOCIATION", "type": "Entity", "regime": "SDGT", "id": "59188"}], "removed": []}, {"seen": "2026-11-13T17:30:53.346340+00:00", "list_date": "", "added_count": 2, "removed_count": 0, "amended": 0, "added": [{"name": "LOS LORENZANAS", "type": "Entity", "regime": "FTO] [SDGT", "id": "59070"}, {"name": "LOS MENDOZA DRUG TRAFFICKING ORGANIZATION", "type": "Entity", "regime": "SDGT] [ILLICIT-DRUGS-EO14059", "id": "59031"}], "removed": []}, {"seen": "2026-11-09T20:26:06.327779+00:00", "list_date": "", "added_count": 8, "removed_count": 0, "amended": 0, "added": [{"name": "1380079 BC LTD", "type": "Entity", "regime": "IRAN-EO13902", "id": "59096"}, {"name": "2397639 ONTARIO LTD", "type": "Entity", "regime": "IRAN-EO13902", "id": "59095"}, {"name": "B GALAXY INC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59094"}, {"name": "CCC INC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59093"}, {"name": "DARVISH EXCHANGE", "type": "Entity", "regime": "IRAN-EO13902", "id": "59099"}, {"name": "DIVERSE TRADE INC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59091"}, {"name": "NIA NATIONS CURRENCY LTD", "type": "Entity", "regime": "IRAN-EO13902", "id": "59092"}, {"name": "TOP PC TECHNICIAN INC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59097"}], "removed": []}, {"seen": "2026-11-05T17:51:47.547606+00:00", "list_date": "", "added_count": 56, "removed_count": 0, "amended": 0, "added": [{"name": "ASIAN WELFARE LOTTERIES CO LTD", "type": "Entity", "regime": "TCO", "id": "58563"}, {"name": "BEIJING H AND C TECHNOLOGIES CO., LTD", "type": "Entity", "regime": "CUBA-EO14404", "id": "58917"}, {"name": "CAMBO DUTY FREE MERCHANDISE CO., LTD.", "type": "Entity", "regime": "TCO", "id": "58639"}, {"name": "CAMBODIA FIRST UNITE CONSTRUCTION GROUP CO., LTD.", "type": "Entity", "regime": "TCO", "id": "58627"}, {"name": "CAMBODIAN FIRST UNITE CONSTRUCTION MACHINERY CO., LTD.", "type": "Entity", "regime": "TCO", "id": "58637"}, {"name": "CAMBODIAN RESOURCE ENERGY DEVELOPMENT CO LTD", "type": "Entity", "regime": "TCO", "id": "58565"}, {"name": "CAMBODIAN UNITE WEI YE INVESTMENT CO LTD", "type": "Entity", "regime": "TCO", "id": "58566"}, {"name": "CB GENERAL INSURANCE PLC", "type": "Entity", "regime": "TCO", "id": "58564"}, {"name": "CELESTIAL DRIVE LIMITED", "type": "Entity", "regime": "TCO", "id": "58669"}, {"name": "CHEN HUA HOLDINGS PTE LTD", "type": "Entity", "regime": "TCO", "id": "58645"}, {"name": "CHUI, Kok Wa", "type": "Individual", "regime": "CYBER4", "id": "59052"}, {"name": "DIRECT ASTUTE HK LIMITED", "type": "Entity", "regime": "TCO", "id": "58663"}, {"name": "DIRECT ASTUTE LIMITED", "type": "Entity", "regime": "TCO", "id": "58664"}, {"name": "DT ZHI ZAO CO LTD", "type": "Entity", "regime": "TCO", "id": "58567"}, {"name": "EMILIA", "type": "Vessel", "regime": "CUBA-EO14404", "id": "59068"}, {"name": "EMPRESA COMERCIALIZADORA DE SERVICIOS TECNICOS Y TECNOLOGICOS", "type": "Entity", "regime": "CUBA-EO14404", "id": "58915"}, {"name": "EMPRESA IMPORTADORA Y EXPORTADORA DE PRODUCTOS DE LA ELECTRONICA Y LAS COMUNICACIONES", "type": "Entity", "regime": "CUBA-EO14404", "id": "58913"}, {"name": "FIRST AQUATIC INDUSTRIAL CO LTD", "type": "Entity", "regime": "TCO", "id": "58568"}, {"name": "FIRST UNITE DECORATION CAMBODIA CO., LTD.", "type": "Entity", "regime": "TCO", "id": "58636"}, {"name": "FIRST UNITE INTERNATIONAL LOGISTICS CO., LTD.", "type": "Entity", "regime": "TCO", "id": "58628"}, {"name": "FIRST UNITE NETWORKS ENTERTAINMENT CO., LTD.", "type": "Entity", "regime": "TCO", "id": "58629"}, {"name": "FIRST UNITE PROPERTY CO., LTD.", "type": "Entity", "regime": "TCO", "id": "58632"}, {"name": "GLAD GLORY LIMITED", "type": "Entity", "regime": "TCO", "id": "58662"}, {"name": "GLAD HARVEST LIMITED", "type": "Entity", "regime": "TCO", "id": "58661"}, {"name": "GLAD SPARKLE LIMITED", "type": "Entity", "regime": "TCO", "id": "58660"}, {"name": "GLAD VAST LIMITED", "type": "Entity", "regime": "TCO", "id": "58659"}, {"name": "GLORIA C", "type": "Vessel", "regime": "CUBA-EO14404", "id": "58910"}, {"name": "GREENBAY MULTI MEDIA PTE LTD", "type": "Entity", "regime": "TCO", "id": "58656"}, {"name": "GREENMEADOWS PROPERTIES SDN BHD", "type": "Entity", "regime": "TCO", "id": "58646"}, {"name": "HE, Yujing", "type": "Individual", "regime": "TCO", "id": "58595"}, {"name": "INTERNACIONAL MARITIMA SA", "type": "Entity", "regime": "CUBA-EO14404", "id": "59066"}, {"name": "LINKEDUS TECHNOLOGY CO., LTD.", "type": "Entity", "regime": "TCO", "id": "58638"}, {"name": "MARCO POLO HOTEL CO. LTD.", "type": "Entity", "regime": "TCO", "id": "58640"}, {"name": "MERITWISE GROUP PUBLIC LTD", "type": "Entity", "regime": "TCO", "id": "58644"}, {"name": "MO NET BEAUTY CO LTD", "type": "Entity", "regime": "TCO", "id": "58569"}, {"name": "PANG, Visal", "type": "Individual", "regime": "TCO", "id": "58625"}, {"name": "PETROLEOS MARITIMOS DEL CARIBE S.A.", "type": "Entity", "regime": "CUBA-EO14404", "id": "59067"}, {"name": "PREMIUM FINANCIAL LIMITED", "type": "Entity", "regime": "TCO", "id": "58658"}, {"name": "PRINCE INTERNATIONAL AIRLINES CO LTD", "type": "Entity", "regime": "TCO", "id": "58570"}, {"name": "QIU, Yong", "type": "Individual", "regime": "TCO", "id": "58575"}, {"name": "RICHENG PROPERTY DEVELOPER CO LTD", "type": "Entity", "regime": "TCO", "id": "58572"}, {"name": "RODRIGUEZ LASTRES, Any", "type": "Individual", "regime": "CUBA-EO14404", "id": "58912"}, {"name": "RODRIGUEZ LOPEZ CALLEJA, Guillermo Faustino", "type": "Individual", "regime": "CUBA-EO14404", "id": "58890"}, {"name": "SINO SAGACIOUS LIMITED", "type": "Entity", "regime": "TCO", "id": "58670"}, {"name": "SOLAR SCAPE FINANCE LIMITED", "type": "Entity", "regime": "TCO", "id": "58665"}, {"name": "SOLAR SCAPE LIMITED", "type": "Entity", "regime": "TCO", "id": "58666"}, {"name": "SUN SPEED HOLDINGS LIMITED", "type": "Entity", "regime": "TCO", "id": "58657"}, {"name": "SUPER LIGHT SPEED KH TECHNOLOGY CO., LTD.", "type": "Entity", "regime": "TCO", "id": "58597"}, {"name": "TENTACOOL COMMERCIAL INC", "type": "Entity", "regime": "CUBA-EO14404", "id": "58911"}, {"name": "TIAN XU INTERNATIONAL TECHNOLOGY PLC", "type": "Entity", "regime": "TCO", "id": "58573"}, {"name": "U-LIFE GO NOW CO., LTD.", "type": "Entity", "regime": "TCO", "id": "58641"}, {"name": "U-LIFE KH SUPER APP CO., LTD.", "type": "Entity", "regime": "TCO", "id": "58642"}, {"name": "VICTORY FLORA LIMITED", "type": "Entity", "regime": "TCO", "id": "58667"}, {"name": "WIN APPLAUSE LIMITED", "type": "Entity", "regime": "TCO", "id": "58668"}, {"name": "ZHAO, Mengyao", "type": "Individual", "regime": "TCO", "id": "58655"}, {"name": "ZHX PRINTING EQUIPMENT CAMBODIA CO LTD", "type": "Entity", "regime": "TCO", "id": "58574"}], "removed": []}, {"seen": "2026-11-04T17:46:35.425780+00:00", "list_date": "", "added_count": 15, "removed_count": 0, "amended": 0, "added": [{"name": "ALEXARYA FINSERV PRIVATE LIMITED", "type": "Entity", "regime": "IRAN-EO13902", "id": "59061"}, {"name": "ALEXARYA MEDIA AND ENTERTAINMENT PRIVATE LIMITED", "type": "Entity", "regime": "IRAN-EO13902", "id": "59062"}, {"name": "ARYAVART MARITIME AND EDUCATIONAL TRUST", "type": "Entity", "regime": "IRAN-EO13902", "id": "59065"}, {"name": "ARYAVART SHIP MANAGEMENT PRIVATE LIMITED", "type": "Entity", "regime": "IRAN-EO13902", "id": "59063"}, {"name": "DHIMAN, Ashwani Kumar", "type": "Individual", "regime": "IRAN-EO13902", "id": "59056"}, {"name": "DOMULLODZHANOV, Alisher", "type": "Individual", "regime": "IRAN-CON-ARMS-EO", "id": "59090"}, {"name": "ESWATINI MARITIME AFFAIRS AND INTERNATIONAL SHIP REGISTRY PTE. LTD.", "type": "Entity", "regime": "IRAN-EO13902", "id": "59058"}, {"name": "FUGO GROUND SERVICES INC", "type": "Entity", "regime": "IRAN-EO13902", "id": "59050"}, {"name": "OCEANIEK TECHNOLOGIES INDIA", "type": "Entity", "regime": "IRAN-EO13902", "id": "59055"}, {"name": "POLYNESIA MARITIME PRIVATE LIMITED", "type": "Entity", "regime": "IRAN-EO13902", "id": "59060"}, {"name": "PRECEPT TRENDS PRIVATE LIMITED", "type": "Entity", "regime": "IRAN-EO13902", "id": "59059"}, {"name": "SHAHID, Jaspreet Preeti", "type": "Individual", "regime": "IRAN-EO13902", "id": "59054"}, {"name": "SHARMA, Suniel Kumar", "type": "Individual", "regime": "IRAN-EO13902", "id": "59053"}, {"name": "SINGH, Ishwinder", "type": "Individual", "regime": "IRAN-EO13902", "id": "59057"}, {"name": "VIHARABOATING PRIVATE LIMITED", "type": "Entity", "regime": "IRAN-EO13902", "id": "59064"}], "removed": []}], "checked": "2026-11-27T19:21:38.997489+00:00", "source": "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.CSV", "search": "https://sanctionssearch.ofac.treas.gov/", "note": "Relevant to US-dollar business and correspondent banking."}], "resources": [{"group": "Turks & Caicos", "links": [{"name": "TCI Financial Services Commission", "url": "https://www.tcifsc.tc"}, {"name": "FSC guideline: appointment of COs and MLROs", "url": "https://tcifsc.tc/assets/documents/guldeline-for-appointment-of-cos-and-mlros-amended-january-19-2015-20240517004516.pdf"}, {"name": "Financial Intelligence Agency Ordinance (Cap. 3.20)", "url": "https://www.tcifsc.tc/assets/documents/03.20-financial-intelligence-agency-ordinance-1-20240516225529.pdf"}]}, {"group": "Lists and screening", "links": [{"name": "FATF high-risk and monitored jurisdictions", "url": "https://www.fatf-gafi.org/en/topics/high-risk-and-other-monitored-jurisdictions.html"}, {"name": "UK Sanctions List (FCDO)", "url": "https://www.gov.uk/government/publications/the-uk-sanctions-list"}, {"name": "OFAC Sanctions List Search", "url": "https://sanctionssearch.ofac.treas.gov/"}, {"name": "UN Security Council Consolidated List", "url": "https://main.un.org/securitycouncil/en/content/un-sc-consolidated-list"}, {"name": "EU Sanctions Map", "url": "https://www.sanctionsmap.eu/"}, {"name": "Basel AML Index", "url": "https://index.baselgovernance.org/"}, {"name": "Transparency International CPI", "url": "https://www.transparency.org/en/cpi"}]}, {"group": "Standards and guidance", "links": [{"name": "FATF Recommendations", "url": "https://www.fatf-gafi.org/en/publications/Fatfrecommendations/Fatf-recommendations.html"}, {"name": "FATF publications", "url": "https://www.fatf-gafi.org/en/publications.html"}, {"name": "CFATF", "url": "https://www.cfatf-gafic.org"}, {"name": "Egmont Group", "url": "https://egmontgroup.org"}, {"name": "Wolfsberg Group", "url": "https://wolfsberg-group.org"}]}], "calendar": [{"date": "2027-02-01", "title": "FATF February 2027 Plenary (dates TBC)", "detail": "FATF has not yet announced the dates. Plenaries are held each February, June and October; check fatf-gafi.org/en/calendars/events.html.", "tag": "FATF"}], "checklist": ["Review sanctions updates (UK OFSI / UK Sanctions List, OFAC, UN) and re-screen if lists changed", "Clear overnight screening and transaction-monitoring alerts", "Review internal suspicious activity reports received; decide on onward SARs to the FIA", "Check FATF / CFATF news and any changes to high-risk jurisdictions", "Follow up open FIA requests, production orders and consent matters", "Check outstanding EDD reviews and periodic KYC refreshes due", "Note anything for the MLRO log / Board report"]};
+
+// Offline support when installed to the Home Screen (needs http(s), not file://).
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+// ---------- helpers ----------
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "href") {
+      if (/^https?:\/\//i.test(v)) { el.href = v; el.target = "_blank"; el.rel = "noopener noreferrer"; }
+      else if (v.startsWith("#")) el.href = v;
+    }
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) el.append(k.nodeType ? k : String(k));
+  return el;
+}
+function svg(markup, size) {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("width", size || 16); s.setAttribute("height", size || 16);
+  s.setAttribute("fill", "none"); s.setAttribute("stroke", "currentColor"); s.setAttribute("stroke-width", "2");
+  s.setAttribute("stroke-linecap", "round"); s.setAttribute("stroke-linejoin", "round"); s.setAttribute("aria-hidden", "true");
+  s.innerHTML = markup; return s;
+}
+const ICONS = {
+  shield: '<path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  ban: '<circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/>',
+  news: '<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5"/>',
+  check: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
+  link: '<path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  sun: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+};
+const cardHead = (icon, title, right) => h("div", { class: "card-h" },
+  h("div", { class: "ttl" }, h("span", { class: "ic" }, svg(ICONS[icon], 15)), h("h2", {}, title)), right || null);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const DAY = 86400000;
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const parseDay = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const daysUntil = s => Math.round((parseDay(s) - startOfToday()) / DAY);
+const fmtDate = (s, opts) => parseDay(s).toLocaleDateString(undefined, opts || { day: "numeric", month: "short", year: "numeric" });
+function ago(iso) {
+  if (!iso) return "";
+  const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (mins < 60) return `${Math.max(mins, 1)}m ago`;
+  if (mins < 1440) return `${Math.round(mins / 60)}h ago`;
+  const d = Math.round(mins / 1440);
+  return d < 14 ? `${d}d ago` : new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+}
+function fmtMonths(n) {
+  if (n == null) return "";
+  if (n < 12) return `${n} mo`;
+  const y = Math.floor(n / 12), m = n % 12;
+  return m ? `${y}y ${m}m` : `${y}y`;
+}
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2200);
+}
+function burst(x, y) {
+  if (REDUCED) return;
+  const cols = ["#8b9cff", "#5ee7df", "#f0abfc", "#5fe3a1", "#ffc76b"];
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random() * Math.PI * 2, r = 50 + Math.random() * 90;
+    const p = h("i", { class: "burst" });
+    p.style.cssText = `left:${x}px;top:${y}px;background:${cols[i % cols.length]};--bx:${Math.cos(a) * r}px;--by:${Math.sin(a) * r - 30}px;--br:${Math.random() * 540}deg`;
+    document.body.append(p); setTimeout(() => p.remove(), 1000);
+  }
+}
+
+// ---------- theme ----------
+(function theme() {
+  const saved = store.get("theme", null);
+  if (saved) document.documentElement.dataset.theme = saved;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const isDark = () => document.documentElement.dataset.theme
+    ? document.documentElement.dataset.theme === "dark"
+    : !matchMedia("(prefers-color-scheme: light)").matches;
+  const sync = () => { meta.content = isDark() ? "#07080d" : "#f6f7fb"; };
+  sync();
+  document.getElementById("theme").onclick = () => {
+    const next = isDark() ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    store.set("theme", next); sync();
+  };
+})();
+
+// "New since last visit": remember when the brief was last opened (per browser).
+const lastVisit = store.get("lastVisit", null);
+store.set("lastVisit", new Date().toISOString());
+
+const app = document.getElementById("app");
+const F = DATA.fatf;
+const SECTIONS = [];   // for the nav and command palette: [id, label, icon]
+
+// ---------- hero ----------
+(function hero() {
+  const hr = new Date().getHours();
+  document.getElementById("greet").textContent = hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening";
+  document.getElementById("today").textContent = new Date().toLocaleDateString(undefined,
+    { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  document.getElementById("generated").textContent = "Updated " + new Date(DATA.generated).toLocaleString(undefined,
+    { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const clock = document.getElementById("clock");
+  const tick = () => { clock.textContent = new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }); };
+  tick(); setInterval(tick, 15000);
+
+  // One-sentence summary of what needs attention today.
+  const all = DATA.sections.flatMap(s => s.feeds.flatMap(f => f.items));
+  const fresh = lastVisit ? all.filter(i => i.date && new Date(i.date) > new Date(lastVisit)).length : 0;
+  const rescreen = (DATA.sanctions || []).filter(l => (l.events || []).some(e => (Date.now() - new Date(e.seen)) / DAY <= 2 && e.added_count));
+  const st = DATA.fatf_status;
+  const bits = [];
+  if (st.newer && st.newer.length) bits.push(h("b", {}, "FATF has a new statement to review"));
+  if (rescreen.length) bits.push(h("b", {}, `new designations on the ${rescreen.map(l => l.label).join(" and ")}: re-screen customers`));
+  if (fresh) bits.push(`${plural(fresh, "new story")} since your last visit`);
+  const lede = document.getElementById("lede");
+  if (bits.length) lede.append("Today: ", ...bits.flatMap((b, i) => [i ? (i === bits.length - 1 ? " and " : ", ") : "", b]), ".");
+  else lede.append(`${F.black_list.length} black-listed and ${F.grey_list.length} grey-listed jurisdictions as of the ${F.as_of_label}. Nothing urgent flagged this morning.`);
+})();
+
+// ---------- banners ----------
+(function banners() {
+  const st = DATA.fatf_status;
+  if (st.newer && st.newer.length) {
+    app.append(h("div", { class: "banner warn reveal", role: "alert" },
+      h("b", {}, "New FATF statement published. "),
+      "fatf-gafi.org has a newer list than this dashboard (", F.as_of_label, "). Review: ",
+      ...st.newer.map((p, i) => [i ? ", " : "", h("a", { href: p.url },
+        p.kind === "call-for-action" ? "Black list" : "Grey list", " ", new Date(p.year, p.month - 1).toLocaleDateString(undefined, { month: "long", year: "numeric" }))]),
+      ". Then update data/fatf_lists.json."));
+  } else if (st.plenary_passed) {
+    const np = F.next_plenary;
+    app.append(h("div", { class: "banner warn reveal", role: "alert" },
+      h("b", {}, "FATF has published new lists. "),
+      `The plenary ended on ${fmtDate(np.end || np.start)}, but the lists below are still from the ${F.as_of_label}. Check `,
+      h("a", { href: F.sources.topic_page }, "fatf-gafi.org"), ", then update data/fatf_lists.json."));
+  }
+  const np = F.next_plenary;
+  if (np && np.start) {
+    const toStart = daysUntil(np.start), toEnd = daysUntil(np.end || np.start);
+    if (toStart <= 14 && toEnd >= 0) {
+      const when = toStart > 0 ? `starts in ${toStart} day${toStart === 1 ? "" : "s"}` : "is in session now";
+      app.append(h("div", { class: "banner info reveal" },
+        h("b", {}, `FATF Plenary ${when}`), ` (${fmtDate(np.start, { day: "numeric", month: "short" })}–${fmtDate(np.end || np.start)}, ${np.location}). `,
+        np.note || ""));
+    }
+  }
+})();
+
+// ---------- bento tiles ----------
+(function tiles() {
+  const watchHits = DATA.sections.flatMap(s => s.feeds.flatMap(f => f.items)).filter(i => i.watch && i.watch.length).length;
+  const np = F.next_plenary;
+  const dPlen = np && np.start ? daysUntil(np.start) : null;
+  const lastChange = F.history[0];
+  const tile = (n, k, color, l, foot, extra) => h("div", { class: "tile reveal" },
+    h("div", { class: "k" }, h("span", { class: "dot", style: `background:${color};box-shadow:0 0 10px ${color}` }), k),
+    h("div", { class: "n mono", "data-count": typeof n === "number" ? n : null }, typeof n === "number" ? "0" : n),
+    l ? h("div", { class: "l" }, l) : null, foot ? h("div", { class: "foot" }, foot) : null,
+    h("span", { class: "spark", style: `background:${color}` }), extra || null);
+
+  // Plenary countdown ring: fills as the plenary approaches (over a ~4-month cycle).
+  let plen;
+  if (dPlen == null) {
+    plen = tile("TBC", "Next FATF plenary", "var(--accent)", np && np.label ? np.label : "", "Dates not yet announced");
+  } else {
+    const live = dPlen <= 0 && daysUntil(np.end || np.start) >= 0;
+    const done = dPlen <= 0 && !live;
+    const pct = dPlen > 0 ? Math.max(.04, 1 - dPlen / 120) : 1;
+    const C = 2 * Math.PI * 42;
+    const ring = h("div", { class: "ring" });
+    ring.innerHTML = `<svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="42" fill="none" stroke-width="8"/>
+      <circle class="bar-c" cx="50" cy="50" r="42" fill="none" stroke-width="8" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-offset="${C * (1 - pct)}"/></svg>`;
+    ring.append(h("div", { class: "mid" }, h("div", {},
+      h("b", { class: "mono", "data-count": dPlen > 0 ? dPlen : null }, dPlen > 0 ? "0" : live ? "Now" : "Done"),
+      h("small", {}, dPlen > 0 ? "days" : "plenary"))));
+    plen = h("div", { class: "tile ring-tile reveal" }, ring,
+      h("div", {}, h("div", { class: "k" }, "Next FATF plenary"),
+        h("div", { class: "l", style: "font-weight:600;font-size:15px;margin-top:4px" }, np.location || np.label || ""),
+        h("div", { class: "foot" }, fmtDate(np.start), np.end ? ` – ${fmtDate(np.end, { day: "numeric", month: "short" })}` : "")),
+      h("span", { class: "spark", style: "background:var(--accent)" }));
+  }
+  app.append(h("div", { class: "bento", id: "overview" },
+    tile(F.black_list.length, "Black list", "var(--red)", "Call for action", F.black_list.map(c => c.iso).join(" · ")),
+    tile(F.grey_list.length, "Grey list", "var(--grey)", "Increased monitoring",
+      lastChange ? `+${lastChange.added.length} / −${lastChange.removed.length} at ${lastChange.label}` : null),
+    plen,
+    tile(watchHits, "Watch-term stories", "var(--accent2)", "TCI, Caribbean, OTs…", "Across all news sources")));
+  SECTIONS.push(["overview", "Overview", "sun"]);
+})();
+
+// ---------- sanctions list changes ----------
+(function sanctions() {
+  const lists = DATA.sanctions || [];
+  if (!lists.length) return;
+  const daysAgo = iso => (Date.now() - new Date(iso)) / DAY;
+  const counts = e => [e.added_count ? `+${e.added_count} added` : null, e.removed_count ? `−${e.removed_count} removed` : null,
+    e.amended ? `${e.amended} amended` : null].filter(Boolean).join(", ");
+  const entryLi = x => h("li", {}, h("b", {}, x.name || x.id), " ", h("span", { class: "sub" }, [x.type, x.regime].filter(Boolean).join(" · ")));
+  const box = l => {
+    const recent = (l.events || []).filter(e => daysAgo(e.seen) <= 7);
+    const fresh = recent.find(e => daysAgo(e.seen) <= 2 && e.added_count);
+    return h("div", { class: "slist" },
+      h("div", { class: "slist-h" },
+        h("b", {}, l.label, " ", fresh ? h("span", { class: "pill red pulse" }, "RE-SCREEN") : null),
+        h("span", { class: "sub" }, l.list_date ? `list dated ${l.list_date}` : "")),
+      l.count ? h("div", { class: "big-n mono" }, h("span", { "data-count": l.count }, "0"), h("span", { class: "sub", style: "font-family:inherit;font-size:13px;letter-spacing:0" }, " designations")) : null,
+      h("div", { class: "sub", style: "margin:4px 0 10px" }, l.note, " ",
+        h("a", { href: l.search }, "Search"), " · ", h("a", { href: l.source }, "Download")),
+      l.error ? h("div", { class: "err" }, "Could not check today: ", l.error,
+        l.checked ? ` (last checked ${ago(l.checked)})` : "") : null,
+      l.baseline ? h("div", { class: "empty" }, "Tracking started today. Changes will show from the next update.") : null,
+      !l.error && !l.baseline && !recent.length ? h("div", {}, h("span", { class: "pill ok" }, "NO CHANGES"), " in the last 7 days") : null,
+      (l.events || []).slice(0, 6).map((e, i) => h("details", { open: i === 0 && daysAgo(e.seen) <= 2 },
+        h("summary", {}, h("b", {}, new Date(e.seen).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })), h("span", { class: "sub" }, counts(e))),
+        e.added.length ? [h("div", { class: "sub", style: "margin-top:6px" }, "Added"), h("ul", {}, e.added.map(entryLi))] : null,
+        e.added_count > e.added.length ? h("div", { class: "sub" }, `…and ${e.added_count - e.added.length} more`) : null,
+        e.removed.length ? [h("div", { class: "sub", style: "margin-top:6px" }, "Removed"), h("ul", {}, e.removed.map(entryLi))] : null,
+        e.removed_count > e.removed.length ? h("div", { class: "sub" }, `…and ${e.removed_count - e.removed.length} more`) : null,
+        e.amended ? h("div", { class: "sub", style: "margin-top:6px" }, `${e.amended} existing designations amended (details in the official list).`) : null)));
+  };
+  app.append(h("section", { class: "card span-12 reveal", id: "sanctions" },
+    cardHead("shield", "Sanctions list changes", h("span", { class: "sub" }, "Downloaded every morning and compared with the previous day's")),
+    h("div", { class: "sgrid" }, lists.map(box))));
+  SECTIONS.push(["sanctions", "Sanctions", "shield"]);
+})();
+
+// ---------- country lookup ----------
+const lookupInput = h("input", { type: "search", placeholder: "Type a country, e.g. Haiti, Panama, BVI…", "aria-label": "Country lookup" });
+(function lookup() {
+  const removed = new Map();
+  for (const ch of F.history) for (const c of ch.removed) if (!removed.has(norm(c))) removed.set(norm(c), ch.label);
+  const all = [
+    ...F.black_list.map(c => ({ ...c, list: "black" })),
+    ...F.grey_list.map(c => ({ ...c, list: "grey" })),
+  ];
+  const aliases = { "north korea": "democratic people s republic of korea", "dprk": "democratic people s republic of korea",
+    "drc": "democratic republic of the congo", "congo": "democratic republic of the congo", "laos": "lao pdr",
+    "bvi": "virgin islands uk", "british virgin islands": "virgin islands uk", "burma": "myanmar",
+    "ivory coast": "cote d ivoire", "viet nam": "vietnam", "bosnia": "bosnia and herzegovina", "png": "papua new guinea" };
+  const out = h("div", { id: "lookup-result" });
+  const input = lookupInput;
+  input.addEventListener("input", () => {
+    out.replaceChildren();
+    let q = norm(input.value);
+    if (q.length < 2) return;
+    q = aliases[q] || q;
+    const hits = all.filter(c => norm(c.country).includes(q) || c.iso.toLowerCase() === q);
+    const name = hits.length ? null : input.value.trim();
+    for (const c of hits) {
+      out.append(h("div", {},
+        h("span", { class: "pill " + (c.list === "black" ? "red" : "grey") }, c.list === "black" ? "BLACK LIST" : "GREY LIST"), " ",
+        h("b", {}, c.country), " ",
+        c.list === "black" ? `FATF call for action: ${c.measure}.` : `Under FATF increased monitoring since ${c.listed_since}. Apply a risk-based approach and consider EDD.`,
+        c.watch ? h("div", { class: "sub" }, c.watch) : null));
+    }
+    for (const [k, label] of removed) if (k.includes(q) && !hits.some(c => norm(c.country) === k))
+      out.append(h("div", {}, h("span", { class: "pill ok" }, "REMOVED"), " Removed from the grey list at the ", label, "."));
+    if (!out.childNodes.length) out.append(h("div", {}, h("span", { class: "pill ok" }, "NOT LISTED"),
+      ` ${name} is not on the FATF black or grey list as of ${fmtDate(F.as_of)}.`));
+    const term = encodeURIComponent(input.value.trim());
+    out.append(h("div", { class: "sub" }, "Also check: ",
+      h("a", { href: "https://www.sanctionsmap.eu/" }, "EU Sanctions Map"), " · ",
+      h("a", { href: "https://sanctionssearch.ofac.treas.gov/" }, "OFAC search"), " · ",
+      h("a", { href: "https://www.gov.uk/government/publications/the-uk-sanctions-list" }, "UK Sanctions List"), " · ",
+      h("a", { href: `https://news.google.com/search?q=${term}%20money%20laundering` }, "news")));
+  });
+  app.append(h("section", { class: "card span-12 reveal", id: "lookup" },
+    cardHead("globe", "Country risk lookup", h("span", { class: "sub" }, "FATF status plus sanctions search links")),
+    h("div", { class: "bigsearch" }, svg(ICONS.search, 18), input), out));
+  SECTIONS.push(["lookup", "Country lookup", "globe"]);
+})();
+
+// ---------- FATF lists ----------
+(function lists() {
+  const lastAdded = new Set((F.history[0] || { added: [] }).added);
+  const maxM = Math.max(1, ...F.grey_list.map(c => c.months_listed || 0));
+  const rows = [...F.grey_list].sort((a, b) => a.country.localeCompare(b.country)).map(c =>
+    h("tr", {},
+      h("td", {}, h("b", { style: "font-weight:600" }, c.country), " ", lastAdded.has(c.country) ? h("span", { class: "pill red" }, "NEW") : null,
+        c.watch ? h("div", { class: "sub" }, c.watch) : null),
+      h("td", { class: "num" }, c.listed_since),
+      h("td", { class: "num" }, fmtMonths(c.months_listed)),
+      h("td", { style: "width:28%" }, h("div", { class: "meter", title: fmtMonths(c.months_listed) }, h("i", { "data-w": ((c.months_listed || 0) / maxM * 100).toFixed(1) + "%" })))));
+  app.append(h("section", { class: "card span-8 reveal", id: "grey" },
+    cardHead("list", "FATF grey list", h("span", { class: "sub" }, `As of ${F.as_of_label} · `, h("a", { href: F.sources.grey_list }, "Official statement"))),
+    h("div", { class: "sub", style: "margin:-6px 0 10px" }, "Jurisdictions under increased monitoring. The bar shows how long each has been listed."),
+    h("div", { class: "scroll" }, h("table", {},
+      h("thead", {}, h("tr", {}, h("th", {}, "Jurisdiction"), h("th", {}, "Listed since"), h("th", {}, "On list"), h("th", {}, ""))),
+      h("tbody", {}, rows)))));
+
+  app.append(h("section", { class: "card span-4 reveal", id: "black", style: "--d:120ms" },
+    cardHead("ban", "FATF black list"),
+    h("div", { class: "sub", style: "margin:-6px 0 12px" }, "High-risk jurisdictions subject to a call for action. ",
+      h("a", { href: F.sources.black_list }, "Official statement")),
+    h("div", { class: "blacklist" }, F.black_list.map(c => h("div", {}, h("span", {}, c.country), h("span", { class: "pill grey" }, c.measure)))),
+    h("h3", {}, "Recent changes"),
+    F.history.map(ch => h("div", { class: "change" }, h("b", {}, ch.label),
+      ch.added.length ? h("div", {}, h("span", { class: "pill red" }, "ADDED"), " ", ch.added.join(", ")) : null,
+      ch.removed.length ? h("div", {}, h("span", { class: "pill ok" }, "REMOVED"), " ", ch.removed.join(", ")) : null)),
+    h("h3", {}, "Related lists"),
+    F.other_lists.map(o => h("div", { class: "change" }, h("a", { href: o.url }, o.name), h("div", { class: "sub" }, o.note)))));
+  SECTIONS.push(["grey", "Grey list", "list"], ["black", "Black list", "ban"]);
+})();
+
+// ---------- news ----------
+const newsApi = {};
+(function news() {
+  const card = h("section", { class: "card span-8 reveal", id: "news" });
+  const body = h("div");
+  let active = store.get("newsTab", "all");
+  if (active !== "all" && !DATA.sections.some(s => s.id === active)) active = "all";
+  let watchOnly = store.get("watchOnly", false), query = "";
+  const tabs = h("div", { class: "tabs", role: "group", "aria-label": "News section" });
+  const tabBtn = (id, label) => h("button", { "aria-pressed": String(active === id), onclick: () => { active = id; store.set("newsTab", id); draw(); } }, label);
+  const search = h("input", { type: "search", placeholder: "Filter headlines…", "aria-label": "Filter headlines",
+    oninput: e => { query = norm(e.target.value); draw(); } });
+  const watchBox = h("input", { type: "checkbox", class: "switch", onchange: e => { watchOnly = e.target.checked; store.set("watchOnly", watchOnly); draw(); } });
+  watchBox.checked = watchOnly;
+  newsApi.search = q => { active = "all"; search.value = q; query = norm(q); draw(); };
+
+  function itemEl(i, n) {
+    const isNew = lastVisit && i.date && new Date(i.date) > new Date(lastVisit);
+    return h("div", { class: "item", style: `animation-delay:${Math.min(n, 10) * 30}ms` },
+      h("a", { class: "t", href: i.link }, i.title),
+      h("div", { class: "meta" },
+        isNew ? h("span", { class: "pill new" }, "NEW") : null,
+        i.source ? h("span", {}, i.source) : null,
+        i.date ? h("span", { title: new Date(i.date).toLocaleString() }, ago(i.date)) : null,
+        ...(i.watch || []).slice(0, 3).map(w => h("span", { class: "pill watch" }, w))),
+      i.summary ? h("div", { class: "sum" }, i.summary) : null);
+  }
+  function draw() {
+    tabs.replaceChildren(tabBtn("all", "All"), ...DATA.sections.map(s => tabBtn(s.id, s.title)));
+    body.replaceChildren();
+    let n = 0;
+    const secs = DATA.sections.filter(s => active === "all" || s.id === active);
+    if (!DATA.sections.length) body.append(h("div", { class: "empty" }, "News was not fetched (offline mode or no network)."));
+    for (const s of secs) {
+      if (active === "all") body.append(h("h3", {}, s.title));
+      for (const f of s.feeds) {
+        const items = f.items.filter(i => (!watchOnly || (i.watch && i.watch.length)) && (!query || norm(i.title + " " + i.summary).includes(query)));
+        if ((watchOnly || query) && !items.length) continue;
+        body.append(h("div", { class: "feed" },
+          h("div", { class: "feed-h" }, h("b", {}, f.name),
+            f.stale_since ? h("span", { class: "sub" }, "cached ", ago(f.stale_since)) : null),
+          f.error && !f.items.length ? h("div", { class: "err" }, "Source unavailable right now. ", h("a", { href: f.url }, "Open feed")) : null,
+          !f.error && !items.length ? h("div", { class: "empty" }, "Nothing recent.") : null,
+          (active === "all" ? items.slice(0, 5) : items).map(i => itemEl(i, n++))));
+      }
+    }
+    if (!body.childNodes.length) body.append(h("div", { class: "empty" }, "No headlines match."));
+  }
+  card.append(cardHead("news", "What's new in AML, sanctions and the region"),
+    h("div", { class: "toolbar" }, tabs),
+    h("div", { class: "toolbar" }, search, h("label", { class: "chk" }, watchBox, "Watch terms only")),
+    body);
+  draw();
+  app.append(card);
+  SECTIONS.push(["news", "News", "news"]);
+})();
+
+// ---------- right column: checklist + calendar ----------
+(function side() {
+  const col = h("div", { class: "span-4", style: "display:grid;gap:16px;align-content:start" });
+
+  const key = "checklist:" + new Date().toDateString();
+  const done = new Set(store.get(key, []));
+  const extra = store.get("checklist:extra", []);
+  const list = h("ul", { class: "plain check" });
+  const progress = h("div", { class: "sub" });
+  const bar = h("i");
+  function drawList() {
+    list.replaceChildren(...[...DATA.checklist, ...extra].map((text, idx) => {
+      const li = h("li", { class: done.has(text) ? "done" : null });
+      const box = h("input", { type: "checkbox", "aria-label": text, onchange: e => {
+        e.target.checked ? done.add(text) : done.delete(text);
+        store.set(key, [...done]); li.className = e.target.checked ? "done" : "";
+        if (updateProgress() && e.target.checked) {
+          const r = e.target.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2);
+          toast("Morning routine complete. Nice work.");
+        }
+      } });
+      box.checked = done.has(text);
+      const kids = [box, h("span", {}, text)];
+      if (idx >= DATA.checklist.length) kids.push(h("button", { class: "btn x", title: "Remove", "aria-label": "Remove task",
+        onclick: () => { extra.splice(idx - DATA.checklist.length, 1); store.set("checklist:extra", extra); drawList(); } }, "×"));
+      li.append(...kids);
+      return li;
+    }));
+    updateProgress();
+  }
+  function updateProgress() {
+    const all = [...DATA.checklist, ...extra];
+    const n = all.filter(t => done.has(t)).length;
+    const complete = all.length > 0 && n === all.length;
+    progress.replaceChildren(complete ? h("span", { class: "alldone" }, "All done for today") : `${n} of ${all.length} done`);
+    bar.style.width = all.length ? (n / all.length * 100) + "%" : "0";
+    return complete;
+  }
+  const add = h("input", { type: "text", placeholder: "Add your own task and press Enter", style: "margin-top:12px",
+    onkeydown: e => { if (e.key === "Enter" && e.target.value.trim()) { extra.push(e.target.value.trim()); store.set("checklist:extra", extra); e.target.value = ""; drawList(); } } });
+  drawList();
+  col.append(h("section", { class: "card reveal", id: "routine", style: "--d:120ms" },
+    cardHead("check", "Today's routine", progress), h("div", { class: "progress" }, bar), list, add));
+
+  const events = [...DATA.calendar].sort((a, b) => a.date.localeCompare(b.date))
+    .filter(e => daysUntil(e.end || e.date) >= -7).slice(0, 8);
+  const firstUpcoming = events.findIndex(e => daysUntil(e.end || e.date) >= 0);
+  col.append(h("section", { class: "card reveal", id: "dates", style: "--d:200ms" }, cardHead("cal", "Key dates"),
+    events.length ? h("div", { class: "timeline" }, events.map((e, i) => {
+      const d = daysUntil(e.date);
+      const past = daysUntil(e.end || e.date) < 0;
+      return h("div", { class: "event" + (past ? " past" : "") + (i === firstUpcoming ? " soon" : "") },
+        h("div", { class: "d mono" }, fmtDate(e.date, { day: "numeric", month: "short" }),
+          h("small", {}, past ? "past" : d > 0 ? `in ${d}d` : "now")),
+        h("div", { class: "rail" }, h("i")),
+        h("div", {}, h("b", { style: "font-weight:600" }, e.title), " ", e.tag ? h("span", { class: "pill grey" }, e.tag) : null,
+          e.detail ? h("div", { class: "sub" }, e.detail) : null));
+    })) : h("div", { class: "empty" }, "No upcoming dates. Add some in data/calendar.json.")));
+  app.append(col);
+  SECTIONS.push(["routine", "Routine", "check"], ["dates", "Key dates", "cal"]);
+})();
+
+// ---------- resources ----------
+app.append(h("section", { class: "card span-12 reveal", id: "links" }, cardHead("link", "Quick links"),
+  h("div", { class: "links" }, DATA.resources.map(g => h("section", {}, h("h3", {}, g.group),
+    g.links.map(l => h("a", { href: l.url }, l.name)))))));
+SECTIONS.push(["links", "Links", "link"]);
+
+// ---------- nav ----------
+(function nav() {
+  const navEl = document.getElementById("nav");
+  const shown = ["overview", "sanctions", "lookup", "grey", "news", "routine", "dates", "links"];
+  const links = SECTIONS.filter(([id]) => shown.includes(id)).map(([id, label]) => h("a", { href: "#" + id, "data-id": id }, label));
+  navEl.append(...links);
+  const bar = document.getElementById("bar");
+  addEventListener("scroll", () => bar.classList.toggle("scrolled", scrollY > 8), { passive: true });
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver(es => {
+      for (const e of es) if (e.isIntersecting) for (const a of links) a.classList.toggle("on", a.dataset.id === e.target.id);
+    }, { rootMargin: "-40% 0px -55% 0px" });
+    for (const [id] of SECTIONS) { const el = document.getElementById(id); if (el) io.observe(el); }
+  }
+})();
+
+// ---------- motion: reveal on scroll, count-up numbers, meters, ring, cursor spotlight ----------
+(function motion() {
+  function countUp(el) {
+    const end = +el.dataset.count; delete el.dataset.count;
+    if (REDUCED || !end) { el.textContent = end.toLocaleString(); return; }
+    const t0 = performance.now(), dur = Math.min(1400, 600 + end * 4);
+    const step = t => {
+      const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 4);
+      el.textContent = Math.round(end * e).toLocaleString();
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  function play(root) {
+    root.querySelectorAll("[data-count]").forEach(countUp);
+    root.querySelectorAll(".meter i[data-w]").forEach((m, i) => setTimeout(() => { m.style.width = m.dataset.w; }, REDUCED ? 0 : i * 25));
+    root.querySelectorAll(".bar-c[data-offset]").forEach(c => requestAnimationFrame(() => { c.style.strokeDashoffset = c.dataset.offset; }));
+  }
+  const els = [...document.querySelectorAll(".reveal")];
+  // Stagger siblings that enter together (bento tiles).
+  document.querySelectorAll(".bento .tile").forEach((t, i) => t.style.setProperty("--d", i * 80 + "ms"));
+  if (!("IntersectionObserver" in window) || REDUCED) { els.forEach(e => { e.classList.add("in"); play(e); }); }
+  else {
+    const io = new IntersectionObserver(es => {
+      for (const e of es) if (e.isIntersecting) { e.target.classList.add("in"); play(e.target); io.unobserve(e.target); }
+    }, { threshold: .08, rootMargin: "0px 0px -5% 0px" });
+    els.forEach(e => io.observe(e));
+  }
+  // Cursor spotlight on cards (pointer devices only).
+  if (matchMedia("(hover: hover)").matches) {
+    document.addEventListener("pointermove", e => {
+      const c = e.target.closest && e.target.closest(".card, .tile");
+      if (!c) return;
+      const r = c.getBoundingClientRect();
+      c.style.setProperty("--mx", (e.clientX - r.left) + "px");
+      c.style.setProperty("--my", (e.clientY - r.top) + "px");
+    }, { passive: true });
+  }
+})();
+
+// ---------- command palette (Ctrl/⌘ K or /) ----------
+(function palette() {
+  const pal = document.getElementById("pal"), q = document.getElementById("pal-q"), listEl = document.getElementById("pal-list");
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  document.getElementById("kbd-hint").textContent = isMac ? "⌘ K" : "Ctrl K";
+  const countries = [...F.black_list, ...F.grey_list].map(c => c.country);
+  let items = [], sel = 0;
+  const go = id => { close(); const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" }); };
+  const lookupCountry = c => { go("lookup"); lookupInput.value = c; lookupInput.dispatchEvent(new Event("input")); setTimeout(() => lookupInput.focus({ preventScroll: true }), 400); };
+  function build(term) {
+    const t = norm(term);
+    const groups = [];
+    const secs = SECTIONS.filter(([, l]) => !t || norm(l).includes(t)).map(([id, l, ic]) => ({ ic, label: l, right: "Jump", run: () => go(id) }));
+    if (secs.length) groups.push(["Sections", secs]);
+    const acts = [{ ic: "sun", label: "Switch light / dark theme", right: "Action", run: () => { close(); document.getElementById("theme").click(); } }]
+      .filter(a => !t || norm(a.label).includes(t));
+    if (acts.length) groups.push(["Actions", acts]);
+    if (t.length >= 2) {
+      const cs = countries.filter(c => norm(c).includes(t)).slice(0, 6).map(c => ({ ic: "globe", label: c, right: "FATF status", run: () => lookupCountry(c) }));
+      if (!cs.length) cs.push({ ic: "globe", label: `Look up “${term.trim()}”`, right: "FATF status", run: () => lookupCountry(term.trim()) });
+      groups.push(["Countries", cs]);
+      const heads = DATA.sections.flatMap(s => s.feeds.flatMap(f => f.items)).filter(i => norm(i.title).includes(t)).slice(0, 5)
+        .map(i => ({ ic: "news", label: i.title, right: i.source || "", run: () => { close(); window.open(i.link, "_blank", "noopener"); } }));
+      heads.push({ ic: "search", label: `Filter news for “${term.trim()}”`, right: "News", run: () => { newsApi.search(term.trim()); go("news"); } });
+      groups.push(["Headlines", heads]);
+    }
+    items = groups.flatMap(g => g[1]); sel = 0;
+    let k = 0;
+    listEl.replaceChildren(...groups.flatMap(([g, its]) => [h("div", { class: "pal-grp" }, g),
+      ...its.map(it => { const idx = k++; return h("div", { class: "pal-it", role: "option", "data-i": idx,
+        onclick: () => it.run(), onmousemove: () => { if (sel !== idx) { sel = idx; mark(); } } },
+        h("span", { class: "g" }, svg(ICONS[it.ic], 14)), h("span", {}, it.label), h("span", { class: "r" }, it.right)); })]));
+    if (!items.length) listEl.append(h("div", { class: "empty", style: "padding:14px" }, "No matches."));
+    mark();
+  }
+  function mark() {
+    listEl.querySelectorAll(".pal-it").forEach(el => {
+      const on = +el.dataset.i === sel; el.classList.toggle("sel", on); el.setAttribute("aria-selected", on);
+      if (on) el.scrollIntoView({ block: "nearest" });
+    });
+  }
+  let lastFocus = null;
+  function open() { lastFocus = document.activeElement; pal.classList.add("open"); q.value = ""; build(""); q.focus(); }
+  function close() { pal.classList.remove("open"); if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); }
+  q.addEventListener("input", () => build(q.value));
+  q.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") { e.preventDefault(); sel = Math.min(items.length - 1, sel + 1); mark(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(0, sel - 1); mark(); }
+    else if (e.key === "Enter" && items[sel]) { e.preventDefault(); items[sel].run(); }
+  });
+  pal.addEventListener("click", e => { if (e.target === pal) close(); });
+  document.getElementById("open-pal").onclick = open;
+  document.addEventListener("keydown", e => {
+    if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); pal.classList.contains("open") ? close() : open(); }
+    else if (e.key === "Escape" && pal.classList.contains("open")) close();
+    else if (e.key === "/" && !pal.classList.contains("open") && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); open(); }
+  });
+})();
+</script>
+</body>
+</html>
